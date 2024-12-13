@@ -10,8 +10,8 @@ The main idea is :
 - path traced octree-based visibility calculations
 - if path tracing is already there use it for lighting calculations
 - and later - if the gpu still has enough power - for reflections/transparency/everything
-~~- distance-dependent octree detail level - tried it, doesn't really lower gpu load~~
-~~- procedural sub-detail voxel generation for close voxels - tried it, doesn't really look good~~
+- ~~distance-dependent octree detail level - tried it, doesn't really lower gpu load~~
+- ~~procedural sub-detail voxel generation for close voxels - tried it, doesn't really look good~~
 - instead of the above use super-detailed voxel clouds in case of nearby octrees
 
 The method :
