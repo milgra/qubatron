@@ -47,7 +47,7 @@ How to build :
 ```
 meson setup build
 ninja -C build
-build/voxatron -v
+build/qubatron -v
 ```
 
 Videos :
