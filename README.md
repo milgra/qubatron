@@ -43,4 +43,11 @@ Measured on my ASUS Zenbook UX3405 14 OLED / Intel(R) Core(TM) Ultra 5 125H / In
 - 4502804 cubes / no lights : 50 fps
 - 4502804 cubes / 1 light : 16 fps
 
+How to build :
+```
+meson setup build
+ninja -C build
+build/voxatron -v
+```
+
 Videos :
