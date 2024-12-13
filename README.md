@@ -40,7 +40,7 @@ Things learned :
 
 Performance :
 Measured on my ASUS Zenbook UX3405 14 OLED / Intel(R) Core(TM) Ultra 5 125H / Intel Arc Graphics / 1200x800 points resolution
-4502804 cubes / no lights : 50 fps
-4502804 cubes / 1 light : 16 fps
+- 4502804 cubes / no lights : 50 fps
+- 4502804 cubes / 1 light : 16 fps
 
 Videos :
