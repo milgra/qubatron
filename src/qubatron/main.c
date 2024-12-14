@@ -168,6 +168,7 @@ void cube_delete(void* p)
 }
 
 uint32_t cube_count = 0;
+uint32_t leaf_count = 0;
 
 cube_t* cube_create(uint32_t color, v3_t tlf, v3_t brb, v3_t nrm)
 {
@@ -222,6 +223,8 @@ void cube_insert(cube_t* cube, v3_t point, v3_t normal, uint32_t color)
 		    (v3_t){x, y, z},
 		    (v3_t){x + halfsize, y - halfsize, z - halfsize},
 		    normal);
+
+		if (halfsize < 1.0) leaf_count++;
 
 		/* printf("inserting into cube tlf %.2f %.2f %.2f brb %.2f %.2f %.2f s %.2f at octet %i\n", cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->brb.x, cube->brb.y, cube->brb.z, cube->size, octet); */
 	    }
@@ -438,11 +441,12 @@ void main_init()
     ply_set_read_cb(ply, "vertex", "nx", vertex_cb, NULL, 0);
     ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0);
     ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1);
-    mt_log_debug("point count : %lu", nvertices);
+    mt_log_debug("cloud point count : %lu", nvertices);
     if (!ply_read(ply)) return;
     ply_close(ply);
 
     mt_log_debug("cube count : %lu", cube_count);
+    mt_log_debug("leaf count : %lu", leaf_count);
     size_t buffsize = sizeof(struct glcube_t) * cube_count;
     mt_log_debug("buffer size is %lu bytes", buffsize);
     mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);

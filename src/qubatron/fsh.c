@@ -280,58 +280,56 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    int    nearest_oct = stck[depth].octs[nearest_ind];
 	    cube_t nearest_cube;
 
-	    /* if (!procgen) */
-	    nearest_cube = g_cubes[ccube.nodes[nearest_oct]];
-	    /* else */
-	    /* { */
-	    /* 	// generate subnode proced */
+	    if (!procgen)
+		nearest_cube = g_cubes[ccube.nodes[nearest_oct]];
+	    else
+	    {
+		// generate subnode proced
 
-	    /* 	nearest_cube       = cube_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
-	    /* 	nearest_cube.tlf.w = ccube.tlf.w / 2.0; */
+		nearest_cube       = cube_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1));
+		nearest_cube.tlf.w = ccube.tlf.w / 2.0;
 
-	    /* 	nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w; */
-	    /* 	nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w; */
-	    /* 	nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w; */
+		nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w;
+		nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w;
+		nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w;
 
-	    /* 	float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0; */
+		float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0;
 
-	    /* 	nearest_cube.col -= nearest_cube.col * rnd; */
+		nearest_cube.col -= nearest_cube.col * rnd;
 
-	    /* 	// fill up octets based on nearby octets */
+		// fill up octets based on nearby octets
 
-	    /* 	int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0)); */
-	    /* 	nearest_cube.nodes[pick] = 0; */
-	    /* }; */
-
-	    float visw = nearest_cube.tlf.w / nearest_isp.isp.w;
+		int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0));
+		nearest_cube.nodes[pick] = 0;
+	    };
 
 	    if (nearest_cube.tlf.w < 1.0)
 	    {
-		/* float visw = nearest_cube.tlf.w / nearest_isp.isp.w; */
-		/* if (visw > maxc_size && minc_size == 1.0) */
-		/* { */
-		/*     minc_size = 0.5; */
-		/* procgen                  = true; */
-		/* nearest_cube.nodes       = int[8](1, 1, 1, 1, 1, 1, 1, 1); */
-		/* int pick                 = int(round(random(nearest_cube.tlf.xyz) * 7.0)); */
-		/* nearest_cube.nodes[pick] = 0; */
-		/* res.isp = nearest_isp.isp; */
-		/* res.col = nearest_cube.col; */
-		/* res.nrm = nearest_cube.nrm; */
-		/* res.tlf = nearest_cube.tlf; */
-		/* res.col = nearest_isp.col; */
-		/* res.col = vec4(1.0, 0.0, 0.0, 1.0); */
-		/* return res; */
-		/* } */
-		/* else */
-		/* { */
-		res.isp = nearest_isp.isp;
-		res.col = nearest_cube.col;
-		res.nrm = nearest_cube.nrm;
-		res.tlf = nearest_cube.tlf;
-		/* res.col = nearest_isp.col; */
-		return res;
-		/* } */
+		float visw = nearest_cube.tlf.w / nearest_isp.isp.w;
+		if (visw > maxc_size)
+		{
+		    procgen = true;
+		    /* minc_size = 0.5; */
+		    nearest_cube.nodes       = int[8](1, 1, 1, 1, 1, 1, 1, 1);
+		    int pick                 = int(round(random(nearest_cube.tlf.xyz) * 7.0));
+		    nearest_cube.nodes[pick] = 0;
+		    /* res.isp                  = nearest_isp.isp; */
+		    /* res.col                  = nearest_cube.col; */
+		    /* res.nrm                  = nearest_cube.nrm; */
+		    /* res.tlf                  = nearest_cube.tlf; */
+		    /* res.col                  = nearest_isp.col; */
+		    /* res.col = vec4(1.0, 0.0, 0.0, 1.0); */
+		    /* return res; */
+		}
+		else
+		{
+		    res.isp = nearest_isp.isp;
+		    res.col = nearest_cube.col;
+		    res.nrm = nearest_cube.nrm;
+		    res.tlf = nearest_cube.tlf;
+		    /* res.col = nearest_isp.col; */
+		    return res;
+		}
 	    }
 
 	    stck[depth].ispt_len -= 1;
@@ -472,32 +470,32 @@ void main()
 	fragColor = ccres.col;
 
 	// we found a subcube
-	if (ccres.isp.w > 0.0)
-	{
-	    /* test against light */
-	    vec3 lvec = ccres.isp.xyz - light;
+	/* if (ccres.isp.w > 0.0) */
+	/* { */
+	/*     /\* test against light *\/ */
+	/*     vec3 lvec = ccres.isp.xyz - light; */
 
-	    ctlres lcres = cube_trace_line(g_cubes[0], light, lvec); // light cube, cube touched by light
-	    if (lcres.isp.w > 0.0)
-	    {
-		if (ccres.isp.x != lcres.isp.x &&
-		    ccres.isp.y != lcres.isp.y &&
-		    ccres.isp.z != lcres.isp.z &&
-		    ccres.tlf.x != lcres.tlf.x &&
-		    ccres.tlf.y != lcres.tlf.y &&
-		    ccres.tlf.z != lcres.tlf.z)
-		/* if ((abs(ccres.isp.x - lcres.isp.x) < 0.01) && */
-		/* 	(abs(ccres.isp.y - lcres.isp.y) < 0.01) && */
-		/* 	(abs(ccres.isp.z - lcres.isp.z) < 0.01)) */
-		{
-		    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w);
-		}
-		else
-		{
-		    float angle = max(dot(normalize(-lvec), normalize(ccres.nrm.xyz)), 0.0);
-		    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w);
-		}
-	    }
-	}
+	/*     ctlres lcres = cube_trace_line(g_cubes[0], light, lvec); // light cube, cube touched by light */
+	/*     if (lcres.isp.w > 0.0) */
+	/*     { */
+	/* 	if (ccres.isp.x != lcres.isp.x && */
+	/* 	    ccres.isp.y != lcres.isp.y && */
+	/* 	    ccres.isp.z != lcres.isp.z && */
+	/* 	    ccres.tlf.x != lcres.tlf.x && */
+	/* 	    ccres.tlf.y != lcres.tlf.y && */
+	/* 	    ccres.tlf.z != lcres.tlf.z) */
+	/* 	/\* if ((abs(ccres.isp.x - lcres.isp.x) < 0.01) && *\/ */
+	/* 	/\* 	(abs(ccres.isp.y - lcres.isp.y) < 0.01) && *\/ */
+	/* 	/\* 	(abs(ccres.isp.z - lcres.isp.z) < 0.01)) *\/ */
+	/* 	{ */
+	/* 	    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w); */
+	/* 	} */
+	/* 	else */
+	/* 	{ */
+	/* 	    float angle = max(dot(normalize(-lvec), normalize(ccres.nrm.xyz)), 0.0); */
+	/* 	    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w); */
+	/* 	} */
+	/*     } */
+	/* } */
     }
 };
