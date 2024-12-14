@@ -21,7 +21,7 @@ The method :
  - check intersection with octree
  - in case of intersection with leaf use it's color
  - in case of intersection with leaf check if intersection point 'sees' the light source
- - calculate final color for screen point
+ - calculate final color for screen point using octet normal
 
 Octet intersection check :
 - check line intersection with all sides of octet using x = x0 + dirX * t -> t = ( x - x0 ) / dirX
@@ -58,7 +58,7 @@ How to create point cloud :
 - Edit - Octree - Compute
 - Subdivison level : 10
 - Problem : CloudCompare doesn't cover mesh perfectly since it uses random points
-- Alternative solution : Convert ![obj2voxel](https://github.com/Eisenwave/obj2voxel) to export surface normals
+- Alternative solution : Convert ![obj2voxel](https`://github.com/Eisenwave/obj2voxel) to export surface normals
 
 Videos :
 
