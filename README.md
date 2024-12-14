@@ -52,7 +52,7 @@ build/qubatron -v
 
 How to create point cloud :
 
-- ![download mesh](https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d)
+- Download mesh : ![https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d]
 - Use CloudCompare
 - Convert mesh to sample ( 40 million points )
 - Edit - Octree - Compute
