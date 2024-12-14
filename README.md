@@ -8,11 +8,12 @@ Is 2024 the year of voxel-based rendering and the end of polygons? Let's find ou
 The main idea is :
 - point cloud based levels
 - path traced octree-based visibility calculations
-- if path tracing is already there use it for lighting calculations
+- if path tracing is already there use it for lighting calculations ( voxel level shadow )
 - and later - if the gpu still has enough power - for reflections/transparency/everything
 - ~~distance-dependent octree detail level - tried it, doesn't really lower gpu load~~
 - ~~procedural sub-detail voxel generation for close voxels - tried it, doesn't really look good~~
 - instead of the above use super-detailed voxel clouds in case of nearby octrees
+- voxel level physics for particles and skeletal animations
 
 The method :
 - upload octree structure to gpu
@@ -52,15 +53,16 @@ build/qubatron -v
 
 How to create point cloud :
 
-- Download mesh : ![https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d]
+- Download mesh : [https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d]
 - Use CloudCompare
 - Convert mesh to sample ( 40 million points )
 - Edit - Octree - Compute
 - Subdivison level : 10
+- Export as ply with color and normal data
 - Problem : CloudCompare doesn't cover mesh perfectly since it uses random points
-- Alternative solution : Convert ![obj2voxel](https`://github.com/Eisenwave/obj2voxel) to export surface normals
+- Alternative solution : Convert [obj2voxel](https`://github.com/Eisenwave/obj2voxel) to export surface normals
 
 Videos :
 
-- commit 7ab1f55 / 4502804 cubes 3318142 leafes with no light, sub-detail randomization enabled : ![https://youtu.be/giQ5RIZmgMQ]
-- commit 344c25a / 4502804 cubes 3318142 leafes with 1 light : ![https://www.youtube.com/watch?v=LqytIbcjX18]
+- nromal detail - 4502804 cubes 3318142 leaves with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
+- normal detail - 4502804 cubes 3318142 leaves with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]
