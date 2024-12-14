@@ -62,5 +62,5 @@ How to create point cloud :
 
 Videos :
 
-- commit 344c25a / 4502804 cubes 3318142 leafes with no light, sub-detail randomization enabled : ![https://youtu.be/giQ5RIZmgMQ]
+- commit 7ab1f55 / 4502804 cubes 3318142 leafes with no light, sub-detail randomization enabled : ![https://youtu.be/giQ5RIZmgMQ]
 - commit 344c25a / 4502804 cubes 3318142 leafes with 1 light : ![https://www.youtube.com/watch?v=LqytIbcjX18]
