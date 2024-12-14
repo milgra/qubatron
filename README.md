@@ -50,4 +50,18 @@ ninja -C build
 build/qubatron -v
 ```
 
+How to create point cloud :
+
+- ![download mesh](https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d)
+- Use CloudCompare
+- Convert mesh to sample ( 40 million points )
+- Edit - Octree - Compute
+- Subdivison level : 10
+- Problem : CloudCompare doesn't cover mesh perfectly since it uses random points
+- Alternative solution : Convert ![obj2voxel](https://github.com/Eisenwave/obj2voxel) to export surface normals
+
 Videos :
+
+commit 344c25a
+4502804 cubes with 1 light
+![https://www.youtube.com/watch?v=LqytIbcjX18]
