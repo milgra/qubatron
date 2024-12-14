@@ -41,8 +41,9 @@ Things learned :
 
 Performance :
 Measured on my ASUS Zenbook UX3405 14 OLED / Intel(R) Core(TM) Ultra 5 125H / Intel Arc Graphics / 1200x800 points resolution
-- 4502804 cubes / no lights : 50 fps
-- 4502804 cubes / 1 light : 16 fps
+- 3318142 voxels / no lights : 50 fps
+- 3318142 voxels / 1 light : 16 fps
+- 16969878 voxels / 1 light : 10 fps 
 
 How to build :
 ```
@@ -55,6 +56,7 @@ How to create point cloud :
 
 - Download mesh : [https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d]
 - Use CloudCompare
+- Generate normals
 - Convert mesh to sample ( 40 million points )
 - Edit - Octree - Compute
 - Subdivison level : 10
@@ -64,5 +66,6 @@ How to create point cloud :
 
 Videos :
 
-- nromal detail - 4502804 cubes 3318142 leaves with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
-- normal detail - 4502804 cubes 3318142 leaves with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]
+- high detail - 16969878 voxels with 1 light - commit 344c25a : [https://youtu.be/OZ8vxzFvEM8]
+- normal detail - 3318142 voxels with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
+- normal detail - 3318142 voxels with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]

@@ -191,7 +191,7 @@ cube_t* cube_create(uint32_t color, v3_t tlf, v3_t brb, v3_t nrm)
 
 void cube_insert(cube_t* cube, v3_t point, v3_t normal, uint32_t color)
 {
-    if (cube->size > 1.0)
+    if (cube->size > 0.5)
     {
 	if (cube->tlf.x <= point.x && point.x < cube->brb.x &&
 	    cube->tlf.y >= point.y && point.y > cube->brb.y &&
@@ -425,7 +425,7 @@ void main_init()
 
     char plypath[PATH_MAX];
 
-    snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path);
+    snprintf(plypath, PATH_MAX, "%s../abandoned2.ply", base_path);
 
     p_ply ply = ply_open(plypath, NULL, 0, NULL);
 
