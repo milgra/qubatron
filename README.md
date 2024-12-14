@@ -66,6 +66,6 @@ How to create point cloud :
 
 Videos :
 
-- high detail - 16969878 voxels with 1 light - commit 344c25a : [https://youtu.be/OZ8vxzFvEM8]
+- high detail - 16969878 voxels with 1 light - commit eb3f1a4 : [https://youtu.be/OZ8vxzFvEM8]
 - normal detail - 3318142 voxels with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
 - normal detail - 3318142 voxels with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]
