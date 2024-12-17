@@ -61,6 +61,13 @@ v3_t directionX  = {-1.0, 0.0, 0.0};
 v3_t  lightc = {420.0, 210.0, -1100.0};
 float lighta = 0.0;
 
+GLfloat* model_vertexes;
+GLfloat* model_colors;
+GLfloat* model_normals;
+size_t   model_count = 0;
+size_t   model_index = 0;
+GLfloat* trans_vertexes;
+
 void GLAPIENTRY
 MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
@@ -116,33 +123,29 @@ void init_fragment_shader()
     free(vsh);
     free(fsh);
 
-    glUseProgram(sha.name);
-
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
     // vbo
 
     glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    /* glBindBuffer(GL_ARRAY_BUFFER, vbo); */
 
-    m4_t pers         = m4_defaultortho(0.0, width, 0.0, height, -10, 10);
-    projection.matrix = pers;
-    glUniformMatrix4fv(sha.uni_loc[0], 1, 0, projection.array);
+    /* GLfloat posarr[3] = {position.x, position.y, position.z}; */
+    /* glUniform3fv(sha.uni_loc[1], 1, posarr); */
 
-    GLfloat posarr[3] = {position.x, position.y, position.z};
-    glUniform3fv(sha.uni_loc[1], 1, posarr);
-
-    GLfloat lightarr[3] = {0.0, 2000.0, -500.0};
-    glUniform3fv(sha.uni_loc[3], 1, lightarr);
+    /* GLfloat lightarr[3] = {0.0, 2000.0, -500.0}; */
+    /* glUniform3fv(sha.uni_loc[3], 1, lightarr); */
 
     glGenBuffers(1, &ssbo);
-
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo);
 }
 
 void run_fragment_shader()
 {
+    glUseProgram(sha.name);
+
+    m4_t pers         = m4_defaultortho(0.0, width, 0.0, height, -10, 10);
+    projection.matrix = pers;
+    glUniformMatrix4fv(sha.uni_loc[0], 1, 0, projection.array);
+
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -179,6 +182,10 @@ void run_fragment_shader()
 GLuint cmp_sp;
 GLuint cmp_vbo_in;
 GLuint cmp_vbo_out;
+GLuint cmp_vao;
+
+GLint oril;
+GLint newl;
 
 void init_compute_shader()
 {
@@ -211,8 +218,11 @@ void init_compute_shader()
     // link
     ku_gl_shader_link(cmp_sp);
 
+    oril = glGetUniformLocation(cmp_sp, "fpori");
+    newl = glGetUniformLocation(cmp_sp, "fpnew");
+
     // create vertex array buffer for vertex buffer
-    GLuint cmp_vao;
+
     glGenVertexArrays(1, &cmp_vao);
     glBindVertexArray(cmp_vao);
 
@@ -223,14 +233,11 @@ void init_compute_shader()
     // create attribute for compute shader
     GLint inputAttrib = glGetAttribLocation(cmp_sp, "inValue");
     glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 1, GL_FLOAT, GL_FALSE, 0, 0);
-
-    GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     // create and bind result buffer object
     glGenBuffers(1, &cmp_vbo_out);
     glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cmp_data), NULL, GL_STATIC_READ);
 }
 
 void run_compute_shader()
@@ -239,20 +246,31 @@ void run_compute_shader()
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
 
-    GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+    glBindVertexArray(cmp_vao);
+
+    GLfloat pivot_old[3] = {200.0, 200.0, 600.0};
+
+    glUniform3fv(oril, 1, pivot_old);
+
+    GLfloat pivot_new[3] = {600.0, 200.0, 600.0};
+
+    glUniform3fv(newl, 1, pivot_new);
+
+    /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
     glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cmp_data), cmp_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
+    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ);
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
 
     // run compute shader
     glBeginTransformFeedback(GL_POINTS);
-    glDrawArrays(GL_POINTS, 0, 5);
+    glDrawArrays(GL_POINTS, 0, model_count / 3);
     glEndTransformFeedback();
     glFlush();
-    GLfloat* feedback = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(feedback), GL_MAP_READ_BIT);
-    printf("%f %f %f %f %f\n", feedback[0], feedback[1], feedback[2], feedback[3], feedback[4]);
+    trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
+
     glDisable(GL_RASTERIZER_DISCARD);
 }
 
@@ -448,11 +466,23 @@ static int vertex_cb(p_ply_argument argument)
     {
 	nz = ply_get_argument_value(argument);
 
-	cube_insert(basecube, (v3_t){px, py, -1620 + pz}, (v3_t){nx, nz, ny}, (int) cx << 24 | (int) cy << 16 | (int) cz < 8 | 0xFF);
+	model_vertexes[model_index]     = px;
+	model_vertexes[model_index + 1] = py;
+	model_vertexes[model_index + 2] = pz;
+
+	model_normals[model_index]     = nx;
+	model_normals[model_index + 1] = nz;
+	model_normals[model_index + 2] = ny;
+
+	model_colors[model_index]     = cx;
+	model_colors[model_index + 1] = cy;
+	model_colors[model_index + 2] = cz;
+
+	model_index += 3;
 
 	ind = -1;
 
-	> if (cnt == 0)
+	if (cnt == 0)
 	{
 	    minpx = px;
 	    minpy = py;
@@ -509,10 +539,10 @@ void main_init()
 
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
     init_compute_shader();
-    run_compute_shader();
-
     init_fragment_shader();
 
     // shader storage buffer object
@@ -528,11 +558,10 @@ void main_init()
     /* 	(v3_t){100.0, 800.0, -100.0}, */
     /* 	(v3_t){800.0, 100.0, -800.0}); */
 
-    char plypath[PATH_MAX];
-
-    snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path);
-
+    char  plypath[PATH_MAX];
     p_ply ply;
+
+    /* snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path); */
 
     /* ply = ply_open(plypath, NULL, 0, NULL); */
 
@@ -549,8 +578,28 @@ void main_init()
     /* ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0); */
     /* ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1); */
     /* mt_log_debug("cloud point count : %lu", nvertices); */
+
+    /* model_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL); */
+    /* model_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL); */
+    /* model_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL); */
+    /* model_count    = nvertices * 3; */
+    /* model_index    = 0; */
+
     /* if (!ply_read(ply)) return; */
     /* ply_close(ply); */
+
+    /* for (int index = 0; index < model_count; index += 3) */
+    /* { */
+    /* 	cube_insert( */
+    /* 	    basecube, */
+    /* 	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]}, */
+    /* 	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]}, */
+    /* 	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF); */
+    /* } */
+
+    /* REL(model_vertexes); */
+    /* REL(model_normals); */
+    /* REL(model_colors); */
 
     snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
 
@@ -573,8 +622,26 @@ void main_init()
     ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0);
     ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1);
     mt_log_debug("cloud point count : %lu", nvertices);
+
+    model_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    model_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    model_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    model_count    = nvertices * 3;
+    model_index    = 0;
+
     if (!ply_read(ply)) return;
     ply_close(ply);
+
+    run_compute_shader();
+
+    for (int index = 0; index < model_count; index += 3)
+    {
+	cube_insert(
+	    basecube,
+	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
+	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]},
+	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF);
+    }
 
     mt_log_debug("cube count : %lu", cube_count);
     mt_log_debug("leaf count : %lu", leaf_count);
