@@ -67,7 +67,65 @@ MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei 
     mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
 
-void draw_quad()
+char* readfile(char* name)
+{
+    FILE* f      = fopen(name, "rb");
+    char* string = NULL;
+
+    if (f != NULL)
+    {
+
+	fseek(f, 0, SEEK_END);
+	long fsize = ftell(f);
+	fseek(f, 0, SEEK_SET); /* same as rewind(f); */
+
+	string = malloc(fsize + 1);
+	fread(string, fsize, 1, f);
+	fclose(f);
+
+	string[fsize] = 0;
+    }
+
+    return string;
+}
+
+void init_fragment_shader()
+{
+    // shader
+
+    char* base_path = SDL_GetBasePath();
+    char  vshpath[PATH_MAX];
+    char  fshpath[PATH_MAX];
+    snprintf(vshpath, PATH_MAX, "%svsh.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
+
+    mt_log_debug("basepath %s %s", vshpath, fshpath);
+
+    char* vsh = readfile(vshpath);
+    char* fsh = readfile(fshpath);
+
+    sha = ku_gl_shader_create(
+	vsh,
+	fsh,
+	1,
+	((const char*[]){"position"}),
+	4,
+	((const char*[]){"projection", "camfp", "angle_in", "light"}));
+    free(vsh);
+    free(fsh);
+
+    glUseProgram(sha.name);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+
+    // vbo
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+}
+
+void run_fragment_shader()
 {
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -102,26 +160,84 @@ void draw_quad()
     SDL_GL_SwapWindow(window);
 }
 
-char* readfile(char* name)
+GLuint cmp_sp;
+GLuint cmp_vbo_in;
+GLuint cmp_vbo_out;
+
+void init_compute_shader()
 {
-    FILE* f      = fopen(name, "rb");
-    char* string = NULL;
+    char* base_path = SDL_GetBasePath();
+    char  cshpath[PATH_MAX];
+    char  fshepath[PATH_MAX];
 
-    if (f != NULL)
-    {
+    snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
+    snprintf(fshepath, PATH_MAX, "%sfshe.c", base_path);
 
-	fseek(f, 0, SEEK_END);
-	long fsize = ftell(f);
-	fseek(f, 0, SEEK_SET); /* same as rewind(f); */
+    char* csh  = readfile(cshpath);
+    char* fshe = readfile(fshepath);
 
-	string = malloc(fsize + 1);
-	fread(string, fsize, 1, f);
-	fclose(f);
+    GLuint cmp_vsh = ku_gl_shader_compile(GL_VERTEX_SHADER, csh);
+    GLuint cmp_fsh = ku_gl_shader_compile(GL_FRAGMENT_SHADER, fshe);
 
-	string[fsize] = 0;
-    }
+    free(csh);
+    free(fshe);
 
-    return string;
+    // create compute shader ( it is just a vertex shader with transform feedback )
+    cmp_sp = glCreateProgram();
+
+    glAttachShader(cmp_sp, cmp_vsh);
+    glAttachShader(cmp_sp, cmp_fsh);
+
+    // we want to capture outvalue in the result buffer
+    const GLchar* feedbackVaryings[] = {"outValue"};
+    glTransformFeedbackVaryings(cmp_sp, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+
+    // link
+    ku_gl_shader_link(cmp_sp);
+
+    // create vertex array buffer for vertex buffer
+    GLuint cmp_vao;
+    glGenVertexArrays(1, &cmp_vao);
+    glBindVertexArray(cmp_vao);
+
+    // create vertex buffer object
+    glGenBuffers(1, &cmp_vbo_in);
+    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
+
+    // create attribute for compute shader
+    GLint inputAttrib = glGetAttribLocation(cmp_sp, "inValue");
+    glEnableVertexAttribArray(inputAttrib);
+    glVertexAttribPointer(inputAttrib, 1, GL_FLOAT, GL_FALSE, 0, 0);
+
+    GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+
+    // create and bind result buffer object
+    glGenBuffers(1, &cmp_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cmp_data), NULL, GL_STATIC_READ);
+}
+
+void run_compute_shader()
+{
+    glUseProgram(cmp_sp);
+    // switch off fragment stage
+    glEnable(GL_RASTERIZER_DISCARD);
+
+    GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cmp_data), cmp_data, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
+
+    // run compute shader
+    glBeginTransformFeedback(GL_POINTS);
+    glDrawArrays(GL_POINTS, 0, 5);
+    glEndTransformFeedback();
+    glFlush();
+    GLfloat* feedback = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(feedback), GL_MAP_READ_BIT);
+    printf("%f %f %f %f %f\n", feedback[0], feedback[1], feedback[2], feedback[3], feedback[4]);
+    glDisable(GL_RASTERIZER_DISCARD);
 }
 
 typedef struct _cube_t cube_t;
@@ -371,103 +487,17 @@ void main_init()
 {
     srand((unsigned int) time(NULL));
 
+    char* base_path = SDL_GetBasePath();
+
     // opengl init
 
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, 0);
 
-    // shader
+    init_compute_shader();
+    run_compute_shader();
 
-    char* base_path = SDL_GetBasePath();
-    char  vshpath[PATH_MAX];
-    char  fshpath[PATH_MAX];
-    char  cshpath[PATH_MAX];
-    char  fshepath[PATH_MAX];
-    snprintf(vshpath, PATH_MAX, "%svsh.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
-    snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
-    snprintf(fshepath, PATH_MAX, "%sfshe.c", base_path);
-
-    mt_log_debug("basepath %s %s", vshpath, fshpath);
-
-    char* vsh  = readfile(vshpath);
-    char* fsh  = readfile(fshpath);
-    char* csh  = readfile(cshpath);
-    char* fshe = readfile(fshepath);
-
-    sha = ku_gl_shader_create(
-	vsh,
-	fsh,
-	1,
-	((const char*[]){"position"}),
-	4,
-	((const char*[]){"projection", "camfp", "angle_in", "light"}));
-
-    GLuint vshader = ku_gl_shader_compile(GL_VERTEX_SHADER, csh);
-    GLuint fshader = ku_gl_shader_compile(GL_FRAGMENT_SHADER, fshe);
-
-    free(csh);
-    free(vsh);
-    free(fsh);
-    free(fshe);
-
-    GLuint program = glCreateProgram();
-
-    glAttachShader(program, vshader);
-    glAttachShader(program, fshader);
-
-    const GLchar* feedbackVaryings[] = {"outValue"};
-    glTransformFeedbackVaryings(program, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
-
-    ku_gl_shader_link(program);
-
-    glUseProgram(program);
-
-    GLuint cvao;
-    glGenVertexArrays(1, &cvao);
-    glBindVertexArray(cvao);
-
-    GLfloat data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
-
-    GLuint cvbo;
-    glGenBuffers(1, &cvbo);
-    glBindBuffer(GL_ARRAY_BUFFER, cvbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
-
-    GLint inputAttrib = glGetAttribLocation(program, "inValue");
-    glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 1, GL_FLOAT, GL_FALSE, 0, 0);
-
-    GLuint tbo;
-    glGenBuffers(1, &tbo);
-    glBindBuffer(GL_ARRAY_BUFFER, tbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(data), NULL, GL_STATIC_READ);
-
-    glEnable(GL_RASTERIZER_DISCARD);
-
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, tbo);
-
-    printf("TBO %u\n", tbo);
-
-    glBeginTransformFeedback(GL_POINTS);
-    glDrawArrays(GL_POINTS, 0, 5);
-    glEndTransformFeedback();
-    glFlush();
-
-    GLfloat* feedback = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(feedback), GL_MAP_READ_BIT);
-    printf("%f %f %f %f %f\n", feedback[0], feedback[1], feedback[2], feedback[3], feedback[4]);
-
-    glDisable(GL_RASTERIZER_DISCARD);
-
-    glUseProgram(sha.name);
-
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
-    // vbo
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    init_fragment_shader();
 
     // shader storage buffer object
 
@@ -748,7 +778,7 @@ int main_loop(double time, void* userdata)
 	}
     }
 
-    draw_quad();
+    run_fragment_shader();
 
     // update simulation
 

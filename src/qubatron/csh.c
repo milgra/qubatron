@@ -5,5 +5,5 @@ out highp float outValue;
 
 void main()
 {
-    ` outValue = sqrt(inValue);
+    outValue = sqrt(inValue);
 };
