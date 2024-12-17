@@ -10,6 +10,9 @@ typedef struct _glsha_t
     GLint  uni_loc[13];
 } glsha_t;
 
+GLuint ku_gl_shader_compile(GLenum type, const GLchar* source);
+int    ku_gl_shader_link(GLuint program);
+
 glsha_t ku_gl_shader_create(
     const char*  vertex_source,
     const char*  fragment_source,

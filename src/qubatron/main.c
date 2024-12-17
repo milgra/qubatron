@@ -381,13 +381,19 @@ void main_init()
     char* base_path = SDL_GetBasePath();
     char  vshpath[PATH_MAX];
     char  fshpath[PATH_MAX];
+    char  cshpath[PATH_MAX];
+    char  fshepath[PATH_MAX];
     snprintf(vshpath, PATH_MAX, "%svsh.c", base_path);
     snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
+    snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
+    snprintf(fshepath, PATH_MAX, "%sfshe.c", base_path);
 
     mt_log_debug("basepath %s %s", vshpath, fshpath);
 
-    char* vsh = readfile(vshpath);
-    char* fsh = readfile(fshpath);
+    char* vsh  = readfile(vshpath);
+    char* fsh  = readfile(fshpath);
+    char* csh  = readfile(cshpath);
+    char* fshe = readfile(fshepath);
 
     sha = ku_gl_shader_create(
 	vsh,
@@ -397,8 +403,61 @@ void main_init()
 	4,
 	((const char*[]){"projection", "camfp", "angle_in", "light"}));
 
+    GLuint vshader = ku_gl_shader_compile(GL_VERTEX_SHADER, csh);
+    GLuint fshader = ku_gl_shader_compile(GL_FRAGMENT_SHADER, fshe);
+
+    free(csh);
     free(vsh);
     free(fsh);
+    free(fshe);
+
+    GLuint program = glCreateProgram();
+
+    glAttachShader(program, vshader);
+    glAttachShader(program, fshader);
+
+    const GLchar* feedbackVaryings[] = {"outValue"};
+    glTransformFeedbackVaryings(program, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+
+    ku_gl_shader_link(program);
+
+    glUseProgram(program);
+
+    GLuint cvao;
+    glGenVertexArrays(1, &cvao);
+    glBindVertexArray(cvao);
+
+    GLfloat data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+
+    GLuint cvbo;
+    glGenBuffers(1, &cvbo);
+    glBindBuffer(GL_ARRAY_BUFFER, cvbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+
+    GLint inputAttrib = glGetAttribLocation(program, "inValue");
+    glEnableVertexAttribArray(inputAttrib);
+    glVertexAttribPointer(inputAttrib, 1, GL_FLOAT, GL_FALSE, 0, 0);
+
+    GLuint tbo;
+    glGenBuffers(1, &tbo);
+    glBindBuffer(GL_ARRAY_BUFFER, tbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(data), NULL, GL_STATIC_READ);
+
+    glEnable(GL_RASTERIZER_DISCARD);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, tbo);
+
+    printf("TBO %u\n", tbo);
+
+    glBeginTransformFeedback(GL_POINTS);
+    glDrawArrays(GL_POINTS, 0, 5);
+    glEndTransformFeedback();
+    glFlush();
+
+    GLfloat* feedback = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(feedback), GL_MAP_READ_BIT);
+    printf("%f %f %f %f %f\n", feedback[0], feedback[1], feedback[2], feedback[3], feedback[4]);
+
+    glDisable(GL_RASTERIZER_DISCARD);
 
     glUseProgram(sha.name);
 
@@ -429,23 +488,23 @@ void main_init()
 
     p_ply ply;
 
-    ply = ply_open(plypath, NULL, 0, NULL);
+    /* ply = ply_open(plypath, NULL, 0, NULL); */
 
-    if (!ply) mt_log_debug("cannot read %s", plypath);
-    if (!ply_read_header(ply)) mt_log_debug("cannot read ply header");
+    /* if (!ply) mt_log_debug("cannot read %s", plypath); */
+    /* if (!ply_read_header(ply)) mt_log_debug("cannot read ply header"); */
 
-    nvertices = ply_set_read_cb(ply, "vertex", "x", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "y", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "z", vertex_cb, NULL, 1);
-    ply_set_read_cb(ply, "vertex", "red", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "green", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "blue", vertex_cb, NULL, 1);
-    ply_set_read_cb(ply, "vertex", "nx", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1);
-    mt_log_debug("cloud point count : %lu", nvertices);
-    if (!ply_read(ply)) return;
-    ply_close(ply);
+    /* nvertices = ply_set_read_cb(ply, "vertex", "x", vertex_cb, NULL, 0); */
+    /* ply_set_read_cb(ply, "vertex", "y", vertex_cb, NULL, 0); */
+    /* ply_set_read_cb(ply, "vertex", "z", vertex_cb, NULL, 1); */
+    /* ply_set_read_cb(ply, "vertex", "red", vertex_cb, NULL, 0); */
+    /* ply_set_read_cb(ply, "vertex", "green", vertex_cb, NULL, 0); */
+    /* ply_set_read_cb(ply, "vertex", "blue", vertex_cb, NULL, 1); */
+    /* ply_set_read_cb(ply, "vertex", "nx", vertex_cb, NULL, 0); */
+    /* ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0); */
+    /* ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1); */
+    /* mt_log_debug("cloud point count : %lu", nvertices); */
+    /* if (!ply_read(ply)) return; */
+    /* ply_close(ply); */
 
     snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
 
@@ -795,8 +854,8 @@ int main(int argc, char* argv[])
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
