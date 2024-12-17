@@ -13,5 +13,5 @@ void main()
     float d = distance(inValue, fpori);
     vec3  v = fpnew - inValue;
 
-    outValue = inValue + v * (d / 200.0);
+    outValue = inValue + v * (300.0 - d) / 300.0;
 };

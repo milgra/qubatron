@@ -98,6 +98,9 @@ char* readfile(char* name)
 
 GLuint ssbo;
 
+GLuint frg_vbo_in;
+GLuint frg_vao;
+
 void init_fragment_shader()
 {
     // shader
@@ -125,8 +128,22 @@ void init_fragment_shader()
 
     // vbo
 
-    glGenBuffers(1, &vbo);
-    /* glBindBuffer(GL_ARRAY_BUFFER, vbo); */
+    // create vertex array object for vertex buffer
+    glGenVertexArrays(1, &frg_vao);
+    glBindVertexArray(frg_vao);
+
+    // create vertex buffer object
+    glGenBuffers(1, &frg_vbo_in);
+    glBindBuffer(GL_ARRAY_BUFFER, frg_vbo_in);
+
+    // create attribute for compute shader
+    GLint inputAttrib = glGetAttribLocation(sha.name, "position");
+    printf("INPUTATTRIB %i", inputAttrib);
+    glEnableVertexAttribArray(inputAttrib);
+    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+
+    /* glGenBuffers(1, &vbo); */
+    /* glbindbuffer(GL_ARRAY_BUFFER, vbo); */
 
     /* GLfloat posarr[3] = {position.x, position.y, position.z}; */
     /* glUniform3fv(sha.uni_loc[1], 1, posarr); */
@@ -146,6 +163,18 @@ void run_fragment_shader()
     projection.matrix = pers;
     glUniformMatrix4fv(sha.uni_loc[0], 1, 0, projection.array);
 
+    GLfloat lightarr[3] = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
+    /* printf("%f %f %f\n", lightarr[0], lightarr[1], lightarr[2]); */
+    glUniform3fv(sha.uni_loc[3], 1, lightarr);
+
+    GLfloat anglearr[3] = {angle.x, angle.y, 0.0};
+
+    glUniform3fv(sha.uni_loc[2], 1, anglearr);
+
+    GLfloat posarr[3] = {position.x, position.y, position.z};
+
+    glUniform3fv(sha.uni_loc[1], 1, posarr);
+
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -158,12 +187,11 @@ void run_fragment_shader()
 	width,
 	height);
 
+    glBindVertexArray(frg_vao);
+
     glBindBuffer(
 	GL_ARRAY_BUFFER,
-	vbo);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, 0);
+	frg_vbo_in);
 
     glBufferData(
 	GL_ARRAY_BUFFER,
@@ -175,6 +203,8 @@ void run_fragment_shader()
 	GL_TRIANGLES,
 	0,
 	6);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     SDL_GL_SwapWindow(window);
 }
@@ -221,8 +251,7 @@ void init_compute_shader()
     oril = glGetUniformLocation(cmp_sp, "fpori");
     newl = glGetUniformLocation(cmp_sp, "fpnew");
 
-    // create vertex array buffer for vertex buffer
-
+    // create vertex array object for vertex buffer
     glGenVertexArrays(1, &cmp_vao);
     glBindVertexArray(cmp_vao);
 
@@ -232,12 +261,14 @@ void init_compute_shader()
 
     // create attribute for compute shader
     GLint inputAttrib = glGetAttribLocation(cmp_sp, "inValue");
+    printf("INPUTATTRIB %i", inputAttrib);
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     // create and bind result buffer object
     glGenBuffers(1, &cmp_vbo_out);
     glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void run_compute_shader()
@@ -248,20 +279,23 @@ void run_compute_shader()
 
     glBindVertexArray(cmp_vao);
 
-    GLfloat pivot_old[3] = {200.0, 200.0, 600.0};
+    GLfloat pivot_old[3] = {200.0, 300.0, 600.0};
 
     glUniform3fv(oril, 1, pivot_old);
 
-    GLfloat pivot_new[3] = {600.0, 200.0, 600.0};
+    GLfloat pivot_new[3] = {200.0 + sinf(lighta) * 100., 300.0, 600.0};
+    GLfloat lightarr[3]  = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
 
     glUniform3fv(newl, 1, pivot_new);
 
     /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
     glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
-    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW);
+    /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW); */
+    /* glBindBuffer(GL_ARRAY_BUFFER, 0); */
 
     glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
-    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ);
+    /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ); */
+
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
 
     // run compute shader
@@ -269,7 +303,6 @@ void run_compute_shader()
     glDrawArrays(GL_POINTS, 0, model_count / 3);
     glEndTransformFeedback();
     glFlush();
-    trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
 
     glDisable(GL_RASTERIZER_DISCARD);
 }
@@ -287,7 +320,7 @@ struct _cube_t
     cube_t*  nodes[8];
 };
 
-cube_t* basecube;
+cube_t* basecube = NULL;
 
 void cube_describe(void* p, int level)
 {
@@ -347,7 +380,6 @@ void cube_insert(cube_t* cube, v3_t point, v3_t normal, uint32_t color)
 	    cube->tlf.y >= point.y && point.y > cube->brb.y &&
 	    cube->tlf.z >= point.z && point.z > cube->brb.z)
 	{
-
 	    /* do speed tests on static const vs simple vars */
 	    static const int bocts[4] = {4, 5, 6, 7};
 
@@ -411,25 +443,25 @@ struct glcube_t
     GLint         n[8];
 };
 
-uint32_t cube_collect(cube_t* cube, struct glcube_t* glcubes, uint32_t* glindex, uint32_t length)
+uint32_t cube_collect(cube_t* cube, struct glcube_t* cubes, uint32_t* glindex, uint32_t length)
 {
     uint32_t index = *glindex;
     if (index < length)
     {
-	glcubes[index].p   = (struct glvec4){cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->size};
-	glcubes[index].nor = (struct glvec4){cube->nrm.x, cube->nrm.y, cube->nrm.z, 0.0};
-	glcubes[index].c   = (struct glvec4){(float) ((cube->color >> 24) & 0xFF) / 255.0, (float) ((cube->color >> 16) & 0xFF) / 255.0, (float) ((cube->color >> 8) & 0xFF) / 255.0, (float) (cube->color & 0xFF) / 255.0};
+	cubes[index].p   = (struct glvec4){cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->size};
+	cubes[index].nor = (struct glvec4){cube->nrm.x, cube->nrm.y, cube->nrm.z, 0.0};
+	cubes[index].c   = (struct glvec4){(float) ((cube->color >> 24) & 0xFF) / 255.0, (float) ((cube->color >> 16) & 0xFF) / 255.0, (float) ((cube->color >> 8) & 0xFF) / 255.0, (float) (cube->color & 0xFF) / 255.0};
 
 	for (int o = 0; o < 8; o++)
 	{
 	    if (cube->nodes[o])
 	    {
 		*glindex += 1;
-		glcubes[index].n[o] = cube_collect(cube->nodes[o], glcubes, glindex, length);
+		cubes[index].n[o] = cube_collect(cube->nodes[o], cubes, glindex, length);
 	    }
 	    else
 	    {
-		glcubes[index].n[o] = 0;
+		cubes[index].n[o] = 0;
 	    }
 	}
     }
@@ -528,6 +560,9 @@ static int vertex_cb(p_ply_argument argument)
     /* } */
     return 1;
 }
+
+struct glcube_t* glcubes = NULL;
+size_t           buffsize;
 
 void main_init()
 {
@@ -632,7 +667,23 @@ void main_init()
     if (!ply_read(ply)) return;
     ply_close(ply);
 
+    // set compute buffers
+
+    glUseProgram(cmp_sp);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
+    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
+    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
+    trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
+
+    run_fragment_shader();
     run_compute_shader();
+    /* run_compute_shader(); */
 
     for (int index = 0; index < model_count; index += 3)
     {
@@ -645,7 +696,7 @@ void main_init()
 
     mt_log_debug("cube count : %lu", cube_count);
     mt_log_debug("leaf count : %lu", leaf_count);
-    size_t buffsize = sizeof(struct glcube_t) * cube_count;
+    buffsize = sizeof(struct glcube_t) * cube_count;
     mt_log_debug("buffer size is %lu bytes", buffsize);
     mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
 
@@ -686,7 +737,7 @@ void main_init()
     /* 	} */
     /* } */
 
-    struct glcube_t* glcubes = mt_memory_calloc(buffsize, NULL, NULL);
+    glcubes = mt_memory_calloc(buffsize, NULL, NULL);
 
     uint32_t glindex = 0;
     cube_collect(basecube, glcubes, &glindex, cube_count);
@@ -708,9 +759,9 @@ void main_init()
     /* } */
 
     /* glcubes[0] = (struct glcube_t){{100.0, 100.0, -200.0, 100.0}}; */
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glcubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                  // unbind
+    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo); */
+    /* glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glcubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
+    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                  // unbind */
 
     // perspective
 
@@ -741,6 +792,7 @@ v3_t qrot(v4_t q, v3_t v)
 
 int main_loop(double time, void* userdata)
 {
+    printf("MAINLOOP\n");
     SDL_Event event;
 
     while (SDL_PollEvent(&event) != 0)
@@ -762,10 +814,6 @@ int main_loop(double time, void* userdata)
 
 		v4_t axisquat = quat_from_axis_angle(directionX, angle.y);
 		direction     = qrot(axisquat, direction);
-
-		GLfloat anglearr[3] = {angle.x, angle.y, 0.0};
-
-		glUniform3fv(sha.uni_loc[2], 1, anglearr);
 	    }
 	}
 	else if (event.type == SDL_QUIT)
@@ -843,8 +891,6 @@ int main_loop(double time, void* userdata)
 	}
     }
 
-    run_fragment_shader();
-
     // update simulation
 
     if (SDL_GetTicks() > start_time + 1000)
@@ -888,17 +934,56 @@ int main_loop(double time, void* userdata)
 
     if (strafespeed > 0.0001 || strafespeed < -0.0001 || speed > 0.0001 || speed < 0.0001)
     {
-	GLfloat posarr[3] = {position.x, position.y, position.z};
-
-	glUniform3fv(sha.uni_loc[1], 1, posarr);
     }
 
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
-    GLfloat lightarr[3] = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
-    /* printf("%f %f %f\n", lightarr[0], lightarr[1], lightarr[2]); */
 
-    glUniform3fv(sha.uni_loc[3], 1, lightarr);
+    run_compute_shader();
+
+    if (basecube)
+	REL(basecube);
+
+    cube_count = 0;
+    leaf_count = 0;
+
+    basecube = cube_create(
+	0,
+	(v3_t){0.0, 1800.0, 0.0},
+	(v3_t){1800.0, 0.0, -1800.0},
+	(v3_t){0.0, 0.0, -1.0});
+
+    for (int index = 0;
+	 index < model_count;
+	 index += 3)
+    {
+	cube_insert(
+	    basecube,
+	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
+	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]},
+	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF);
+    }
+
+    buffsize = sizeof(struct glcube_t) * cube_count;
+
+    mt_log_debug("cube count : %lu model count %lu", cube_count, model_count);
+    /* mt_log_debug("leaf count : %lu", leaf_count); */
+    /* mt_log_debug("buffer size is %lu bytes", buffsize); */
+    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
+
+    if (glcubes != NULL)
+	REL(glcubes);
+    glcubes = mt_memory_calloc(buffsize, NULL, NULL);
+
+    uint32_t glindex = 0;
+    cube_collect(basecube, glcubes, &glindex, cube_count);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glcubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
+
+    run_fragment_shader();
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 
     frames++;
 
