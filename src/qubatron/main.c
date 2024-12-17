@@ -89,6 +89,8 @@ char* readfile(char* name)
     return string;
 }
 
+GLuint ssbo;
+
 void init_fragment_shader()
 {
     // shader
@@ -123,6 +125,20 @@ void init_fragment_shader()
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    m4_t pers         = m4_defaultortho(0.0, width, 0.0, height, -10, 10);
+    projection.matrix = pers;
+    glUniformMatrix4fv(sha.uni_loc[0], 1, 0, projection.array);
+
+    GLfloat posarr[3] = {position.x, position.y, position.z};
+    glUniform3fv(sha.uni_loc[1], 1, posarr);
+
+    GLfloat lightarr[3] = {0.0, 2000.0, -500.0};
+    glUniform3fv(sha.uni_loc[3], 1, lightarr);
+
+    glGenBuffers(1, &ssbo);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo);
 }
 
 void run_fragment_shader()
@@ -436,7 +452,7 @@ static int vertex_cb(p_ply_argument argument)
 
 	ind = -1;
 
-	if (cnt == 0)
+	> if (cnt == 0)
 	{
 	    minpx = px;
 	    minpy = py;
@@ -625,29 +641,11 @@ void main_init()
     /* } */
 
     /* glcubes[0] = (struct glcube_t){{100.0, 100.0, -200.0, 100.0}}; */
-
-    GLuint ssbo;
-    glGenBuffers(1, &ssbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glcubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                  // unbind
 
     // perspective
-
-    m4_t pers = m4_defaultortho(0.0, width, 0.0, height, -10, 10);
-
-    projection.matrix = pers;
-
-    glUniformMatrix4fv(sha.uni_loc[0], 1, 0, projection.array);
-
-    GLfloat posarr[3] = {position.x, position.y, position.z};
-
-    glUniform3fv(sha.uni_loc[1], 1, posarr);
-
-    GLfloat lightarr[3] = {0.0, 2000.0, -500.0};
-
-    glUniform3fv(sha.uni_loc[3], 1, lightarr);
 
     mt_log_debug("main init");
 }
