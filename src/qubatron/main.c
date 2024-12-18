@@ -396,9 +396,10 @@ static const float zsizes[8] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0};
 typedef stuct glcube_arr_t
 {
 	glcube_t* cubes;
-	size_t ind;
-	size_t len;
 	size_t size;
+	size_t len;
+	size_t ind;
+	size_t leaves;
 } glcube_arr_t;
 
 /* inserts new cube for a point creating the intermediate octree */
@@ -433,7 +434,7 @@ void glcube_insert(glcube_arr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
 		    	half};
 		
 		cube.oct[octi] = arr->len;
-		arr[arr->len] = (glcube_t){ntlf,nrm,col,{0,0,0,0,0,0,0,0}};
+		arr->cubes[arr->len] = (glcube_t){ntlf,nrm,col,{0,0,0,0,0,0,0,0}};
 		    
 		if (arr->len + 1 == arr->size)
 		{
@@ -444,9 +445,7 @@ void glcube_insert(glcube_arr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
 		}
 		arr->len++;
 
-		if (half < 1.0) leaf_count++;
-
-		/* printf("inserting into cube tlf %.2f %.2f %.2f brb %.2f %.2f %.2f s %.2f at octet %i\n", cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->brb.x, cube->brb.y, cube->brb.z, cube->size, octet); */
+		if (half < glcube_res) arr->leaves++;
 	    }
 
 	    arr->ind = cube.oct[octi];
@@ -458,8 +457,9 @@ void glcube_insert(glcube_arr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
 glcube_arr_t arr;
 arr->size = 1000
 arr->cubes = mt_memory_alloc(sizeof(glcube_t)*arr->size,NULL,NULL);
-arr->ind = 0;
 arr->len = 0;
+arr->ind = 0;
+arr->leaves = 0;
 
 arr->cubes[0] = (glcube_t){
 	(v4_t){0.0,1800.0,0.0,1800.0},
