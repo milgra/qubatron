@@ -370,7 +370,87 @@ cube_t* cube_create(uint32_t color, v3_t tlf, v3_t brb, v3_t nrm)
     return cube;
 }
 
+struct glvec4
+{
+    GLfloat x;
+    GLfloat y;
+    GLfloat z;
+    GLfloat w;
+};
+
+struct glcube_t
+{
+    struct glvec4 tlf;
+    struct glvec4 nrm;
+    struct glvec4 col;
+    GLint         oct[8];
+};
+
+static const int bocts[4] = {4, 5, 6, 7};
+static const float xsizes[8] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
+static const float ysizes[8] = {0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0};
+static const float zsizes[8] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0};
+
 /* inserts new cube for a point creating the intermediate octree */
+
+void glcube_insert(glcube_t** arr, size_t* ind, size_t* len, size_t* size, v3_t pnt, v4_t nrm, v4_t col)
+{
+	glcube_t cube = *arr[ind];
+	if (cube.tlf.w > 0.5)
+	{
+		v3_t brb = (v3_t){tlf.x + tlf.w, tlf.y - tlf.w, tlf.x - tlf.w},
+		if (cube.tlf.x <= pnt.x && pnt.x < brb.x &&
+	            cube.tlf.y >= pnt.y && pnt.y > brb.y &&
+	            cube.tlf.z >= pnt.z && pnt.z > brb.z)
+	{
+	    int   octi    = 0; // octet index
+	    float half = cube.tlf.w / 2.0; // half size
+
+	    if (cube.tlf.x + halfsize < point.x) octi = 1;
+	    if (cube.tlf.y - halfsize > point.y) octi += 2;
+	    if (cube.tlf.z - halfsize > point.z) octi = bocts[octi];
+
+	    if (cube.oct[octi] == 0)
+	    {
+		float x = cube.tlf.x + xsizes[octet] * half;
+		float y = cube.tlf.y - ysizes[octet] * half;
+		float z = cube.tlf.z - zsizes[octet] * half;
+
+		size_t nai = *len; // next array index
+		
+		cube.oct[octi] = nai;
+		arr[nai].tlf = (v3_t){x,y,z};
+		arr[nai].nrm = nrm;
+		arr[nai].col = col;
+	        arr[nai].oct = {0,0,0,0,0,0,0,0};
+		    
+		if (half < 1.0) leaf_count++;
+
+		if (nai + 1 == *size)
+		{
+			*size *= 2;
+			*arr = mt_memory_realloc(*arr, *size);
+		}
+		*len++;
+		    
+		/* printf("inserting into cube tlf %.2f %.2f %.2f brb %.2f %.2f %.2f s %.2f at octet %i\n", cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->brb.x, cube->brb.y, cube->brb.z, cube->size, octet); */
+	    }
+
+	    *ind = cube.oct[octet];
+	    glcube_insert(arr, ind, len, size, pnt, nrm, col);
+	}
+    }
+}
+
+size_t cubearr_size = 1000;
+size_t cubearr_length = 0;
+size_t cubearr_index = 0;
+glcube_t* cubearr = mt_memory_alloc(sizeof(glcube_t)*cubearr_size,NULL,NULL);
+cubearr[0] = (glcube_t){
+	(v4_t){0.0,1800.0,0.0,1800.0},
+	(v4_t){0.0,0.0,0.0,0.0},
+	(v4_t){0.0,0.0,0.0,0.0},
+	{0,0,0,0,0,0,0,0}};
 
 void cube_insert(cube_t* cube, v3_t point, v3_t normal, uint32_t color)
 {
@@ -427,13 +507,6 @@ void cube_insert(cube_t* cube, v3_t point, v3_t normal, uint32_t color)
     }
 }
 
-struct glvec4
-{
-    GLfloat x;
-    GLfloat y;
-    GLfloat z;
-    GLfloat w;
-};
 
 struct glcube_t
 {
