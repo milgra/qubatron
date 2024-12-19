@@ -55,7 +55,7 @@ float speed       = 0.0;
 float strafespeed = 0.0;
 
 v3_t angle       = {0.0};
-v3_t position    = {440.0, 200.0, -1000.0};
+v3_t position    = {440.0, 200.0, -500.0};
 v3_t direction   = {0.0, 0.0, -1.0};
 v3_t directionX  = {-1.0, 0.0, 0.0};
 
@@ -308,165 +308,6 @@ void run_compute_shader()
     glDisable(GL_RASTERIZER_DISCARD);
 }
 
-typedef struct _cube_t cube_t;
-struct _cube_t
-{
-    v3_t     tlf;  // top left front coord
-    v3_t     brb;  // bottom right back coord
-    v3_t     nrm;  // normal vector
-    v3_t     cp;   // center point
-    float    size; // side size
-    float    dia;  // diameter
-    uint32_t color;
-    cube_t*  nodes[8];
-};
-
-cube_t* basecube = NULL;
-
-void cube_describe(void* p, int level)
-{
-    cube_t* cube = p;
-    cube_t  c    = *cube;
-
-    printf("Cube TLF %.2f %.2f %.2f BRB %.2f %.2f %.2f SIZE %.2f COLOR %08x NODES ", c.tlf.x, c.tlf.y, c.tlf.z, c.brb.x, c.brb.y, c.brb.z, c.size, c.color);
-    for (int i = 0; i < 8; i++)
-    {
-	if (c.nodes[i])
-	    printf("Y");
-	else
-	    printf("N");
-    }
-    printf("\n");
-}
-
-void cube_delete(void* p)
-{
-    cube_t* cube = p;
-    for (int i = 0; i < 8; i++)
-    {
-	if (cube->nodes[i] != NULL)
-	{
-	    REL(cube->nodes[i]);
-	}
-    }
-}
-
-uint32_t cube_count = 0;
-uint32_t leaf_count = 0;
-
-cube_t* cube_create(uint32_t color, v3_t tlf, v3_t brb, v3_t nrm)
-{
-    cube_t* cube = CAL(sizeof(cube_t), cube_delete, cube_describe);
-
-    cube->color = color;
-    cube->size  = brb.x - tlf.x;
-    cube->dia   = v3_length(v3_sub(brb, tlf));
-    cube->tlf   = tlf;
-    cube->brb   = brb;
-    cube->cp    = v3_add(cube->tlf, (v3_t){cube->size / 2.0, -cube->size / 2.0, -cube->size / 2.0});
-    cube->nrm   = nrm;
-
-    cube_count++;
-
-    return cube;
-}
-
-void cube_insert(cube_t* cube, v3_t point, v3_t normal, uint32_t color)
-{
-    if (cube->size > 0.5)
-    {
-	if (cube->tlf.x <= point.x && point.x < cube->brb.x &&
-	    cube->tlf.y >= point.y && point.y > cube->brb.y &&
-	    cube->tlf.z >= point.z && point.z > cube->brb.z)
-	{
-	    /* do speed tests on static const vs simple vars */
-	    static const int bocts[4] = {4, 5, 6, 7};
-
-	    static const float xsizes[8] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
-	    static const float ysizes[8] = {0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0};
-	    static const float zsizes[8] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0};
-
-	    int   octet    = 0;
-	    float halfsize = cube->size / 2.0;
-
-	    if (cube->tlf.x + halfsize < point.x) octet = 1;
-	    if (cube->tlf.y - halfsize > point.y) octet += 2;
-	    if (cube->tlf.z - halfsize > point.z) octet = bocts[octet];
-
-	    if (cube->nodes[octet] == NULL)
-	    {
-		float x = cube->tlf.x + xsizes[octet] * halfsize;
-		float y = cube->tlf.y - ysizes[octet] * halfsize;
-		float z = cube->tlf.z - zsizes[octet] * halfsize;
-
-		cube->nodes[octet] = cube_create(
-		    color,
-		    (v3_t){x, y, z},
-		    (v3_t){x + halfsize, y - halfsize, z - halfsize},
-		    normal);
-
-		if (halfsize < 1.0) leaf_count++;
-
-		/* printf("inserting into cube tlf %.2f %.2f %.2f brb %.2f %.2f %.2f s %.2f at octet %i\n", cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->brb.x, cube->brb.y, cube->brb.z, cube->size, octet); */
-	    }
-
-	    cube_insert(cube->nodes[octet], point, normal, color);
-
-	    /* current color will be that last existing subnode's color
-	       TODO : should  be the average of node colors */
-
-	    for (int i = 0; i < 8; i++)
-	    {
-		if (cube->nodes[i] != NULL)
-		{
-		    cube->color = cube->nodes[i]->color;
-		}
-	    }
-	}
-    }
-}
-
-struct glvec4
-{
-    GLfloat x;
-    GLfloat y;
-    GLfloat z;
-    GLfloat w;
-};
-
-struct glcube_t
-{
-    struct glvec4 p;   // position of top left corner
-    struct glvec4 nor; // normal
-    struct glvec4 c;   // color
-    GLint         n[8];
-};
-
-uint32_t cube_collect(cube_t* cube, struct glcube_t* cubes, uint32_t* glindex, uint32_t length)
-{
-    uint32_t index = *glindex;
-    if (index < length)
-    {
-	cubes[index].p   = (struct glvec4){cube->tlf.x, cube->tlf.y, cube->tlf.z, cube->size};
-	cubes[index].nor = (struct glvec4){cube->nrm.x, cube->nrm.y, cube->nrm.z, 0.0};
-	cubes[index].c   = (struct glvec4){(float) ((cube->color >> 24) & 0xFF) / 255.0, (float) ((cube->color >> 16) & 0xFF) / 255.0, (float) ((cube->color >> 8) & 0xFF) / 255.0, (float) (cube->color & 0xFF) / 255.0};
-
-	for (int o = 0; o < 8; o++)
-	{
-	    if (cube->nodes[o])
-	    {
-		*glindex += 1;
-		cubes[index].n[o] = cube_collect(cube->nodes[o], cubes, glindex, length);
-	    }
-	    else
-	    {
-		cubes[index].n[o] = 0;
-	    }
-	}
-    }
-    return index;
-}
-
 float    px, py, pz, cx, cy, cz, nx, ny, nz;
 uint32_t cnt = 0;
 uint32_t ind = 0;
@@ -560,9 +401,7 @@ static int vertex_cb(p_ply_argument argument)
     return 1;
 }
 
-glcubearr_t      cubearr;
-struct glcube_t* glcubes = NULL;
-size_t           buffsize;
+glcubearr_t cubearr;
 
 void main_init()
 {
@@ -583,19 +422,6 @@ void main_init()
     // shader storage buffer object
 
     cubearr = glcubearr_create(10000, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
-
-    /* glcube_insert(&arr, (v3_t){10.0, 10.0, 10.0}, (v4_t) (0.0), (v4_t) (0.0)); */
-
-    basecube = cube_create(
-	0,
-	(v3_t){0.0, 1800.0, 0.0},
-	(v3_t){1800.0, 0.0, -1800.0},
-	(v3_t){0.0, 0.0, -1.0});
-
-    /* basecube = cube_create( */
-    /* 	0, */
-    /* 	(v3_t){100.0, 800.0, -100.0}, */
-    /* 	(v3_t){800.0, 100.0, -800.0}); */
 
     char  plypath[PATH_MAX];
     p_ply ply;
@@ -685,24 +511,54 @@ void main_init()
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
     trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
 
-    run_fragment_shader();
-    run_compute_shader();
+    /* run_fragment_shader(); */
+    /* run_compute_shader(); */
     /* run_compute_shader(); */
 
     for (int index = 0; index < model_count; index += 3)
     {
-	cube_insert(
-	    basecube,
-	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
-	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]},
-	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF);
+	glcubearr_insert(
+	    &cubearr,
+	    0,
+	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
+	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
+	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0});
     }
 
-    mt_log_debug("cube count : %lu", cube_count);
-    mt_log_debug("leaf count : %lu", leaf_count);
-    buffsize = sizeof(struct glcube_t) * cube_count;
-    mt_log_debug("buffer size is %lu bytes", buffsize);
+    /* glcubearr_insert(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}); */
+    /* glcubearr_insert(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}); */
+
+    mt_log_debug("cube count : %lu", cubearr.len);
+    mt_log_debug("leaf count : %lu", cubearr.leaves);
+    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube__t));
     mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
+
+    /* for (int i = 0; i < cubearr.len; i++) */
+    /* { */
+    /* 	printf( */
+    /* 	    "%i tlf %.2f %.2f %.2f %.2f col %.2f %.2f %.2f %.2f nodes : %i | %i | %i | %i | %i | %i | %i | %i\n", */
+    /* 	    i, */
+    /* 	    cubearr.cubes[i].tlf.x, */
+    /* 	    cubearr.cubes[i].tlf.y, */
+    /* 	    cubearr.cubes[i].tlf.z, */
+    /* 	    cubearr.cubes[i].tlf.w, */
+    /* 	    cubearr.cubes[i].col.x, */
+    /* 	    cubearr.cubes[i].col.y, */
+    /* 	    cubearr.cubes[i].col.z, */
+    /* 	    cubearr.cubes[i].col.w, */
+    /* 	    cubearr.cubes[i].oct[0], */
+    /* 	    cubearr.cubes[i].oct[1], */
+    /* 	    cubearr.cubes[i].oct[2], */
+    /* 	    cubearr.cubes[i].oct[3], */
+    /* 	    cubearr.cubes[i].oct[4], */
+    /* 	    cubearr.cubes[i].oct[5], */
+    /* 	    cubearr.cubes[i].oct[6], */
+    /* 	    cubearr.cubes[i].oct[7]); */
+    /* } */
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube__t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                               // unbind
 
     /* cube_insert(basecube, (v3_t){110.0, 790.0, -110.0}, 0xFFFFFFFF); */
     /* cube_insert(basecube, (v3_t){110.0, 440.0, -110.0}, 0xFFFFFFFF); */
@@ -739,16 +595,6 @@ void main_init()
     /* 	    z = -790.0; */
     /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
     /* 	} */
-    /* } */
-
-    glcubes = mt_memory_calloc(buffsize, NULL, NULL);
-
-    uint32_t glindex = 0;
-    cube_collect(basecube, glcubes, &glindex, cube_count);
-
-    /* for (int i = 0; i < glindex + 1; i++) */
-    /* { */
-    /* 	printf("%i %.2f %.2f %.2f %.2f nodes : %i | %i | %i | %i | %i | %i | %i | %i\n", i, glcubes[i].p.x, glcubes[i].p.y, glcubes[i].p.z, glcubes[i].p.w, glcubes[i].n[0], glcubes[i].n[1], glcubes[i].n[2], glcubes[i].n[3], glcubes[i].n[4], glcubes[i].n[5], glcubes[i].n[6], glcubes[i].n[7]); */
     /* } */
 
     /* for (int i = 0; i < 100; i++) */
@@ -943,51 +789,38 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    run_compute_shader();
+    /* run_compute_shader(); */
 
-    if (basecube)
-	REL(basecube);
+    /* basecube = cube_create( */
+    /* 	0, */
+    /* 	(v3_t){0.0, 1800.0, 0.0}, */
+    /* 	(v3_t){1800.0, 0.0, -1800.0}, */
+    /* 	(v3_t){0.0, 0.0, -1.0}); */
 
-    cube_count = 0;
-    leaf_count = 0;
+    /* for (int index = 0; */
+    /* 	 index < model_count; */
+    /* 	 index += 3) */
+    /* { */
+    /* 	cube_insert( */
+    /* 	    basecube, */
+    /* 	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]}, */
+    /* 	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]}, */
+    /* 	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF); */
+    /* } */
 
-    basecube = cube_create(
-	0,
-	(v3_t){0.0, 1800.0, 0.0},
-	(v3_t){1800.0, 0.0, -1800.0},
-	(v3_t){0.0, 0.0, -1.0});
-
-    for (int index = 0;
-	 index < model_count;
-	 index += 3)
-    {
-	cube_insert(
-	    basecube,
-	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
-	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]},
-	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF);
-    }
-
-    buffsize = sizeof(struct glcube_t) * cube_count;
-
-    mt_log_debug("cube count : %lu model count %lu", cube_count, model_count);
+    /* mt_log_debug("cube count : %lu model count %lu", cube_count, model_count); */
     /* mt_log_debug("leaf count : %lu", leaf_count); */
     /* mt_log_debug("buffer size is %lu bytes", buffsize); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
 
-    if (glcubes != NULL)
-	REL(glcubes);
-    glcubes = mt_memory_calloc(buffsize, NULL, NULL);
+    /* if (glcubes != NULL) */
+    /* 	REL(glcubes); */
+    /* glcubes = mt_memory_calloc(buffsize, NULL, NULL); */
 
-    uint32_t glindex = 0;
-    cube_collect(basecube, glcubes, &glindex, cube_count);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glcubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
+    /* uint32_t glindex = 0; */
+    /* cube_collect(basecube, glcubes, &glindex, cube_count); */
 
     run_fragment_shader();
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 
     frames++;
 

@@ -303,7 +303,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		nearest_cube.nodes[pick] = 0;
 	    };
 
-	    if (nearest_cube.tlf.w < 0.5)
+	    if (nearest_cube.tlf.w < 1.0)
 	    {
 		/* float visw = nearest_cube.tlf.w / nearest_isp.isp.w; */
 		/* if (visw > maxc_size) */
