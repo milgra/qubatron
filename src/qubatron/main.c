@@ -497,6 +497,54 @@ void main_init()
     if (!ply_read(ply)) return;
     ply_close(ply);
 
+    GLfloat* nmodel_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    GLfloat* nmodel_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    GLfloat* nmodel_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    size_t   nmodel_count    = 0;
+    size_t   nmodel_index    = 0;
+
+    for (int index = 0; index < model_count; index += 3)
+    {
+	bool leaf = false;
+	glcubearr_insert(
+	    &cubearr,
+	    0,
+	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
+	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
+	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0},
+	    &leaf);
+	if (leaf)
+	{
+	    // filter usable points to reduce gpu/cpu load later
+	    nmodel_vertexes[nmodel_index]     = model_vertexes[index];
+	    nmodel_vertexes[nmodel_index + 1] = model_vertexes[index + 1];
+	    nmodel_vertexes[nmodel_index + 2] = model_vertexes[index + 2];
+	    nmodel_normals[nmodel_index]      = model_normals[index];
+	    nmodel_normals[nmodel_index + 1]  = model_normals[index + 1];
+	    nmodel_normals[nmodel_index + 2]  = model_normals[index + 2];
+	    nmodel_colors[nmodel_index]       = model_colors[index];
+	    nmodel_colors[nmodel_index + 1]   = model_colors[index + 1];
+	    nmodel_colors[nmodel_index + 2]   = model_colors[index + 2];
+	    nmodel_index += 3;
+	    nmodel_count += 3;
+	}
+    }
+
+    model_vertexes = nmodel_vertexes;
+    model_normals  = nmodel_normals;
+    model_colors   = nmodel_colors;
+    model_index    = nmodel_index;
+    model_count    = nmodel_count;
+
+    /* glcubearr_insert(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}); */
+    /* glcubearr_insert(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}); */
+
+    mt_log_debug("model count : %lu", model_count);
+    mt_log_debug("cube count : %lu", cubearr.len);
+    mt_log_debug("leaf count : %lu", cubearr.leaves);
+    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube__t));
+    mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
+
     // set compute buffers
 
     glUseProgram(cmp_sp);
@@ -510,28 +558,7 @@ void main_init()
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
     trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
-
-    /* run_fragment_shader(); */
     /* run_compute_shader(); */
-    run_compute_shader();
-
-    for (int index = 0; index < model_count; index += 3)
-    {
-	glcubearr_insert(
-	    &cubearr,
-	    0,
-	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
-	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
-	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0});
-    }
-
-    /* glcubearr_insert(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}); */
-    /* glcubearr_insert(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}); */
-
-    mt_log_debug("cube count : %lu", cubearr.len);
-    mt_log_debug("leaf count : %lu", cubearr.leaves);
-    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube__t));
-    mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
 
     /* for (int i = 0; i < cubearr.len; i++) */
     /* { */
@@ -794,12 +821,14 @@ int main_loop(double time, void* userdata)
 
     for (int index = 0; index < model_count; index += 3)
     {
+	bool leaf = false;
 	glcubearr_insert(
 	    &cubearr,
 	    0,
 	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
 	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
-	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0});
+	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0},
+	    &leaf);
     }
 
     /* mt_log_debug("cube count : %lu", cubearr.len); */

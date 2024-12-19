@@ -34,7 +34,7 @@ typedef struct glcubearr_t
 glcubearr_t glcubearr_create(size_t size, glvec4_t base);
 void        glcubearr_delete(glcubearr_t* arr);
 void        glcubearr_reset(glcubearr_t* arr, glvec4_t base);
-void        glcubearr_insert(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm, glvec4_t col);
+void        glcubearr_insert(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm, glvec4_t col, bool* leaf);
 
 #endif
 
@@ -92,7 +92,7 @@ void glcubearr_reset(glcubearr_t* arr, glvec4_t base)
 
 /* inserts new cube for a point creating the intermediate octree */
 
-void glcubearr_insert(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm, glvec4_t col)
+void glcubearr_insert(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm, glvec4_t col, bool* leaf)
 {
     glcube__t cube = arr->cubes[ind];
 
@@ -137,12 +137,16 @@ void glcubearr_insert(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm, glve
 		}
 		arr->len++;
 
-		if (half < glcube_res) arr->leaves++;
+		if (half < glcube_res)
+		{
+		    arr->leaves++;
+		    *leaf = true;
+		}
 	    }
 
 	    /* printf("insert octet %i index %u\n", octi, cube.oct[octi]); */
 
-	    glcubearr_insert(arr, cube.oct[octi], pnt, nrm, col);
+	    glcubearr_insert(arr, cube.oct[octi], pnt, nrm, col, leaf);
 	}
     }
 }
