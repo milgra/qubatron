@@ -40,7 +40,7 @@ void        glcubearr_insert(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nr
 
 #if __INCLUDE_LEVEL__ == 0
 
-static const float glcube_res = 1.0;
+static const float glcube_res = 0.5;
 
 // octets
 //     4 5

@@ -513,14 +513,14 @@ void main_init()
 
     /* run_fragment_shader(); */
     /* run_compute_shader(); */
-    /* run_compute_shader(); */
+    run_compute_shader();
 
     for (int index = 0; index < model_count; index += 3)
     {
 	glcubearr_insert(
 	    &cubearr,
 	    0,
-	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
+	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
 	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
 	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0});
     }
@@ -789,36 +789,27 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    /* run_compute_shader(); */
+    run_compute_shader();
+    glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
 
-    /* basecube = cube_create( */
-    /* 	0, */
-    /* 	(v3_t){0.0, 1800.0, 0.0}, */
-    /* 	(v3_t){1800.0, 0.0, -1800.0}, */
-    /* 	(v3_t){0.0, 0.0, -1.0}); */
+    for (int index = 0; index < model_count; index += 3)
+    {
+	glcubearr_insert(
+	    &cubearr,
+	    0,
+	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
+	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
+	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0});
+    }
 
-    /* for (int index = 0; */
-    /* 	 index < model_count; */
-    /* 	 index += 3) */
-    /* { */
-    /* 	cube_insert( */
-    /* 	    basecube, */
-    /* 	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]}, */
-    /* 	    (v3_t){model_normals[index], model_normals[index + 1], model_normals[index + 2]}, */
-    /* 	    (int) model_colors[index] << 24 | (int) model_colors[index + 1] << 16 | (int) model_colors[index + 2] < 8 | 0xFF); */
-    /* } */
-
-    /* mt_log_debug("cube count : %lu model count %lu", cube_count, model_count); */
-    /* mt_log_debug("leaf count : %lu", leaf_count); */
-    /* mt_log_debug("buffer size is %lu bytes", buffsize); */
+    /* mt_log_debug("cube count : %lu", cubearr.len); */
+    /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
+    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube__t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
 
-    /* if (glcubes != NULL) */
-    /* 	REL(glcubes); */
-    /* glcubes = mt_memory_calloc(buffsize, NULL, NULL); */
-
-    /* uint32_t glindex = 0; */
-    /* cube_collect(basecube, glcubes, &glindex, cube_count); */
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube__t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                               // unbind
 
     run_fragment_shader();
 
