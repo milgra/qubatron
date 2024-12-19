@@ -15,26 +15,27 @@ typedef struct glvec4_t
     GLfloat w;
 } glvec4_t;
 
-typedef struct glcube_t
+typedef struct glcube__t
 {
     glvec4_t tlf;
     glvec4_t nrm;
     glvec4_t col;
     GLint    oct[8];
-} glcube_t;
+} glcube__t;
 
 typedef struct glcubearr_t
 {
-    glcube_t* cubes;
-    size_t    size;
-    size_t    len;
-    size_t    ind;
-    size_t    leaves;
+    glcube__t* cubes;
+    size_t     size;
+    size_t     len;
+    size_t     ind;
+    size_t     leaves;
 } glcubearr_t;
 
-glcubearr_t glcbuearr_create(size_t size, glvec4_t base);
+glcubearr_t glcubearr_create(size_t size, glvec4_t base);
 void        glcubearr_delete(glcubearr_t* arr);
-void        glcbuearr_reset(glcubearr_t* arr, glvec4_t base);
+void        glcubearr_reset(glcubearr_t* arr, glvec4_t base);
+void        glcubearr_insert(glcubearr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col);
 
 #endif
 
@@ -53,17 +54,17 @@ static const float xsizes[8] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
 static const float ysizes[8] = {0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0};
 static const float zsizes[8] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0};
 
-glcubearr_t glcbuearr_create(size_t size, glvec4_t base)
+glcubearr_t glcubearr_create(size_t size, glvec4_t base)
 {
     glcubearr_t arr;
     arr.size   = size;
-    arr.cubes  = mt_memory_alloc(sizeof(glcube_t) * arr.size, NULL, NULL);
+    arr.cubes  = mt_memory_alloc(sizeof(glcube__t) * arr.size, NULL, NULL);
     arr.len    = 0;
     arr.ind    = 0;
     arr.leaves = 0;
 
-    arr.cubes[0] = (glcube_t){
-	base,
+    arr.cubes[0] = (glcube__t){
+	(glvec4_t) base,
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	{0, 0, 0, 0, 0, 0, 0, 0}};
@@ -78,12 +79,12 @@ void glcubearr_delete(glcubearr_t* arr)
     REL(arr->cubes);
 }
 
-void glcbuearr_reset(glcubearr_t* arr, glvec4_t base)
+void glcubearr_reset(glcubearr_t* arr, glvec4_t base)
 {
     arr->len      = 0;
     arr->ind      = 0;
     arr->leaves   = 0;
-    arr->cubes[0] = (glcube_t){
+    arr->cubes[0] = (glcube__t){
 	base,
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
@@ -94,9 +95,9 @@ void glcbuearr_reset(glcubearr_t* arr, glvec4_t base)
 
 /* inserts new cube for a point creating the intermediate octree */
 
-void glcube_insert(glcubearr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
+void glcubearr_insert(glcubearr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
 {
-    glcube_t cube = arr->cubes[arr->ind];
+    glcube__t cube = arr->cubes[arr->ind];
     // check resolution
     if (cube.tlf.w > glcube_res)
     {
@@ -125,7 +126,7 @@ void glcube_insert(glcubearr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
 		    half};
 
 		cube.oct[octi]       = arr->len;
-		arr->cubes[arr->len] = (glcube_t){ntlf, nrm, col, {0, 0, 0, 0, 0, 0, 0, 0}};
+		arr->cubes[arr->len] = (glcube__t){ntlf, nrm, col, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 		if (arr->len + 1 == arr->size)
 		{
@@ -140,7 +141,7 @@ void glcube_insert(glcubearr_t* arr, v3_t pnt, glvec4_t nrm, glvec4_t col)
 	    }
 
 	    arr->ind = cube.oct[octi];
-	    glcube_insert(arr, pnt, nrm, col);
+	    glcubearr_insert(arr, pnt, nrm, col);
 	}
     }
 }

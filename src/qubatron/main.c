@@ -11,6 +11,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include "glcubearr.c"
 #include "ku_gl_floatbuffer.c"
 #include "ku_gl_shader.c"
 #include "mt_log.c"
@@ -559,6 +560,7 @@ static int vertex_cb(p_ply_argument argument)
     return 1;
 }
 
+glcubearr_t      cubearr;
 struct glcube_t* glcubes = NULL;
 size_t           buffsize;
 
@@ -579,6 +581,8 @@ void main_init()
     init_fragment_shader();
 
     // shader storage buffer object
+
+    cubearr = glcubearr_create(10000, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
 
     /* glcube_insert(&arr, (v3_t){10.0, 10.0, 10.0}, (v4_t) (0.0), (v4_t) (0.0)); */
 
