@@ -28,10 +28,9 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 struct cube_t
 {
-    //    vec4 tlf; // top left front coord
-    vec4 nrm; // normal vector
-    vec4 col;
-    int  nodes[8];
+    vec4 nrm;      // normal vector
+    vec4 col;      // color
+    int  nodes[8]; // octets
 };
 
 const float PI   = 3.1415926535897932384626433832795;
@@ -348,8 +347,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    depth += 1;
 
 	    // reset containers for the next depth
-	    stck[depth].tlf = ntlf;
-
+	    stck[depth].tlf      = ntlf;
 	    stck[depth].ispt_len = 0;
 	    stck[depth].ispt_ind = 0;
 	    stck[depth].cube     = nearest_cube;

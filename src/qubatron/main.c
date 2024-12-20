@@ -513,6 +513,7 @@ void main_init()
 	glcubearr_insert_fast(
 	    &cubearr,
 	    0,
+	    index,
 	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
 	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
 	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0},
@@ -819,7 +820,6 @@ int main_loop(double time, void* userdata)
 
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
-    mt_time(NULL);
 
     run_compute_shader();
 
@@ -831,6 +831,7 @@ int main_loop(double time, void* userdata)
 	glcubearr_insert_fast(
 	    &cubearr,
 	    0,
+	    index,
 	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
 	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
 	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0},
@@ -844,7 +845,6 @@ int main_loop(double time, void* userdata)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(glcube_t), cubearr.cubes); // sizeof(data) only works for statically sized C/C++ arrays.
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                   // unbind
-    mt_time("buildup");
 
     run_fragment_shader();
 
