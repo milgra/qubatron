@@ -28,9 +28,10 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 struct cube_t
 {
-    vec4 nrm;      // normal vector
-    vec4 col;      // color
-    int  nodes[8]; // octets
+    vec4 nrm; // normal vector
+    vec4 col; // color
+    int  ind;
+    int  nodes[11]; // 8 octets, we need 11 for std430 padding
 };
 
 const float PI   = 3.1415926535897932384626433832795;
@@ -41,9 +42,19 @@ const float maxc_size = 3.0;
 
 bool procgen = false;
 
-layout(std430, binding = 3) readonly buffer cubelayout
+layout(std430, binding = 1) readonly buffer cubelayout
 {
     cube_t g_cubes[];
+};
+
+layout(std430, binding = 1) readonly buffer normallayout
+{
+    vec3 g_normals[];
+};
+
+layout(std430, binding = 1) readonly buffer colorlayout
+{
+    vec3 g_colors[];
 };
 
 struct ctlres
@@ -52,6 +63,7 @@ struct ctlres
     vec4 col;
     vec4 nrm;
     vec4 tlf;
+    int  ind;
 };
 
 struct ispt_t // intersection struct
@@ -124,6 +136,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
     res.col = vec4(0.0, 0.5, 0.0, 0.1);
+    res.ind = 0;
 
     stck_t stck[20];
     stck[0].cube     = cb;
@@ -336,6 +349,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		res.col = nearest_cube.col;
 		res.nrm = nearest_cube.nrm;
 		res.tlf = ntlf;
+		res.ind = nearest_cube.ind;
 		/* res.col = nearest_isp.col; */
 		return res;
 		/* } */
@@ -359,6 +373,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		res.col = nearest_cube.col;
 		res.nrm = nearest_cube.nrm;
 		res.tlf = ntlf;
+		res.ind = nearest_cube.ind;
 		/* res.col = vec4(1.0, 0.0, 0.0, 1.0); */
 		return res;
 	    }
@@ -477,6 +492,13 @@ void main()
 	/* show normals */
 	/* fragColor = vec4(abs(ccres.nrm.x), abs(ccres.nrm.y), abs(ccres.nrm.z), 1.0); */
 
+	// if we found cube, get normal and color from corresponding arrays
+	// else show debug color ( put intersection count in ccres?
+
+	if (ccres.ind > 0)
+	{
+	    fragColor = vec4(g_colors[ccres.ind * 3], 1.0);
+	}
 	fragColor = ccres.col;
 
 	// we found a subcube

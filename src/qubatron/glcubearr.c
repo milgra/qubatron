@@ -19,7 +19,8 @@ typedef struct glcube_t
 {
     glvec4_t nrm;
     glvec4_t col;
-    GLint    oct[8];
+    GLint    ind;
+    GLint    oct[11]; // 8 octets, we need 11 for std430 padding
 } glcube_t;
 
 typedef struct glcubearr_t
@@ -64,6 +65,7 @@ glcubearr_t glcubearr_create(size_t size, glvec4_t base)
     arr.cubes[0] = (glcube_t){
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
+	0,
 	{0, 0, 0, 0, 0, 0, 0, 0}};
 
     arr.len = 1;
@@ -83,6 +85,7 @@ void glcubearr_reset(glcubearr_t* arr, glvec4_t base)
     arr->cubes[0] = (glcube_t){
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	(glvec4_t){0.0, 0.0, 0.0, 0.0},
+	0,
 	{0, 0, 0, 0, 0, 0, 0, 0}};
 
     arr->len = 1;
@@ -115,7 +118,7 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t p
 	    // store subnode in array
 
 	    arr->cubes[arrind].oct[octet] = arr->len;
-	    arr->cubes[arr->len++]        = (glcube_t){nrm, col, {0, 0, 0, 0, 0, 0, 0, 0}};
+	    arr->cubes[arr->len++]        = (glcube_t){nrm, col, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 	    // resize array if needed
 
