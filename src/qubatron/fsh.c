@@ -16,10 +16,9 @@ precision highp float;
 // 0 1
 // 2 3
 
-const int horpairs[]  = int[8](1, 0, 3, 2, 5, 4, 7, 6);
-const int verpairs[]  = int[8](2, 3, 0, 1, 6, 7, 4, 5);
-const int deppairs[]  = int[8](4, 5, 6, 7, 0, 1, 2, 3);
-const int backocts[4] = int[4](4, 5, 6, 7);
+const int horpairs[] = int[8](1, 0, 3, 2, 5, 4, 7, 6);
+const int verpairs[] = int[8](2, 3, 0, 1, 6, 7, 4, 5);
+const int deppairs[] = int[8](4, 5, 6, 7, 0, 1, 2, 3);
 
 const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
@@ -240,7 +239,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 
 		    if (act_hitp.isp.x > hlf.x) oct = 1;
 		    if (act_hitp.isp.y < hlf.y) oct += 2;
-		    if (act_hitp.isp.z < hlf.z) oct = backocts[oct];
+		    if (act_hitp.isp.z < hlf.z) oct += 4;
 
 		    // from the second isp find octet pairs if needed
 		    if (oct == prevoct)
