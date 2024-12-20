@@ -506,7 +506,7 @@ void main_init()
     for (int index = 0; index < model_count; index += 3)
     {
 	bool leaf = false;
-	glcubearr_insert(
+	glcubearr_insert_fast(
 	    &cubearr,
 	    0,
 	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
@@ -815,8 +815,10 @@ int main_loop(double time, void* userdata)
 
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
+    mt_time(NULL);
 
     run_compute_shader();
+
     glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
 
     for (int index = 0; index < model_count; index += 3)
@@ -830,15 +832,15 @@ int main_loop(double time, void* userdata)
 	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0},
 	    &leaf);
     }
-
     /* mt_log_debug("cube count : %lu", cubearr.len); */
     /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
     /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); */
-    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
+    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                              // unbind
+    mt_time("buildup");
 
     run_fragment_shader();
 

@@ -161,15 +161,14 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm,
     {
 	glcube_t cube = arr->cubes[ind];
 	float    size = cube.tlf.w;
+
 	size /= 2.0;
 
 	// get octet index
 
-	int xi = (int) floor(pnt.x / size) % 2;
-	int yi = (int) floor(pnt.y / size) % 2;
-	int zi = (int) floor(-1.0 * pnt.z / size) % 2;
-
-	int octet = (int) xi;
+	int octet = (int) floor(pnt.x / size) % 2;
+	int yi    = (int) floor(pnt.y / size) % 2;
+	int zi    = (int) floor(-1.0 * pnt.z / size) % 2;
 
 	if (yi == 0) octet += 2;
 	if (zi == 1) octet += 4;
@@ -189,8 +188,7 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm,
 	    // store subnode in array
 
 	    arr->cubes[ind].oct[octet] = arr->len;
-	    arr->cubes[arr->len]       = (glcube_t){ntlf, nrm, col, {0, 0, 0, 0, 0, 0, 0, 0}};
-	    arr->len++;
+	    arr->cubes[arr->len++]     = (glcube_t){ntlf, nrm, col, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 	    // resize array if needed
 
@@ -200,12 +198,12 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t ind, v3_t pnt, glvec4_t nrm,
 		arr->cubes = mt_memory_realloc(arr->cubes, arr->size * sizeof(glcube_t));
 		if (arr->cubes == NULL) mt_log_debug("not enough memory");
 	    }
-	}
 
-	if (level == levels - 1)
-	{
-	    arr->leaves++;
-	    *leaf = true;
+	    if (level == levels - 1)
+	    {
+		arr->leaves++;
+		*leaf = true;
+	    }
 	}
 
 	// increase index and length
