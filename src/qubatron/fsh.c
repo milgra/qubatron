@@ -6,6 +6,8 @@ out highp vec4 fragColor;
 uniform highp vec3 camfp;
 uniform highp vec3 angle_in;
 uniform highp vec3 light;
+uniform highp vec4 basecube;
+
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
 precision highp float;
@@ -26,7 +28,7 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 struct cube_t
 {
-    vec4 tlf; // top left front coord
+    //    vec4 tlf; // top left front coord
     vec4 nrm; // normal vector
     vec4 col;
     int  nodes[8];
@@ -62,7 +64,8 @@ struct ispt_t // intersection struct
 
 struct stck_t
 {
-    cube_t cube;     // cube for stack level
+    vec4   tlf;      // cube dimensions for stack level
+    cube_t cube;     // cube normal, color and octets for stack level
     bool   checked;  // stack level is checked for intersection
     int    octs[4];  // octets for ispts
     ispt_t ispts[4]; // is point for stack level cube
@@ -128,12 +131,14 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
     stck[0].checked  = false;
     stck[0].ispt_len = 0;
     stck[0].ispt_ind = 0;
+    stck[0].tlf      = basecube;
 
     cube_t ccube;
 
     while (true)
     {
-	ccube = stck[depth].cube;
+	ccube    = stck[depth].cube;
+	vec4 tlf = stck[depth].tlf;
 
 	if (!stck[depth].checked)
 	{
@@ -145,8 +150,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    ispt_t hitp[5];  // hit point
 
 	    vec4 act;
-	    vec4 tlf = ccube.tlf;
-	    vec4 brb = vec4(ccube.tlf.x + ccube.tlf.w, ccube.tlf.y - ccube.tlf.w, ccube.tlf.z - ccube.tlf.w, 0.0);
+	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
 
 	    // NOTE : if-ing out or ordering is pairs are slower than this
 
@@ -279,30 +283,37 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    int    nearest_oct = stck[depth].octs[nearest_ind];
 	    cube_t nearest_cube;
 
+	    vec4 ntlf = vec4(
+		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
+		tlf.y -= ysft[nearest_oct] * tlf.w / 2.0,
+		tlf.z -= zsft[nearest_oct] * tlf.w / 2.0,
+		tlf.w / 2.0);
+
 	    if (!procgen)
 		nearest_cube = g_cubes[ccube.nodes[nearest_oct]];
 	    else
 	    {
 		// generate subnode proced
 
-		nearest_cube       = cube_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1));
-		nearest_cube.tlf.w = ccube.tlf.w / 2.0;
+		/* nearest_cube       = cube_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
+		/* nearest_cube.tlf.w = ccube.tlf.w / 2.0; */
 
-		nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w;
-		nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w;
-		nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w;
+		/* nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w; */
+		/* nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w; */
+		/* nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w; */
 
-		float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0;
+		/* float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0; */
 
-		nearest_cube.col -= nearest_cube.col * rnd;
+		/* nearest_cube.col -= nearest_cube.col * rnd; */
 
-		// fill up octets based on nearby octets
+		/* // fill up octets based on nearby octets */
 
-		int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0));
-		nearest_cube.nodes[pick] = 0;
+		/* int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0)); */
+		/* nearest_cube.nodes[pick] = 0; */
 	    };
 
-	    if (nearest_cube.tlf.w < 0.5)
+	    // replace this to depth
+	    if (ntlf.w < 0.5)
 	    {
 		/* float visw = nearest_cube.tlf.w / nearest_isp.isp.w; */
 		/* if (visw > maxc_size) */
@@ -325,7 +336,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		res.isp = nearest_isp.isp;
 		res.col = nearest_cube.col;
 		res.nrm = nearest_cube.nrm;
-		res.tlf = nearest_cube.tlf;
+		res.tlf = ntlf;
 		/* res.col = nearest_isp.col; */
 		return res;
 		/* } */
@@ -337,6 +348,8 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    depth += 1;
 
 	    // reset containers for the next depth
+	    stck[depth].tlf = ntlf;
+
 	    stck[depth].ispt_len = 0;
 	    stck[depth].ispt_ind = 0;
 	    stck[depth].cube     = nearest_cube;
@@ -347,7 +360,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		res.isp = nearest_isp.isp;
 		res.col = nearest_cube.col;
 		res.nrm = nearest_cube.nrm;
-		res.tlf = nearest_cube.tlf;
+		res.tlf = ntlf;
 		/* res.col = vec4(1.0, 0.0, 0.0, 1.0); */
 		return res;
 	    }

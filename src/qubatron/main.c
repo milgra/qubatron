@@ -122,8 +122,8 @@ void init_fragment_shader()
 	fsh,
 	1,
 	((const char*[]){"position"}),
-	4,
-	((const char*[]){"projection", "camfp", "angle_in", "light"}));
+	5,
+	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube"}));
     free(vsh);
     free(fsh);
 
@@ -175,6 +175,10 @@ void run_fragment_shader()
     GLfloat posarr[3] = {position.x, position.y, position.z};
 
     glUniform3fv(sha.uni_loc[1], 1, posarr);
+
+    GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
+
+    glUniform4fv(sha.uni_loc[4], 1, basecubearr);
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
