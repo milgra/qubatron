@@ -838,8 +838,8 @@ int main_loop(double time, void* userdata)
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                              // unbind
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(glcube_t), cubearr.cubes); // sizeof(data) only works for statically sized C/C++ arrays.
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                   // unbind
     mt_time("buildup");
 
     run_fragment_shader();

@@ -70,3 +70,8 @@ Videos :
 - high detail - 16969878 voxels with 1 light - commit eb3f1a4 : [https://youtu.be/OZ8vxzFvEM8]
 - normal detail - 3318142 voxels with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
 - normal detail - 3318142 voxels with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]
+
+Todo :
+
+- Upload normal and color data once
+- Build up indexes and nodes in a separate int array
