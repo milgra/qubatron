@@ -17,10 +17,8 @@ typedef struct glvec4_t
 
 typedef struct glcube_t
 {
-    glvec4_t nrm;
-    glvec4_t col;
-    GLint    ind;
-    GLint    oct[11]; // 8 octets, we need 11 for std430 padding
+    GLint ind;
+    GLint oct[11]; // 8 octets, we need 11 for std430 padding
 } glcube_t;
 
 typedef struct glcubearr_t
@@ -35,7 +33,7 @@ typedef struct glcubearr_t
 glcubearr_t glcubearr_create(size_t size, glvec4_t base);
 void        glcubearr_delete(glcubearr_t* arr);
 void        glcubearr_reset(glcubearr_t* arr, glvec4_t base);
-void        glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t pnt, glvec4_t nrm, glvec4_t col, bool* leaf);
+void        glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t pnt, bool* leaf);
 
 #endif
 
@@ -63,8 +61,6 @@ glcubearr_t glcubearr_create(size_t size, glvec4_t base)
     arr.basecube = base;
 
     arr.cubes[0] = (glcube_t){
-	(glvec4_t){0.0, 0.0, 0.0, 0.0},
-	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	0,
 	{0, 0, 0, 0, 0, 0, 0, 0}};
 
@@ -83,8 +79,6 @@ void glcubearr_reset(glcubearr_t* arr, glvec4_t base)
     arr->len      = 0;
     arr->leaves   = 0;
     arr->cubes[0] = (glcube_t){
-	(glvec4_t){0.0, 0.0, 0.0, 0.0},
-	(glvec4_t){0.0, 0.0, 0.0, 0.0},
 	0,
 	{0, 0, 0, 0, 0, 0, 0, 0}};
 
@@ -93,7 +87,7 @@ void glcubearr_reset(glcubearr_t* arr, glvec4_t base)
 
 /* inserts new cube for a point creating the intermediate octree */
 
-void glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t pnt, glvec4_t nrm, glvec4_t col, bool* leaf)
+void glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t pnt, bool* leaf)
 {
     int      levels = 12;
     glvec4_t cube   = arr->basecube;
@@ -118,7 +112,7 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t p
 	    // store subnode in array
 
 	    arr->cubes[arrind].oct[octet] = arr->len;
-	    arr->cubes[arr->len++]        = (glcube_t){nrm, col, orind, {0, 0, 0, 0, 0, 0, 0, 0}};
+	    arr->cubes[arr->len++]        = (glcube_t){orind, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 	    // resize array if needed
 

@@ -28,10 +28,8 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 struct cube_t
 {
-    vec4 nrm; // normal vector
-    vec4 col; // color
-    int  ind;
-    int  nodes[11]; // 8 octets, we need 11 for std430 padding
+    int ind;
+    int nodes[11]; // 8 octets, we need 11 for std430 padding
 };
 
 const float PI   = 3.1415926535897932384626433832795;
@@ -346,8 +344,6 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		/* else */
 		/* { */
 		res.isp = nearest_isp.isp;
-		res.col = nearest_cube.col;
-		res.nrm = nearest_cube.nrm;
 		res.tlf = ntlf;
 		res.ind = nearest_cube.ind;
 		/* res.col = nearest_isp.col; */
@@ -370,8 +366,6 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    if (depth > 12)
 	    {
 		res.isp = nearest_isp.isp;
-		res.col = nearest_cube.col;
-		res.nrm = nearest_cube.nrm;
 		res.tlf = ntlf;
 		res.ind = nearest_cube.ind;
 		/* res.col = vec4(1.0, 0.0, 0.0, 1.0); */

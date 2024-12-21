@@ -274,7 +274,6 @@ void init_compute_shader()
 
     // create attribute for compute shader
     GLint inputAttrib = glGetAttribLocation(cmp_sp, "inValue");
-    printf("INPUTATTRIB %i", inputAttrib);
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
@@ -525,8 +524,6 @@ void main_init()
 	    0,
 	    index / 4,
 	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
-	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
-	    (glvec4_t){model_colors[index], model_colors[index + 1], model_colors[index + 2], 1.0},
 	    &leaf);
 	/* if (leaf) */
 	/* { */
@@ -582,27 +579,24 @@ void main_init()
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
     trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
+
     /* run_compute_shader(); */
 
-    for (int i = 0; i < 100; i++)
-    {
-	printf(
-	    "%i orind %i col %.2f %.2f %.2f %.2f nodes : %i | %i | %i | %i | %i | %i | %i | %i\n",
-	    i,
-	    cubearr.cubes[i].ind,
-	    cubearr.cubes[i].col.x,
-	    cubearr.cubes[i].col.y,
-	    cubearr.cubes[i].col.z,
-	    cubearr.cubes[i].col.w,
-	    cubearr.cubes[i].oct[0],
-	    cubearr.cubes[i].oct[1],
-	    cubearr.cubes[i].oct[2],
-	    cubearr.cubes[i].oct[3],
-	    cubearr.cubes[i].oct[4],
-	    cubearr.cubes[i].oct[5],
-	    cubearr.cubes[i].oct[6],
-	    cubearr.cubes[i].oct[7]);
-    }
+    /* for (int i = 0; i < 100; i++) */
+    /* { */
+    /* 	printf( */
+    /* 	    "%i orind %i nodes : %i | %i | %i | %i | %i | %i | %i | %i\n", */
+    /* 	    i, */
+    /* 	    cubearr.cubes[i].ind, */
+    /* 	    cubearr.cubes[i].oct[0], */
+    /* 	    cubearr.cubes[i].oct[1], */
+    /* 	    cubearr.cubes[i].oct[2], */
+    /* 	    cubearr.cubes[i].oct[3], */
+    /* 	    cubearr.cubes[i].oct[4], */
+    /* 	    cubearr.cubes[i].oct[5], */
+    /* 	    cubearr.cubes[i].oct[6], */
+    /* 	    cubearr.cubes[i].oct[7]); */
+    /* } */
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
@@ -840,18 +834,17 @@ int main_loop(double time, void* userdata)
 
     /* glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0}); */
 
-    /* for (int index = 0; index < model_count; index += 3) */
+    /* for (int index = 0; index < model_count; index += 4) */
     /* { */
     /* 	bool leaf = false; */
     /* 	glcubearr_insert_fast( */
     /* 	    &cubearr, */
     /* 	    0, */
-    /* 	    index, */
+    /* 	    index / 4, */
     /* 	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]}, */
-    /* 	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0}, */
-    /* 	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0}, */
     /* 	    &leaf); */
     /* } */
+
     /* /\* mt_log_debug("cube count : %lu", cubearr.len); *\/ */
     /* /\* mt_log_debug("leaf count : %lu", cubearr.leaves); *\/ */
     /* /\* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); *\/ */
