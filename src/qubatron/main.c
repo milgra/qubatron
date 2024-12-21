@@ -275,7 +275,7 @@ void init_compute_shader()
     // create attribute for compute shader
     GLint inputAttrib = glGetAttribLocation(cmp_sp, "inValue");
     glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+    glVertexAttribPointer(inputAttrib, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4, 0);
 
     // create and bind result buffer object
     glGenBuffers(1, &cmp_vbo_out);
@@ -312,7 +312,7 @@ void run_compute_shader()
 
     // run compute shader
     glBeginTransformFeedback(GL_POINTS);
-    glDrawArrays(GL_POINTS, 0, model_count / 3);
+    glDrawArrays(GL_POINTS, 0, model_count / 4);
     glEndTransformFeedback();
     glFlush();
 
@@ -525,21 +525,47 @@ void main_init()
 	    index / 4,
 	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
 	    &leaf);
-	/* if (leaf) */
-	/* { */
-	/*     // filter usable points to reduce gpu/cpu load later */
-	/*     nmodel_vertexes[nmodel_index]     = model_vertexes[index]; */
-	/*     nmodel_vertexes[nmodel_index + 1] = model_vertexes[index + 1]; */
-	/*     nmodel_vertexes[nmodel_index + 2] = model_vertexes[index + 2]; */
-	/*     nmodel_normals[nmodel_index]      = model_normals[index]; */
-	/*     nmodel_normals[nmodel_index + 1]  = model_normals[index + 1]; */
-	/*     nmodel_normals[nmodel_index + 2]  = model_normals[index + 2]; */
-	/*     nmodel_colors[nmodel_index]       = model_colors[index]; */
-	/*     nmodel_colors[nmodel_index + 1]   = model_colors[index + 1]; */
-	/*     nmodel_colors[nmodel_index + 2]   = model_colors[index + 2]; */
-	/*     nmodel_index += 3; */
-	/*     nmodel_count += 3; */
-	/* } */
+	if (leaf)
+	{
+	    // filter usable points to reduce gpu/cpu load later
+	    nmodel_vertexes[nmodel_index]     = model_vertexes[index];
+	    nmodel_vertexes[nmodel_index + 1] = model_vertexes[index + 1];
+	    nmodel_vertexes[nmodel_index + 2] = model_vertexes[index + 2];
+	    nmodel_vertexes[nmodel_index + 3] = model_vertexes[index + 3];
+	    nmodel_normals[nmodel_index]      = model_normals[index];
+	    nmodel_normals[nmodel_index + 1]  = model_normals[index + 1];
+	    nmodel_normals[nmodel_index + 2]  = model_normals[index + 2];
+	    nmodel_normals[nmodel_index + 3]  = model_normals[index + 3];
+	    nmodel_colors[nmodel_index]       = model_colors[index];
+	    nmodel_colors[nmodel_index + 1]   = model_colors[index + 1];
+	    nmodel_colors[nmodel_index + 2]   = model_colors[index + 2];
+	    nmodel_colors[nmodel_index + 3]   = model_colors[index + 3];
+	    nmodel_index += 4;
+	    nmodel_count += 4;
+	}
+    }
+
+    /* bool leaf = false; */
+    /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
+    /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
+
+    model_vertexes = nmodel_vertexes;
+    model_normals  = nmodel_normals;
+    model_colors   = nmodel_colors;
+    model_index    = nmodel_index;
+    model_count    = nmodel_count;
+
+    glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
+
+    for (int index = 0; index < model_count; index += 4)
+    {
+	bool leaf = false;
+	glcubearr_insert_fast(
+	    &cubearr,
+	    0,
+	    index / 4,
+	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
+	    &leaf);
     }
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, nrm_ssbo);
@@ -549,16 +575,6 @@ void main_init()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, col_ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, model_count * sizeof(GLfloat), model_colors, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                            // unbind
-
-    /* bool leaf = false; */
-    /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
-    /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
-
-    /* model_vertexes = nmodel_vertexes; */
-    /* model_normals  = nmodel_normals; */
-    /* model_colors   = nmodel_colors; */
-    /* model_index    = nmodel_index; */
-    /* model_count    = nmodel_count; */
 
     mt_log_debug("model count : %lu", model_count);
     mt_log_debug("cube count : %lu", cubearr.len);
@@ -830,29 +846,30 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    /* run_compute_shader(); */
+    run_compute_shader();
 
-    /* glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0}); */
+    glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
 
-    /* for (int index = 0; index < model_count; index += 4) */
-    /* { */
-    /* 	bool leaf = false; */
-    /* 	glcubearr_insert_fast( */
-    /* 	    &cubearr, */
-    /* 	    0, */
-    /* 	    index / 4, */
-    /* 	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]}, */
-    /* 	    &leaf); */
-    /* } */
+    for (int index = 0; index < model_count; index += 4)
+    {
+	bool leaf = false;
+	glcubearr_insert_fast(
+	    &cubearr,
+	    0,
+	    index / 4,
+	    (v3_t){trans_vertexes[index], trans_vertexes[index + 1], -1620 + trans_vertexes[index + 2]},
+	    &leaf);
+    }
 
-    /* /\* mt_log_debug("cube count : %lu", cubearr.len); *\/ */
-    /* /\* mt_log_debug("leaf count : %lu", cubearr.leaves); *\/ */
-    /* /\* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); *\/ */
-    /* /\* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); *\/ */
+    /* mt_log_debug("cube count : %lu", cubearr.len); */
+    /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
+    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); */
+    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
 
-    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo); */
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(glcube_t), cubearr.cubes); // sizeof(data) only works for statically sized C/C++ arrays. */
-    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                   // unbind */
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 
     run_fragment_shader();
 
