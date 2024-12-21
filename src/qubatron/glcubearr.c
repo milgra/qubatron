@@ -118,7 +118,7 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t p
 	    // store subnode in array
 
 	    arr->cubes[arrind].oct[octet] = arr->len;
-	    arr->cubes[arr->len++]        = (glcube_t){nrm, col, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+	    arr->cubes[arr->len++]        = (glcube_t){nrm, col, orind, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 	    // resize array if needed
 

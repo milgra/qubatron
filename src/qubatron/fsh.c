@@ -47,14 +47,14 @@ layout(std430, binding = 1) readonly buffer cubelayout
     cube_t g_cubes[];
 };
 
-layout(std430, binding = 1) readonly buffer normallayout
+layout(std430, binding = 2) readonly buffer normallayout
 {
-    vec3 g_normals[];
+    vec4 g_normals[];
 };
 
-layout(std430, binding = 1) readonly buffer colorlayout
+layout(std430, binding = 3) readonly buffer colorlayout
 {
-    vec3 g_colors[];
+    vec4 g_colors[];
 };
 
 struct ctlres
@@ -497,9 +497,10 @@ void main()
 
 	if (ccres.ind > 0)
 	{
-	    fragColor = vec4(g_colors[ccres.ind * 3], 1.0);
+	    fragColor = g_colors[ccres.ind];
 	}
-	fragColor = ccres.col;
+	else
+	    fragColor = ccres.col;
 
 	// we found a subcube
 	if (ccres.isp.w > 0.0)
@@ -524,7 +525,7 @@ void main()
 		}
 		else
 		{
-		    float angle = max(dot(normalize(-lvec), normalize(ccres.nrm.xyz)), 0.0);
+		    float angle = max(dot(normalize(-lvec), normalize(g_normals[ccres.ind].xyz)), 0.0);
 		    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w);
 		}
 	    }

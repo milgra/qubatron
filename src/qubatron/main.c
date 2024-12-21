@@ -357,12 +357,14 @@ static int vertex_cb(p_ply_argument argument)
 	model_normals[model_index]     = nx;
 	model_normals[model_index + 1] = nz;
 	model_normals[model_index + 2] = ny;
+	model_normals[model_index + 2] = 0.0;
 
-	model_colors[model_index]     = cx;
-	model_colors[model_index + 1] = cy;
-	model_colors[model_index + 2] = cz;
+	model_colors[model_index]     = cx / 255.0;
+	model_colors[model_index + 1] = cy / 255.0;
+	model_colors[model_index + 2] = cz / 255.0;
+	model_colors[model_index + 3] = 1.0;
 
-	model_index += 3;
+	model_index += 4;
 
 	ind = -1;
 
@@ -500,31 +502,31 @@ void main_init()
     ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1);
     mt_log_debug("cloud point count : %lu", nvertices);
 
-    model_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
-    model_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
-    model_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
-    model_count    = nvertices * 3;
+    model_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
+    model_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
+    model_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
+    model_count    = nvertices * 4;
     model_index    = 0;
 
     if (!ply_read(ply)) return;
     ply_close(ply);
 
-    GLfloat* nmodel_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
-    GLfloat* nmodel_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
-    GLfloat* nmodel_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 3, NULL, NULL);
+    GLfloat* nmodel_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
+    GLfloat* nmodel_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
+    GLfloat* nmodel_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
     size_t   nmodel_count    = 0;
     size_t   nmodel_index    = 0;
 
-    for (int index = 0; index < model_count; index += 3)
+    for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
 	glcubearr_insert_fast(
 	    &cubearr,
 	    0,
-	    index,
+	    index / 4,
 	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
 	    (glvec4_t){model_normals[index], model_normals[index + 1], model_normals[index + 2], 0.0},
-	    (glvec4_t){model_colors[index] / 255.0, model_colors[index + 1] / 255.0, model_colors[index + 2] / 255.0, 1.0},
+	    (glvec4_t){model_colors[index], model_colors[index + 1], model_colors[index + 2], 1.0},
 	    &leaf);
 	/* if (leaf) */
 	/* { */
@@ -555,11 +557,11 @@ void main_init()
     /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
     /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
 
-    model_vertexes = nmodel_vertexes;
-    model_normals  = nmodel_normals;
-    model_colors   = nmodel_colors;
-    model_index    = nmodel_index;
-    model_count    = nmodel_count;
+    /* model_vertexes = nmodel_vertexes; */
+    /* model_normals  = nmodel_normals; */
+    /* model_colors   = nmodel_colors; */
+    /* model_index    = nmodel_index; */
+    /* model_count    = nmodel_count; */
 
     mt_log_debug("model count : %lu", model_count);
     mt_log_debug("cube count : %lu", cubearr.len);
@@ -582,28 +584,25 @@ void main_init()
     trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count * sizeof(GLfloat), GL_MAP_READ_BIT);
     /* run_compute_shader(); */
 
-    /* for (int i = 0; i < cubearr.len; i++) */
-    /* { */
-    /* 	printf( */
-    /* 	    "%i tlf %.2f %.2f %.2f %.2f col %.2f %.2f %.2f %.2f nodes : %i | %i | %i | %i | %i | %i | %i | %i\n", */
-    /* 	    i, */
-    /* 	    cubearr.cubes[i].tlf.x, */
-    /* 	    cubearr.cubes[i].tlf.y, */
-    /* 	    cubearr.cubes[i].tlf.z, */
-    /* 	    cubearr.cubes[i].tlf.w, */
-    /* 	    cubearr.cubes[i].col.x, */
-    /* 	    cubearr.cubes[i].col.y, */
-    /* 	    cubearr.cubes[i].col.z, */
-    /* 	    cubearr.cubes[i].col.w, */
-    /* 	    cubearr.cubes[i].oct[0], */
-    /* 	    cubearr.cubes[i].oct[1], */
-    /* 	    cubearr.cubes[i].oct[2], */
-    /* 	    cubearr.cubes[i].oct[3], */
-    /* 	    cubearr.cubes[i].oct[4], */
-    /* 	    cubearr.cubes[i].oct[5], */
-    /* 	    cubearr.cubes[i].oct[6], */
-    /* 	    cubearr.cubes[i].oct[7]); */
-    /* } */
+    for (int i = 0; i < 100; i++)
+    {
+	printf(
+	    "%i orind %i col %.2f %.2f %.2f %.2f nodes : %i | %i | %i | %i | %i | %i | %i | %i\n",
+	    i,
+	    cubearr.cubes[i].ind,
+	    cubearr.cubes[i].col.x,
+	    cubearr.cubes[i].col.y,
+	    cubearr.cubes[i].col.z,
+	    cubearr.cubes[i].col.w,
+	    cubearr.cubes[i].oct[0],
+	    cubearr.cubes[i].oct[1],
+	    cubearr.cubes[i].oct[2],
+	    cubearr.cubes[i].oct[3],
+	    cubearr.cubes[i].oct[4],
+	    cubearr.cubes[i].oct[5],
+	    cubearr.cubes[i].oct[6],
+	    cubearr.cubes[i].oct[7]);
+    }
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
