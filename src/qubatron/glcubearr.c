@@ -34,6 +34,7 @@ glcubearr_t glcubearr_create(size_t size, glvec4_t base);
 void        glcubearr_delete(glcubearr_t* arr);
 void        glcubearr_reset(glcubearr_t* arr, glvec4_t base);
 void        glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t pnt, bool* leaf);
+void        glcubearr_insert_fast_octs(glcubearr_t* arr, size_t arrind, size_t orind, int* octs, bool* leaf);
 
 #endif
 
@@ -135,6 +136,43 @@ void glcubearr_insert_fast(glcubearr_t* arr, size_t arrind, size_t orind, v3_t p
 	    cube.y - ysizes[octet] * size,
 	    cube.z - zsizes[octet] * size,
 	    size};
+
+	// increase index and length
+
+	arrind = arr->cubes[arrind].oct[octet];
+    }
+}
+
+void glcubearr_insert_fast_octs(glcubearr_t* arr, size_t arrind, size_t orind, int* octs, bool* leaf)
+{
+    int levels = 12;
+
+    for (int level = 0; level < levels; level++)
+    {
+	int octet = octs[level];
+
+	if (arr->cubes[arrind].oct[octet] == 0)
+	{
+	    // store subnode in array
+
+	    arr->cubes[arrind].oct[octet] = arr->len;
+	    arr->cubes[arr->len++]        = (glcube_t){orind, {0, 0, 0, 0, 0, 0, 0, 0}};
+
+	    // resize array if needed
+
+	    if (arr->len == arr->size)
+	    {
+		arr->size *= 2;
+		arr->cubes = mt_memory_realloc(arr->cubes, arr->size * sizeof(glcube_t));
+		if (arr->cubes == NULL) mt_log_debug("not enough memory");
+	    }
+
+	    if (level == levels - 1)
+	    {
+		arr->leaves++;
+		*leaf = true;
+	    }
+	}
 
 	// increase index and length
 
