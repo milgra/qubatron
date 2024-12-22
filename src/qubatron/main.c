@@ -234,19 +234,19 @@ void init_compute_shader()
 {
     char* base_path = SDL_GetBasePath();
     char  cshpath[PATH_MAX];
-    char  fshepath[PATH_MAX];
+    char  dshpath[PATH_MAX];
 
     snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
-    snprintf(fshepath, PATH_MAX, "%sfshe.c", base_path);
+    snprintf(dshpath, PATH_MAX, "%sdsh.c", base_path);
 
-    char* csh  = readfile(cshpath);
-    char* fshe = readfile(fshepath);
+    char* csh = readfile(cshpath);
+    char* dsh = readfile(dshpath);
 
     GLuint cmp_vsh = ku_gl_shader_compile(GL_VERTEX_SHADER, csh);
-    GLuint cmp_fsh = ku_gl_shader_compile(GL_FRAGMENT_SHADER, fshe);
+    GLuint cmp_fsh = ku_gl_shader_compile(GL_FRAGMENT_SHADER, dsh);
 
     free(csh);
-    free(fshe);
+    free(dsh);
 
     // create compute shader ( it is just a vertex shader with transform feedback )
     cmp_sp = glCreateProgram();

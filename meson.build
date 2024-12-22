@@ -56,7 +56,7 @@ fs = import('fs')
 fs.copyfile('src/qubatron/vsh.c', 'vsh.c')
 fs.copyfile('src/qubatron/fsh.c', 'fsh.c')
 fs.copyfile('src/qubatron/csh.c', 'csh.c')
-fs.copyfile('src/qubatron/fshe.c', 'fshe.c')
+fs.copyfile('src/qubatron/dsh.c', 'dsh.c')
 
 executable(
   'qubatron',
