@@ -11,7 +11,6 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-#include "glcubearr.c"
 #include "ku_gl_floatbuffer.c"
 #include "ku_gl_shader.c"
 #include "mt_log.c"
@@ -22,6 +21,7 @@
 #include "mt_vector.c"
 #include "mt_vector_2d.c"
 #include "mt_vector_3d.c"
+#include "octree.c"
 #include "rply.h"
 
 #ifdef EMSCRIPTEN
@@ -418,7 +418,7 @@ static int vertex_cb(p_ply_argument argument)
     return 1;
 }
 
-glcubearr_t cubearr;
+octree_t cubearr;
 
 void main_init()
 {
@@ -438,7 +438,7 @@ void main_init()
 
     // shader storage buffer object
 
-    cubearr = glcubearr_create(10000, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
+    cubearr = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
     char  plypath[PATH_MAX];
     p_ply ply;
@@ -523,7 +523,7 @@ void main_init()
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	glcubearr_insert_fast(
+	octree_insert_point(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -550,8 +550,8 @@ void main_init()
     }
 
     /* bool leaf = false; */
-    /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
-    /* glcubearr_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (glvec4_t){110.0, 790.0, -110.0, 0.0}, (glvec4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
+    /* octree_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (v4_t){110.0, 790.0, -110.0, 0.0}, (v4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
+    /* octree_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (v4_t){110.0, 790.0, -110.0, 0.0}, (v4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
 
     model_vertexes = nmodel_vertexes;
     model_normals  = nmodel_normals;
@@ -559,12 +559,12 @@ void main_init()
     model_index    = nmodel_index;
     model_count    = nmodel_count;
 
-    glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
+    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	glcubearr_insert_fast(
+	octree_insert_point(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -604,12 +604,12 @@ void main_init()
 
     printf("TRANS %i %i", trans_vertexes[0], trans_vertexes[1]);
 
-    glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
+    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	glcubearr_insert_fast_octs(
+	octree_insert_queue(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -877,12 +877,12 @@ int main_loop(double time, void* userdata)
 
     run_compute_shader();
 
-    glcubearr_reset(&cubearr, (glvec4_t){0.0, 1800.0, 0.0, 1800.0});
+    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	glcubearr_insert_fast_octs(
+	octree_insert_queue(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -890,10 +890,10 @@ int main_loop(double time, void* userdata)
 	    &leaf);
     }
 
-    mt_log_debug("cube count : %lu", cubearr.len);
-    mt_log_debug("leaf count : %lu", cubearr.leaves);
-    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t));
-    mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
+    /* mt_log_debug("cube count : %lu", cubearr.len); */
+    /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
+    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); */
+    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
