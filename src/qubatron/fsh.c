@@ -26,7 +26,7 @@ const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
 const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-struct cube_t
+struct octets_t
 {
     // 8 octets
     // the 9th element is the original index of the point
@@ -42,9 +42,9 @@ const float maxc_size = 3.0;
 
 bool procgen = false;
 
-layout(std430, binding = 1) readonly buffer cubelayout
+layout(std430, binding = 1) readonly buffer octreelayout
 {
-    cube_t g_cubes[];
+    octets_t g_octree[];
 };
 
 layout(std430, binding = 2) readonly buffer normallayout
@@ -75,13 +75,13 @@ struct ispt_t // intersection struct
 
 struct stck_t
 {
-    vec4   tlf;      // cube dimensions for stack level
-    cube_t cube;     // cube normal, color and octets for stack level
-    bool   checked;  // stack level is checked for intersection
-    int    octs[4];  // octets for ispts
-    ispt_t ispts[4]; // is point for stack level cube
-    int    ispt_len; // ispt length for is points
-    int    ispt_ind;
+    vec4     tlf;      // cube dimensions for stack level
+    octets_t cube;     // cube normal, color and octets for stack level
+    bool     checked;  // stack level is checked for intersection
+    int      octs[4];  // octets for ispts
+    ispt_t   ispts[4]; // is point for stack level cube
+    int      ispt_len; // ispt length for is points
+    int      ispt_ind;
 };
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
@@ -129,7 +129,7 @@ float random(vec3 pos)
 }
 
 ctlres
-cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
+cube_trace_line(octets_t cb, vec3 pos, vec3 dir)
 {
     int depth = 0; // current octree deptu
 
@@ -145,7 +145,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
     stck[0].ispt_ind = 0;
     stck[0].tlf      = basecube;
 
-    cube_t ccube;
+    octets_t ccube;
 
     while (true)
     {
@@ -290,10 +290,10 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    /* res.cl.w += 0.1; */
 	    /* res.cl += nearest_isp.col * 0.1; */
 
-	    int    nearest_ind = stck[depth].ispt_ind++;
-	    ispt_t nearest_isp = stck[depth].ispts[nearest_ind];
-	    int    nearest_oct = stck[depth].octs[nearest_ind];
-	    cube_t nearest_cube;
+	    int      nearest_ind = stck[depth].ispt_ind++;
+	    ispt_t   nearest_isp = stck[depth].ispts[nearest_ind];
+	    int      nearest_oct = stck[depth].octs[nearest_ind];
+	    octets_t nearest_cube;
 
 	    vec4 ntlf = vec4(
 		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
@@ -302,12 +302,12 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		tlf.w / 2.0);
 
 	    if (!procgen)
-		nearest_cube = g_cubes[ccube.nodes[nearest_oct]];
+		nearest_cube = g_octree[ccube.nodes[nearest_oct]];
 	    else
 	    {
 		// generate subnode proced
 
-		/* nearest_cube       = cube_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
+		/* nearest_cube       = octets_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
 		/* nearest_cube.tlf.w = ccube.tlf.w / 2.0; */
 
 		/* nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w; */
@@ -462,13 +462,13 @@ void main()
 
     /* cam_fp.z -= 300.0; */
 
-    // cube_t cb0 = cube(vec3(300.0, 300.0, 0.0), vec3(600.0, 600.0, -300.0), 300.0, 8);
-    /* cube_t cb0 = g_cubes[0]; */
+    // octets_t cb0 = cube(vec3(300.0, 300.0, 0.0), vec3(600.0, 600.0, -300.0), 300.0, 8);
+    /* octets_t cb0 = g_octree[0]; */
 
     /* vec4 col = vec4(0.0, 0.0, 0.0, 0.0); */
     /* for (int i = 0; i < 10; i++) */
     /* { */
-    /* 	vec4 ncol = cube_trace_line_sep(g_cubes[i], cam_fp, csv); */
+    /* 	vec4 ncol = octets_trace_line_sep(g_octree[i], cam_fp, csv); */
     /* 	col             = col + ncol; */
     /* } */
 
@@ -483,7 +483,7 @@ void main()
     else
     {
 
-	ctlres ccres = cube_trace_line(g_cubes[0], camfp, csv); // camera cube, cube touched by cam
+	ctlres ccres = cube_trace_line(g_octree[0], camfp, csv); // camera cube, cube touched by cam
 
 	/* show normals */
 	/* fragColor = vec4(abs(ccres.nrm.x), abs(ccres.nrm.y), abs(ccres.nrm.z), 1.0); */
@@ -504,7 +504,7 @@ void main()
 	    /* test against light */
 	    vec3 lvec = ccres.isp.xyz - light;
 
-	    ctlres lcres = cube_trace_line(g_cubes[0], light, lvec); // light cube, cube touched by light
+	    ctlres lcres = cube_trace_line(g_octree[0], light, lvec); // light cube, cube touched by light
 	    if (lcres.isp.w > 0.0)
 	    {
 		if (ccres.isp.x != lcres.isp.x &&
