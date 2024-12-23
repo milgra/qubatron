@@ -8,16 +8,15 @@
 #include "mt_vector_4d.c"
 #include <GL/glew.h>
 
-typedef struct glcube_t
+typedef struct octets_t
 {
-    GLint ind;
-    GLint oct[11]; // 8 octets, we need 11 for std430 padding
-} glcube_t;
+    GLint oct[12]; // 8 octets, 1 orignal index, 3 for padding
+} octets_t;
 
 typedef struct octree_t
 {
     v4_t      basecube;
-    glcube_t* cubes;
+    octets_t* octs;
     size_t    size;
     size_t    len;
     size_t    leaves;
@@ -33,8 +32,6 @@ void        octree_insert_fast_octs(octree_t* arr, size_t arrind, size_t orind, 
 
 #if __INCLUDE_LEVEL__ == 0
 
-static const float glcube_res = 0.5;
-
 // octets
 //     4 5
 //     6 7
@@ -49,14 +46,12 @@ octree_t octree_create(size_t size, v4_t base)
 {
     octree_t arr;
     arr.size     = size;
-    arr.cubes    = mt_memory_alloc(sizeof(glcube_t) * arr.size, NULL, NULL);
+    arr.octs     = mt_memory_alloc(sizeof(octets_t) * arr.size, NULL, NULL);
     arr.len      = 0;
     arr.leaves   = 0;
     arr.basecube = base;
 
-    arr.cubes[0] = (glcube_t){
-	0,
-	{0, 0, 0, 0, 0, 0, 0, 0}};
+    arr.octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
     arr.len = 1;
 
@@ -65,16 +60,14 @@ octree_t octree_create(size_t size, v4_t base)
 
 void octree_delete(octree_t* arr)
 {
-    REL(arr->cubes);
+    REL(arr->octs);
 }
 
 void octree_reset(octree_t* arr, v4_t base)
 {
-    arr->len      = 0;
-    arr->leaves   = 0;
-    arr->cubes[0] = (glcube_t){
-	0,
-	{0, 0, 0, 0, 0, 0, 0, 0}};
+    arr->len     = 0;
+    arr->leaves  = 0;
+    arr->octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
     arr->len = 1;
 }
@@ -101,20 +94,20 @@ void octree_insert_fast(octree_t* arr, size_t arrind, size_t orind, v3_t pnt, bo
 
 	/* printf("level %i size %f octet %i %i %i %i\n", level, size, octet, xi, yi, zi); */
 
-	if (arr->cubes[arrind].oct[octet] == 0)
+	if (arr->octs[arrind].oct[octet] == 0)
 	{
 	    // store subnode in array
 
-	    arr->cubes[arrind].oct[octet] = arr->len;
-	    arr->cubes[arr->len++]        = (glcube_t){orind, {0, 0, 0, 0, 0, 0, 0, 0}};
+	    arr->octs[arrind].oct[octet] = arr->len;
+	    arr->octs[arr->len++]        = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
 
 	    // resize array if needed
 
 	    if (arr->len == arr->size)
 	    {
 		arr->size *= 2;
-		arr->cubes = mt_memory_realloc(arr->cubes, arr->size * sizeof(glcube_t));
-		if (arr->cubes == NULL) mt_log_debug("not enough memory");
+		arr->octs = mt_memory_realloc(arr->octs, arr->size * sizeof(octets_t));
+		if (arr->octs == NULL) mt_log_debug("not enough memory");
 	    }
 
 	    if (level == levels - 1)
@@ -132,7 +125,7 @@ void octree_insert_fast(octree_t* arr, size_t arrind, size_t orind, v3_t pnt, bo
 
 	// increase index and length
 
-	arrind = arr->cubes[arrind].oct[octet];
+	arrind = arr->octs[arrind].oct[octet];
     }
 }
 
@@ -144,20 +137,20 @@ void octree_insert_fast_octs(octree_t* arr, size_t arrind, size_t orind, int* oc
     {
 	int octet = octs[level];
 
-	if (arr->cubes[arrind].oct[octet] == 0)
+	if (arr->octs[arrind].oct[octet] == 0)
 	{
 	    // store subnode in array
 
-	    arr->cubes[arrind].oct[octet] = arr->len;
-	    arr->cubes[arr->len++]        = (glcube_t){orind, {0, 0, 0, 0, 0, 0, 0, 0}};
+	    arr->octs[arrind].oct[octet] = arr->len;
+	    arr->octs[arr->len++]        = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
 
 	    // resize array if needed
 
 	    if (arr->len == arr->size)
 	    {
 		arr->size *= 2;
-		arr->cubes = mt_memory_realloc(arr->cubes, arr->size * sizeof(glcube_t));
-		if (arr->cubes == NULL) mt_log_debug("not enough memory");
+		arr->octs = mt_memory_realloc(arr->octs, arr->size * sizeof(octets_t));
+		if (arr->octs == NULL) mt_log_debug("not enough memory");
 	    }
 
 	    if (level == levels - 1)
@@ -169,7 +162,7 @@ void octree_insert_fast_octs(octree_t* arr, size_t arrind, size_t orind, int* oc
 
 	// increase index and length
 
-	arrind = arr->cubes[arrind].oct[octet];
+	arrind = arr->octs[arrind].oct[octet];
     }
 }
 

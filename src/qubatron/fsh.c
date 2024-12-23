@@ -28,8 +28,10 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 struct cube_t
 {
-    int ind;
-    int nodes[11]; // 8 octets, we need 11 for std430 padding
+    // 8 octets
+    // the 9th element is the original index of the point
+    // we need 12 element for std430 padding
+    int nodes[12];
 };
 
 const float PI   = 3.1415926535897932384626433832795;
@@ -345,7 +347,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 		/* { */
 		res.isp = nearest_isp.isp;
 		res.tlf = ntlf;
-		res.ind = nearest_cube.ind;
+		res.ind = nearest_cube.nodes[8]; // original index is in the 8th node
 		/* res.col = nearest_isp.col; */
 		return res;
 		/* } */
@@ -367,7 +369,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    {
 		res.isp = nearest_isp.isp;
 		res.tlf = ntlf;
-		res.ind = nearest_cube.ind;
+		res.ind = nearest_cube.nodes[8];
 		/* res.col = vec4(1.0, 0.0, 0.0, 1.0); */
 		return res;
 	    }

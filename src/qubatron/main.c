@@ -583,7 +583,7 @@ void main_init()
     mt_log_debug("model count : %lu", model_count);
     mt_log_debug("cube count : %lu", cubearr.len);
     mt_log_debug("leaf count : %lu", cubearr.leaves);
-    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t));
+    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t));
     mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
 
     // set compute buffers
@@ -619,12 +619,12 @@ void main_init()
 
     /* mt_log_debug("cube count : %lu", cubearr.len); */
     /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
-    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); */
+    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(glcube_t), cubearr.cubes); // sizeof(data) only works for statically sized C/C++ arrays. */
+    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(octets_t), cubearr.octs, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
+    /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(octets_t), cubearr.octs); // sizeof(data) only works for statically sized C/C++ arrays. */
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 
     /* for (int i = 0; i < 100; i++) */
@@ -632,19 +632,19 @@ void main_init()
     /* 	printf( */
     /* 	    "%i orind %i nodes : %i | %i | %i | %i | %i | %i | %i | %i\n", */
     /* 	    i, */
-    /* 	    cubearr.cubes[i].ind, */
-    /* 	    cubearr.cubes[i].oct[0], */
-    /* 	    cubearr.cubes[i].oct[1], */
-    /* 	    cubearr.cubes[i].oct[2], */
-    /* 	    cubearr.cubes[i].oct[3], */
-    /* 	    cubearr.cubes[i].oct[4], */
-    /* 	    cubearr.cubes[i].oct[5], */
-    /* 	    cubearr.cubes[i].oct[6], */
-    /* 	    cubearr.cubes[i].oct[7]); */
+    /* 	    cubearr.octs[i].ind, */
+    /* 	    cubearr.octs[i].oct[0], */
+    /* 	    cubearr.octs[i].oct[1], */
+    /* 	    cubearr.octs[i].oct[2], */
+    /* 	    cubearr.octs[i].oct[3], */
+    /* 	    cubearr.octs[i].oct[4], */
+    /* 	    cubearr.octs[i].oct[5], */
+    /* 	    cubearr.octs[i].oct[6], */
+    /* 	    cubearr.octs[i].oct[7]); */
     /* } */
 
     /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo); */
-    /* glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
+    /* glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(octets_t), cubearr.octs, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
     /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                              // unbind */
 
     /* cube_insert(basecube, (v3_t){110.0, 790.0, -110.0}, 0xFFFFFFFF); */
@@ -690,14 +690,14 @@ void main_init()
     /* 	GLfloat y = (float) (rand() % 600); */
     /* 	GLfloat z = -200.0 + (float) (rand() % 500); */
     /* 	GLfloat s = (float) (10 + rand() % 90); */
-    /* 	/\* glcubes[0] = (struct glcube_t){{300.0, 300.0, 0.0}, {600.0, 600.0, -300.0}, 300.0, 8}; *\/ */
-    /* 	/\* glcubes[1] = (struct glcube_t){{700.0, 300.0, 0.0}, {600.0, 600.0, -300.0}, 300.0, 8}; *\/ */
-    /* 	glcubes[i] = (struct glcube_t){{x, y, -z, s}}; */
+    /* 	/\* glocts[0] = (struct octets_t){{300.0, 300.0, 0.0}, {600.0, 600.0, -300.0}, 300.0, 8}; *\/ */
+    /* 	/\* glocts[1] = (struct octets_t){{700.0, 300.0, 0.0}, {600.0, 600.0, -300.0}, 300.0, 8}; *\/ */
+    /* 	glocts[i] = (struct octets_t){{x, y, -z, s}}; */
     /* } */
 
-    /* glcubes[0] = (struct glcube_t){{100.0, 100.0, -200.0, 100.0}}; */
+    /* glocts[0] = (struct octets_t){{100.0, 100.0, -200.0, 100.0}}; */
     /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo); */
-    /* glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glcubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
+    /* glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glocts, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
     /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                  // unbind */
 
     // perspective
@@ -892,12 +892,12 @@ int main_loop(double time, void* userdata)
 
     /* mt_log_debug("cube count : %lu", cubearr.len); */
     /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
-    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(glcube_t)); */
+    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(glcube_t), cubearr.cubes, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(glcube_t), cubearr.cubes); // sizeof(data) only works for statically sized C/C++ arrays. */
+    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(octets_t), cubearr.octs, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
+    /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(octets_t), cubearr.octs); // sizeof(data) only works for statically sized C/C++ arrays. */
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 
     run_fragment_shader();
