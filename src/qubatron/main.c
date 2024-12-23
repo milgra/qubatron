@@ -11,6 +11,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include "computeconn.c"
 #include "ku_gl_floatbuffer.c"
 #include "ku_gl_shader.c"
 #include "mt_log.c"
@@ -22,6 +23,7 @@
 #include "mt_vector_2d.c"
 #include "mt_vector_3d.c"
 #include "octree.c"
+#include "readfile.c"
 #include "rply.h"
 
 #ifdef EMSCRIPTEN
@@ -73,28 +75,6 @@ void GLAPIENTRY
 MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
     mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
-}
-
-char* readfile(char* name)
-{
-    FILE* f      = fopen(name, "rb");
-    char* string = NULL;
-
-    if (f != NULL)
-    {
-
-	fseek(f, 0, SEEK_END);
-	long fsize = ftell(f);
-	fseek(f, 0, SEEK_SET); /* same as rewind(f); */
-
-	string = malloc(fsize + 1);
-	fread(string, fsize, 1, f);
-	fclose(f);
-
-	string[fsize] = 0;
-    }
-
-    return string;
 }
 
 GLuint cub_ssbo;
@@ -221,108 +201,6 @@ void run_fragment_shader()
     SDL_GL_SwapWindow(window);
 }
 
-GLuint cmp_sp;
-GLuint cmp_vbo_in;
-GLuint cmp_vbo_out;
-GLuint cmp_vao;
-
-GLint oril;
-GLint newl;
-GLint cubl;
-
-void init_compute_shader()
-{
-    char* base_path = SDL_GetBasePath();
-    char  cshpath[PATH_MAX];
-    char  dshpath[PATH_MAX];
-
-    snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
-    snprintf(dshpath, PATH_MAX, "%sdsh.c", base_path);
-
-    char* csh = readfile(cshpath);
-    char* dsh = readfile(dshpath);
-
-    GLuint cmp_vsh = ku_gl_shader_compile(GL_VERTEX_SHADER, csh);
-    GLuint cmp_fsh = ku_gl_shader_compile(GL_FRAGMENT_SHADER, dsh);
-
-    free(csh);
-    free(dsh);
-
-    // create compute shader ( it is just a vertex shader with transform feedback )
-    cmp_sp = glCreateProgram();
-
-    glAttachShader(cmp_sp, cmp_vsh);
-    glAttachShader(cmp_sp, cmp_fsh);
-
-    // we want to capture outvalue in the result buffer
-    const GLchar* feedbackVaryings[] = {"outOctet"};
-    glTransformFeedbackVaryings(cmp_sp, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
-
-    // link
-    ku_gl_shader_link(cmp_sp);
-
-    oril = glGetUniformLocation(cmp_sp, "fpori");
-    newl = glGetUniformLocation(cmp_sp, "fpnew");
-    cubl = glGetUniformLocation(cmp_sp, "basecube");
-
-    // create vertex array object for vertex buffer
-    glGenVertexArrays(1, &cmp_vao);
-    glBindVertexArray(cmp_vao);
-
-    // create vertex buffer object
-    glGenBuffers(1, &cmp_vbo_in);
-    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
-
-    // create attribute for compute shader
-    GLint inputAttrib = glGetAttribLocation(cmp_sp, "inValue");
-    glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4, 0);
-
-    // create and bind result buffer object
-    glGenBuffers(1, &cmp_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void run_compute_shader()
-{
-    glUseProgram(cmp_sp);
-    // switch off fragment stage
-    glEnable(GL_RASTERIZER_DISCARD);
-
-    glBindVertexArray(cmp_vao);
-
-    GLfloat pivot_old[3] = {200.0, 300.0, 600.0};
-
-    glUniform3fv(oril, 1, pivot_old);
-
-    GLfloat pivot_new[3] = {200.0 + sinf(lighta) * 100., 300.0, 600.0};
-    GLfloat lightarr[3]  = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
-
-    glUniform3fv(newl, 1, pivot_new);
-
-    GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
-    glUniform4fv(cubl, 1, basecubearr);
-
-    /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
-    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
-    /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW); */
-    /* glBindBuffer(GL_ARRAY_BUFFER, 0); */
-
-    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
-    /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ); */
-
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
-
-    // run compute shader
-    glBeginTransformFeedback(GL_POINTS);
-    glDrawArrays(GL_POINTS, 0, model_count / 4);
-    glEndTransformFeedback();
-    glFlush();
-
-    glDisable(GL_RASTERIZER_DISCARD);
-}
-
 float    px, py, pz, cx, cy, cz, nx, ny, nz;
 uint32_t cnt = 0;
 uint32_t ind = 0;
@@ -420,6 +298,8 @@ static int vertex_cb(p_ply_argument argument)
 
 octree_t cubearr;
 
+computeconn_t cc;
+
 void main_init()
 {
     srand((unsigned int) time(NULL));
@@ -433,7 +313,8 @@ void main_init()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    init_compute_shader();
+    cc = computeconn_init();
+
     init_fragment_shader();
 
     // shader storage buffer object
@@ -588,19 +469,18 @@ void main_init()
 
     // set compute buffers
 
-    glUseProgram(cmp_sp);
+    glUseProgram(cc.cmp_sp);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_in);
+    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cmp_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_out);
     glBufferData(GL_ARRAY_BUFFER, model_count / 4 * sizeof(GLint) * 12, NULL, GL_STATIC_READ);
 
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cmp_vbo_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc.cmp_vbo_out);
     trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count / 4 * sizeof(GLint) * 12, GL_MAP_READ_BIT);
 
-    run_compute_shader();
+    computeconn_update(cc, lighta, model_count);
 
     printf("TRANS %i %i", trans_vertexes[0], trans_vertexes[1]);
 
@@ -875,7 +755,7 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    run_compute_shader();
+    computeconn_update(cc, lighta, model_count);
 
     octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
