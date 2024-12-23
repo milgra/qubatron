@@ -323,7 +323,7 @@ cube_trace_line(cube_t cb, vec3 pos, vec3 dir)
 	    };
 
 	    // replace this to depth
-	    if (depth == 11)
+	    if (ntlf.w < 0.5)
 	    {
 		/* float visw = nearest_cube.tlf.w / nearest_isp.isp.w; */
 		/* if (visw > maxc_size) */

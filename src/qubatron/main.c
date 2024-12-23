@@ -523,7 +523,7 @@ void main_init()
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	octree_insert_point(
+	octree_insert_fast(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -564,7 +564,7 @@ void main_init()
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	octree_insert_point(
+	octree_insert_fast(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -609,7 +609,7 @@ void main_init()
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	octree_insert_queue(
+	octree_insert_fast_octs(
 	    &cubearr,
 	    0,
 	    index / 4,
@@ -882,7 +882,7 @@ int main_loop(double time, void* userdata)
     for (int index = 0; index < model_count; index += 4)
     {
 	bool leaf = false;
-	octree_insert_queue(
+	octree_insert_fast_octs(
 	    &cubearr,
 	    0,
 	    index / 4,
