@@ -69,7 +69,6 @@ GLfloat* model_colors;
 GLfloat* model_normals;
 size_t   model_count = 0;
 size_t   model_index = 0;
-GLint*   trans_vertexes;
 
 void GLAPIENTRY
 MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
@@ -469,20 +468,11 @@ void main_init()
 
     // set compute buffers
 
-    glUseProgram(cc.cmp_sp);
+    computeconn_alloc_in(&cc, model_vertexes, model_count * sizeof(GLfloat));
+    computeconn_alloc_out(&cc, NULL, model_count / 4 * sizeof(GLint) * 12);
+    computeconn_update(&cc, lighta, model_count);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_in);
-    glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_out);
-    glBufferData(GL_ARRAY_BUFFER, model_count / 4 * sizeof(GLint) * 12, NULL, GL_STATIC_READ);
-
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc.cmp_vbo_out);
-    trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, model_count / 4 * sizeof(GLint) * 12, GL_MAP_READ_BIT);
-
-    computeconn_update(cc, lighta, model_count);
-
-    printf("TRANS %i %i", trans_vertexes[0], trans_vertexes[1]);
+    printf("TRANS %i %i", cc.trans_vertexes[0], cc.trans_vertexes[1]);
 
     octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
@@ -493,7 +483,7 @@ void main_init()
 	    &cubearr,
 	    0,
 	    index / 4,
-	    &trans_vertexes[index * 3],
+	    &cc.trans_vertexes[index * 3],
 	    &leaf);
     }
 
@@ -755,7 +745,7 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    computeconn_update(cc, lighta, model_count);
+    computeconn_update(&cc, lighta, model_count);
 
     octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
@@ -766,7 +756,7 @@ int main_loop(double time, void* userdata)
 	    &cubearr,
 	    0,
 	    index / 4,
-	    &trans_vertexes[index * 3],
+	    &cc.trans_vertexes[index * 3],
 	    &leaf);
     }
 

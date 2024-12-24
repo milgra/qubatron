@@ -24,10 +24,18 @@ typedef struct computeconn_t
     GLint oril;
     GLint newl;
     GLint cubl;
+
+    GLint* trans_vertexes;
+
 } computeconn_t;
 
 computeconn_t computeconn_init();
-void          computeconn_update(computeconn_t cc, float lighta, int model_count);
+void          computeconn_update(computeconn_t* cc, float lighta, int model_count);
+void          computeconn_alloc_in(computeconn_t* cc, void* data, size_t size);
+void          computeconn_alloc_out(computeconn_t* cc, void* data, size_t size);
+
+void computeconn_alloc_in(computeconn_t* cc, void* data, size_t size);
+void computeconn_alloc_out(computeconn_t* cc, void* data, size_t size);
 
 #endif
 
@@ -91,35 +99,35 @@ computeconn_t computeconn_init()
     return cc;
 }
 
-void computeconn_update(computeconn_t cc, float lighta, int model_count)
+void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 {
-    glUseProgram(cc.cmp_sp);
+    glUseProgram(cc->cmp_sp);
 
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
 
-    glBindVertexArray(cc.cmp_vao);
+    glBindVertexArray(cc->cmp_vao);
 
     GLfloat pivot_old[3] = {200.0, 300.0, 600.0};
 
-    glUniform3fv(cc.oril, 1, pivot_old);
+    glUniform3fv(cc->oril, 1, pivot_old);
 
     GLfloat pivot_new[3] = {200.0 + sinf(lighta) * 100., 300.0, 600.0};
 
-    glUniform3fv(cc.newl, 1, pivot_new);
+    glUniform3fv(cc->newl, 1, pivot_new);
 
     GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
-    glUniform4fv(cc.cubl, 1, basecubearr);
+    glUniform4fv(cc->cubl, 1, basecubearr);
 
     /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
-    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_in);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
     /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW); */
     /* glBindBuffer(GL_ARRAY_BUFFER, 0); */
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
     /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ); */
 
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc.cmp_vbo_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
 
     // run compute shader
     glBeginTransformFeedback(GL_POINTS);
@@ -128,6 +136,21 @@ void computeconn_update(computeconn_t cc, float lighta, int model_count)
     glFlush();
 
     glDisable(GL_RASTERIZER_DISCARD);
+}
+
+void computeconn_alloc_in(computeconn_t* cc, void* data, size_t size)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+}
+
+void computeconn_alloc_out(computeconn_t* cc, void* data, size_t size)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_READ);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
+    cc->trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT);
 }
 
 #endif
