@@ -57,6 +57,21 @@ layout(std430, binding = 3) readonly buffer colorlayout
     vec4 g_colors[];
 };
 
+/* layout(std430, binding = 1) readonly buffer octreelayout */
+/* { */
+/*     octets_t g_octree[]; */
+/* }; */
+
+/* layout(std430, binding = 2) readonly buffer normallayout */
+/* { */
+/*     vec4 g_normals[]; */
+/* }; */
+
+/* layout(std430, binding = 3) readonly buffer colorlayout */
+/* { */
+/*     vec4 g_colors[]; */
+/* }; */
+
 struct ctlres
 {
     vec4 isp;
@@ -324,8 +339,7 @@ cube_trace_line(octets_t cb, vec3 pos, vec3 dir)
 		/* nearest_cube.nodes[pick] = 0; */
 	    };
 
-	    // replace this to depth
-	    if (ntlf.w < 0.5)
+	    if (depth == 11)
 	    {
 		/* float visw = nearest_cube.tlf.w / nearest_isp.isp.w; */
 		/* if (visw > maxc_size) */
@@ -365,14 +379,15 @@ cube_trace_line(octets_t cb, vec3 pos, vec3 dir)
 	    stck[depth].cube     = nearest_cube;
 	    stck[depth].checked  = false;
 
-	    if (depth > 12)
-	    {
-		res.isp = nearest_isp.isp;
-		res.tlf = ntlf;
-		res.ind = nearest_cube.nodes[8];
-		/* res.col = vec4(1.0, 0.0, 0.0, 1.0); */
-		return res;
-	    }
+	    /* makes sense in case of procedural sub-detail render */
+	    /* if (depth > 12) */
+	    /* { */
+	    /* 	res.isp = nearest_isp.isp; */
+	    /* 	res.tlf = ntlf; */
+	    /* 	res.ind = nearest_cube.nodes[8]; */
+	    /* 	/\* res.col = vec4(1.0, 0.0, 0.0, 1.0); *\/ */
+	    /* 	return res; */
+	    /* } */
 	}
 	else
 	{
