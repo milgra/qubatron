@@ -25,7 +25,7 @@ typedef struct computeconn_t
     GLint newl;
     GLint cubl;
 
-    GLint* trans_vertexes;
+    GLint* octqueue;
 
 } computeconn_t;
 
@@ -150,7 +150,7 @@ void computeconn_alloc_out(computeconn_t* cc, void* data, size_t size)
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_READ);
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
-    cc->trans_vertexes = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT);
+    cc->octqueue = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT);
 }
 
 #endif

@@ -472,7 +472,7 @@ void main_init()
     computeconn_alloc_out(&cc, NULL, model_count / 4 * sizeof(GLint) * 12);
     computeconn_update(&cc, lighta, model_count);
 
-    printf("TRANS %i %i", cc.trans_vertexes[0], cc.trans_vertexes[1]);
+    printf("TRANS %i %i", cc.octqueue[0], cc.octqueue[1]);
 
     octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
@@ -483,7 +483,7 @@ void main_init()
 	    &cubearr,
 	    0,
 	    index / 4,
-	    &cc.trans_vertexes[index * 3],
+	    &cc.octqueue[index * 3],
 	    &leaf);
     }
 
@@ -756,7 +756,7 @@ int main_loop(double time, void* userdata)
 	    &cubearr,
 	    0,
 	    index / 4,
-	    &cc.trans_vertexes[index * 3],
+	    &cc.octqueue[index * 3],
 	    &leaf);
     }
 
