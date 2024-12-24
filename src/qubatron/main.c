@@ -24,6 +24,7 @@
 #include "mt_vector_3d.c"
 #include "octree.c"
 #include "readfile.c"
+#include "renderconn.c"
 #include "rply.h"
 
 #ifdef EMSCRIPTEN
@@ -45,13 +46,11 @@ uint32_t start_time = 0;
 SDL_Window*   window;
 SDL_GLContext context;
 
-GLuint         vbo;
-m4_t           pers;
-glsha_t        sha;
-matrix4array_t projection = {0};
+GLuint vbo;
+m4_t   pers;
 
-int   strafe    = 0;
-int   forward   = 0;
+int   strafe      = 0;
+int   forward     = 0;
 float anglex      = 0.0;
 float speed       = 0.0;
 float strafespeed = 0.0;
@@ -61,7 +60,6 @@ v3_t position    = {440.0, 200.0, -500.0};
 v3_t direction   = {0.0, 0.0, -1.0};
 v3_t directionX  = {-1.0, 0.0, 0.0};
 
-v3_t  lightc = {420.0, 210.0, -1100.0};
 float lighta = 0.0;
 
 GLfloat* model_vertexes;
@@ -75,131 +73,6 @@ MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei 
 {
     mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
-
-GLuint cub_ssbo;
-GLuint nrm_ssbo;
-GLuint col_ssbo;
-
-GLuint frg_vbo_in;
-GLuint frg_vao;
-
-void init_fragment_shader()
-{
-    // shader
-
-    char* base_path = SDL_GetBasePath();
-    char  vshpath[PATH_MAX];
-    char  fshpath[PATH_MAX];
-    snprintf(vshpath, PATH_MAX, "%svsh.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
-
-    mt_log_debug("basepath %s %s", vshpath, fshpath);
-
-    char* vsh = readfile(vshpath);
-    char* fsh = readfile(fshpath);
-
-    sha = ku_gl_shader_create(
-	vsh,
-	fsh,
-	1,
-	((const char*[]){"position"}),
-	5,
-	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube"}));
-    free(vsh);
-    free(fsh);
-
-    // vbo
-
-    // create vertex array object for vertex buffer
-    glGenVertexArrays(1, &frg_vao);
-    glBindVertexArray(frg_vao);
-
-    // create vertex buffer object
-    glGenBuffers(1, &frg_vbo_in);
-    glBindBuffer(GL_ARRAY_BUFFER, frg_vbo_in);
-
-    // create attribute for compute shader
-    GLint inputAttrib = glGetAttribLocation(sha.name, "position");
-    glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
-
-    /* glGenBuffers(1, &vbo); */
-    /* glbindbuffer(GL_ARRAY_BUFFER, vbo); */
-
-    /* GLfloat posarr[3] = {position.x, position.y, position.z}; */
-    /* glUniform3fv(sha.uni_loc[1], 1, posarr); */
-
-    /* GLfloat lightarr[3] = {0.0, 2000.0, -500.0}; */
-    /* glUniform3fv(sha.uni_loc[3], 1, lightarr); */
-
-    glGenBuffers(1, &cub_ssbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, cub_ssbo);
-
-    glGenBuffers(1, &nrm_ssbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, nrm_ssbo);
-
-    glGenBuffers(1, &col_ssbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, col_ssbo);
-}
-
-void run_fragment_shader()
-{
-    glUseProgram(sha.name);
-
-    m4_t pers         = m4_defaultortho(0.0, width, 0.0, height, -10, 10);
-    projection.matrix = pers;
-    glUniformMatrix4fv(sha.uni_loc[0], 1, 0, projection.array);
-
-    GLfloat lightarr[3] = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
-    /* printf("%f %f %f\n", lightarr[0], lightarr[1], lightarr[2]); */
-    glUniform3fv(sha.uni_loc[3], 1, lightarr);
-
-    GLfloat anglearr[3] = {angle.x, angle.y, 0.0};
-
-    glUniform3fv(sha.uni_loc[2], 1, anglearr);
-
-    GLfloat posarr[3] = {position.x, position.y, position.z};
-
-    glUniform3fv(sha.uni_loc[1], 1, posarr);
-
-    GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
-
-    glUniform4fv(sha.uni_loc[4], 1, basecubearr);
-
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    GLfloat vertexes[] = {
-	0.0f, 0.0f, 0.0f, (float) width, 0.0f, 0.0f, 0.0f, (float) height, 0.0f, 0.0f, (float) height, 0.0f, (float) width, 0.0f, 0.0f, (float) width, (float) height, 0.0f};
-
-    glViewport(
-	0.0,
-	0.0,
-	width,
-	height);
-
-    glBindVertexArray(frg_vao);
-
-    glBindBuffer(
-	GL_ARRAY_BUFFER,
-	frg_vbo_in);
-
-    glBufferData(
-	GL_ARRAY_BUFFER,
-	sizeof(GLfloat) * 6 * 3,
-	vertexes,
-	GL_DYNAMIC_DRAW);
-
-    glDrawArrays(
-	GL_TRIANGLES,
-	0,
-	6);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    SDL_GL_SwapWindow(window);
-}
-
 float    px, py, pz, cx, cy, cz, nx, ny, nz;
 uint32_t cnt = 0;
 uint32_t ind = 0;
@@ -298,6 +171,7 @@ static int vertex_cb(p_ply_argument argument)
 octree_t cubearr;
 
 computeconn_t cc;
+renderconn_t  rc;
 
 void main_init()
 {
@@ -313,8 +187,7 @@ void main_init()
     glEnable(GL_BLEND);
 
     cc = computeconn_init();
-
-    init_fragment_shader();
+    rc = renderconn_init();
 
     // shader storage buffer object
 
@@ -452,13 +325,8 @@ void main_init()
 	    &leaf);
     }
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, nrm_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, model_count * sizeof(GLfloat), model_normals, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                             // unbind
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, col_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, model_count * sizeof(GLfloat), model_colors, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                            // unbind
+    renderconn_alloc_normals(&rc, model_normals, model_count * sizeof(GLfloat));
+    renderconn_alloc_colors(&rc, model_colors, model_count * sizeof(GLfloat));
 
     mt_log_debug("model count : %lu", model_count);
     mt_log_debug("cube count : %lu", cubearr.len);
@@ -492,10 +360,7 @@ void main_init()
     /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(octets_t), cubearr.octs, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(octets_t), cubearr.octs); // sizeof(data) only works for statically sized C/C++ arrays. */
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t));
 
     /* for (int i = 0; i < 100; i++) */
     /* { */
@@ -765,12 +630,11 @@ int main_loop(double time, void* userdata)
     /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(octets_t), cubearr.octs, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(octets_t), cubearr.octs); // sizeof(data) only works for statically sized C/C++ arrays. */
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t));
 
-    run_fragment_shader();
+    renderconn_update(&rc, width, height, position, angle, lighta);
+
+    SDL_GL_SwapWindow(window);
 
     frames++;
 

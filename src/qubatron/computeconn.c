@@ -1,7 +1,7 @@
 // compute shader connector
 
-#ifndef renderconn_h
-#define renderconn_h
+#ifndef computeconn_h
+#define computeconn_h
 
 #include "readfile.c"
 #include <GL/glew.h>

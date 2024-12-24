@@ -73,5 +73,4 @@ Videos :
 
 Todo :
 
-- Upload normal and color data once
-- Build up indexes and nodes in a separate int array
+- adjustable viewport res for speedup
