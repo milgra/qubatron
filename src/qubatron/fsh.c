@@ -40,37 +40,38 @@ const float PI_2 = 1.57079632679489661923;
 float       minc_size = 1.0;
 const float maxc_size = 3.0;
 
+int  model_state = 0; // 0 static 1 dynamic
 bool procgen = false;
 
-layout(std430, binding = 1) readonly buffer octreelayout
+layout(std430, binding = 1) readonly buffer octreelayout_s
 {
-    octets_t g_octree[];
+    octets_t g_octree_s[];
 };
 
-layout(std430, binding = 2) readonly buffer normallayout
+layout(std430, binding = 2) readonly buffer normallayout_s
 {
-    vec4 g_normals[];
+    vec4 g_normals_s[];
 };
 
-layout(std430, binding = 3) readonly buffer colorlayout
+layout(std430, binding = 3) readonly buffer colorlayout_s
 {
-    vec4 g_colors[];
+    vec4 g_colors_s[];
 };
 
-/* layout(std430, binding = 1) readonly buffer octreelayout */
-/* { */
-/*     octets_t g_octree[]; */
-/* }; */
+layout(std430, binding = 4) readonly buffer octreelayout_d
+{
+    octets_t g_octree_d[];
+};
 
-/* layout(std430, binding = 2) readonly buffer normallayout */
-/* { */
-/*     vec4 g_normals[]; */
-/* }; */
+layout(std430, binding = 5) readonly buffer normallayout_d
+{
+    vec4 g_normals_d[];
+};
 
-/* layout(std430, binding = 3) readonly buffer colorlayout */
-/* { */
-/*     vec4 g_colors[]; */
-/* }; */
+layout(std430, binding = 6) readonly buffer colorlayout_d
+{
+    vec4 g_colors_d[];
+};
 
 struct ctlres
 {
@@ -144,9 +145,15 @@ float random(vec3 pos)
 }
 
 ctlres
-cube_trace_line(octets_t cb, vec3 pos, vec3 dir)
+cube_trace_line(vec3 pos, vec3 dir)
 {
     int depth = 0; // current octree deptu
+
+    octets_t cb;
+    if (model_state == 0)
+	cb = g_octree_s[0];
+    else
+	cb = g_octree_d[0];
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
@@ -317,7 +324,12 @@ cube_trace_line(octets_t cb, vec3 pos, vec3 dir)
 		tlf.w / 2.0);
 
 	    if (!procgen)
-		nearest_cube = g_octree[ccube.nodes[nearest_oct]];
+	    {
+		if (model_state == 0)
+		    nearest_cube = g_octree_s[ccube.nodes[nearest_oct]];
+		else if (model_state == 1)
+		    nearest_cube = g_octree_d[ccube.nodes[nearest_oct]];
+	    }
 	    else
 	    {
 		// generate subnode proced
@@ -478,12 +490,12 @@ void main()
     /* cam_fp.z -= 300.0; */
 
     // octets_t cb0 = cube(vec3(300.0, 300.0, 0.0), vec3(600.0, 600.0, -300.0), 300.0, 8);
-    /* octets_t cb0 = g_octree[0]; */
+    /* octets_t cb0 = g_octree_s[0]; */
 
     /* vec4 col = vec4(0.0, 0.0, 0.0, 0.0); */
     /* for (int i = 0; i < 10; i++) */
     /* { */
-    /* 	vec4 ncol = octets_trace_line_sep(g_octree[i], cam_fp, csv); */
+    /* 	vec4 ncol = octets_trace_line_sep(g_octree_s[i], cam_fp, csv); */
     /* 	col             = col + ncol; */
     /* } */
 
@@ -498,7 +510,31 @@ void main()
     else
     {
 
-	ctlres ccres = cube_trace_line(g_octree[0], camfp, csv); // camera cube, cube touched by cam
+	vec4   col;
+	ctlres ccres_s = cube_trace_line(camfp, csv); // camera cube, cube touched by cam
+	model_state    = 1;                           // have to do this for cube_trace_line function's global ssbo access
+	ctlres ccres_d = cube_trace_line(camfp, csv); // camera cube, cube touched by cam
+
+	// TODO ssbo switching is fucked up, do something
+
+	int  result_state = 0;
+	vec4 result_isp   = ccres_s.isp;
+	vec4 result_tlf   = ccres_s.tlf;
+	vec4 result_col   = g_colors_s[ccres_s.ind];
+	vec4 result_nrm   = g_normals_s[ccres_s.ind];
+
+	if (ccres_d.ind > 0 && (ccres_s.ind == 0 || ccres_d.isp.w < ccres_s.isp.w))
+	{
+	    result_state = 1;
+	    result_isp   = ccres_d.isp;
+	    result_tlf   = ccres_d.tlf;
+	    result_col   = g_colors_d[ccres_d.ind];
+	    result_nrm   = g_normals_d[ccres_d.ind];
+	}
+
+	/* if (ccres_d.ind == 0 && ccres_s.ind == 0) result_col = ccres_s.col; */
+
+	fragColor = result_col;
 
 	/* show normals */
 	/* fragColor = vec4(abs(ccres.nrm.x), abs(ccres.nrm.y), abs(ccres.nrm.z), 1.0); */
@@ -506,37 +542,31 @@ void main()
 	// if we found cube, get normal and color from corresponding arrays
 	// else show debug color ( put intersection count in ccres?
 
-	if (ccres.ind > 0)
-	{
-	    fragColor = g_colors[ccres.ind];
-	}
-	else
-	    fragColor = ccres.col;
-
 	// we found a subcube
-	if (ccres.isp.w > 0.0)
+	if (result_isp.w > 0.0)
 	{
 	    /* test against light */
-	    vec3 lvec = ccres.isp.xyz - light;
+	    vec3 lvec = result_isp.xyz - light;
 
-	    ctlres lcres = cube_trace_line(g_octree[0], light, lvec); // light cube, cube touched by light
+	    model_state  = result_state;
+	    ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
 	    if (lcres.isp.w > 0.0)
 	    {
-		if (ccres.isp.x != lcres.isp.x &&
-		    ccres.isp.y != lcres.isp.y &&
-		    ccres.isp.z != lcres.isp.z &&
-		    ccres.tlf.x != lcres.tlf.x &&
-		    ccres.tlf.y != lcres.tlf.y &&
-		    ccres.tlf.z != lcres.tlf.z)
-		/* if ((abs(ccres.isp.x - lcres.isp.x) < 0.01) && */
-		/* 	(abs(ccres.isp.y - lcres.isp.y) < 0.01) && */
-		/* 	(abs(ccres.isp.z - lcres.isp.z) < 0.01)) */
+		if (result_isp.x != lcres.isp.x &&
+		    result_isp.y != lcres.isp.y &&
+		    result_isp.z != lcres.isp.z &&
+		    result_tlf.x != lcres.tlf.x &&
+		    result_tlf.y != lcres.tlf.y &&
+		    result_tlf.z != lcres.tlf.z)
+		/* if ((abs(result_isp.x - lcres.isp.x) < 0.01) && */
+		/* 	(abs(result_isp.y - lcres.isp.y) < 0.01) && */
+		/* 	(abs(result_isp.z - lcres.isp.z) < 0.01)) */
 		{
 		    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w);
 		}
 		else
 		{
-		    float angle = max(dot(normalize(-lvec), normalize(g_normals[ccres.ind].xyz)), 0.0);
+		    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
 		    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w);
 		}
 	    }

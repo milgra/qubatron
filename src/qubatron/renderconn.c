@@ -7,6 +7,7 @@
 #include <GL/glew.h>
 #include <SDL.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,19 +19,24 @@ typedef struct renderconn_t
 {
     glsha_t sha;
 
-    GLuint cub_ssbo;
-    GLuint nrm_ssbo;
-    GLuint col_ssbo;
+    GLuint oct_ssbo_d;
+    GLuint nrm_ssbo_d;
+    GLuint col_ssbo_d;
+
+    GLuint oct_ssbo_s;
+    GLuint nrm_ssbo_s;
+    GLuint col_ssbo_s;
 
     GLuint frg_vbo_in;
     GLuint frg_vao;
 } renderconn_t;
 
 renderconn_t renderconn_init();
+
 void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta);
-void         renderconn_alloc_normals(renderconn_t* cc, void* data, size_t size);
-void renderconn_alloc_colors(renderconn_t* cc, void* data, size_t size);
-void renderconn_alloc_octree(renderconn_t* cc, void* data, size_t size);
+void         renderconn_alloc_normals(renderconn_t* cc, void* data, size_t size, bool dynamic);
+void         renderconn_alloc_colors(renderconn_t* cc, void* data, size_t size, bool dynamic);
+void         renderconn_alloc_octree(renderconn_t* cc, void* data, size_t size, bool dynamic);
 
 #endif
 
@@ -86,14 +92,23 @@ renderconn_t renderconn_init()
     /* GLfloat lightarr[3] = {0.0, 2000.0, -500.0}; */
     /* glUniform3fv(sha.uni_loc[3], 1, lightarr); */
 
-    glGenBuffers(1, &rc.cub_ssbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, rc.cub_ssbo);
+    glGenBuffers(1, &rc.oct_ssbo_d);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, rc.oct_ssbo_s);
 
-    glGenBuffers(1, &rc.nrm_ssbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, rc.nrm_ssbo);
+    glGenBuffers(1, &rc.nrm_ssbo_d);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, rc.nrm_ssbo_s);
 
-    glGenBuffers(1, &rc.col_ssbo);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, rc.col_ssbo);
+    glGenBuffers(1, &rc.col_ssbo_d);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, rc.col_ssbo_s);
+
+    glGenBuffers(1, &rc.oct_ssbo_s);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, rc.oct_ssbo_d);
+
+    glGenBuffers(1, &rc.nrm_ssbo_s);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rc.nrm_ssbo_d);
+
+    glGenBuffers(1, &rc.col_ssbo_s);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, rc.col_ssbo_d);
 
     return rc;
 }
@@ -156,23 +171,23 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size)
+void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, rc->nrm_ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->nrm_ssbo_d : rc->nrm_ssbo_s);
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                           // unbind
 }
 
-void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size)
+void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, rc->col_ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->col_ssbo_d : rc->col_ssbo_s);
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                           // unbind
 }
 
-void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size)
+void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, rc->cub_ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->oct_ssbo_d : rc->oct_ssbo_s);
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(octets_t), cubearr.octs); // sizeof(data) only works for statically sized C/C++ arrays. */
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind

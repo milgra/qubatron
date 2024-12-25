@@ -325,8 +325,8 @@ void main_init()
 	    &leaf);
     }
 
-    renderconn_alloc_normals(&rc, model_normals, model_count * sizeof(GLfloat));
-    renderconn_alloc_colors(&rc, model_colors, model_count * sizeof(GLfloat));
+    renderconn_alloc_normals(&rc, model_normals, model_count * sizeof(GLfloat), true);
+    renderconn_alloc_colors(&rc, model_colors, model_count * sizeof(GLfloat), true);
 
     mt_log_debug("model count : %lu", model_count);
     mt_log_debug("cube count : %lu", cubearr.len);
@@ -360,7 +360,7 @@ void main_init()
     /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
 
-    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t));
+    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t), true);
 
     /* for (int i = 0; i < 100; i++) */
     /* { */
@@ -630,7 +630,7 @@ int main_loop(double time, void* userdata)
     /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
     /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
 
-    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t));
+    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t), true);
 
     renderconn_update(&rc, width, height, position, angle, lighta);
 
