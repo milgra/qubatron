@@ -38,6 +38,7 @@ qubatron_inc = include_directories(
 
 com_sources = ['src/rply-1.1.4/rply.c',
 	       'src/qubatron/main.c',
+	       'src/qubatron/model.c',
 	       'src/qubatron/octree.c',
 	       'src/qubatron/readfile.c',
 	       'src/qubatron/computeconn.c',

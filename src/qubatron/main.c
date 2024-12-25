@@ -14,6 +14,7 @@
 #include "computeconn.c"
 #include "ku_gl_floatbuffer.c"
 #include "ku_gl_shader.c"
+#include "model.c"
 #include "mt_log.c"
 #include "mt_math_3d.c"
 #include "mt_matrix_4d.c"
@@ -56,7 +57,7 @@ float speed       = 0.0;
 float strafespeed = 0.0;
 
 v3_t angle       = {0.0};
-v3_t position    = {440.0, 200.0, -500.0};
+v3_t position    = {440.0, 200.0, -1000.0};
 v3_t direction   = {0.0, 0.0, -1.0};
 v3_t directionX  = {-1.0, 0.0, 0.0};
 
@@ -73,105 +74,20 @@ MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei 
 {
     mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
-float    px, py, pz, cx, cy, cz, nx, ny, nz;
 uint32_t cnt = 0;
 uint32_t ind = 0;
 
 v3_t  offset  = {0.0, 0.0, 0.0};
 float scaling = 1.0;
 
-float minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz, lx, ly, lz;
-
-long nvertices, ntriangles;
-
-static int vertex_cb(p_ply_argument argument)
-{
-    long eol;
-    ply_get_argument_user_data(argument, NULL, &eol);
-
-    if (ind == 0) px = (ply_get_argument_value(argument) - offset.x) * scaling;
-    if (ind == 1) pz = (ply_get_argument_value(argument) - offset.y) * scaling;
-    if (ind == 2) py = (ply_get_argument_value(argument) - offset.z) * scaling;
-
-    if (ind == 3) cx = ply_get_argument_value(argument);
-    if (ind == 4) cy = ply_get_argument_value(argument);
-    if (ind == 5) cz = ply_get_argument_value(argument);
-
-    if (ind == 6) nx = ply_get_argument_value(argument);
-    if (ind == 7) ny = ply_get_argument_value(argument);
-    if (ind == 8)
-    {
-	nz = ply_get_argument_value(argument);
-
-	model_vertexes[model_index]     = px;
-	model_vertexes[model_index + 1] = py;
-	model_vertexes[model_index + 2] = pz;
-
-	model_normals[model_index]     = nx;
-	model_normals[model_index + 1] = nz;
-	model_normals[model_index + 2] = ny;
-	model_normals[model_index + 2] = 0.0;
-
-	model_colors[model_index]     = cx / 255.0;
-	model_colors[model_index + 1] = cy / 255.0;
-	model_colors[model_index + 2] = cz / 255.0;
-	model_colors[model_index + 3] = 1.0;
-
-	model_index += 4;
-
-	ind = -1;
-
-	if (cnt == 0)
-	{
-	    minpx = px;
-	    minpy = py;
-	    minpz = pz;
-	    maxpx = px;
-	    maxpy = py;
-	    maxpz = pz;
-	    mindx = 1000.0;
-	    mindy = 1000.0;
-	    mindz = 1000.0;
-	}
-	else
-	{
-	    if (px < minpx) minpx = px;
-	    if (py < minpy) minpy = py;
-	    if (pz < minpz) minpz = pz;
-	    if (px > maxpx) maxpx = px;
-	    if (py > maxpy) maxpy = py;
-	    if (pz > maxpz) maxpz = pz;
-	    if (px > 0.0 && fabs(px - lx) < mindx) mindx = px - lx;
-	    if (py > 0.0 && fabs(py - ly) < mindy) mindy = py - ly;
-	    if (pz > 0.0 && fabs(pz - lz) < mindz) mindz = pz - lz;
-	}
-
-	lx = px;
-	ly = py;
-	lz = pz;
-
-	if (cnt % 1000000 == 0) printf("progress %f\n", (float) cnt / (float) nvertices);
-
-	cnt++;
-    }
-
-    ind++;
-
-    /* if (cnt < 1000) */
-    /* { */
-    /* 	printf("%li : %g", ind, ply_get_argument_value(argument)); */
-    /* 	if (eol) */
-    /* 	    printf("\n"); */
-    /* 	else */
-    /* 	    printf(" "); */
-    /* } */
-    return 1;
-}
-
-octree_t cubearr;
-
 computeconn_t cc;
 renderconn_t  rc;
+
+octree_t static_octree;
+octree_t dynamic_octree;
+
+model_t static_model;
+model_t dynamic_model;
 
 void main_init()
 {
@@ -189,186 +105,73 @@ void main_init()
     cc = computeconn_init();
     rc = renderconn_init();
 
-    // shader storage buffer object
-
-    cubearr = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-
-    char  plypath[PATH_MAX];
-    p_ply ply;
+    char plypath[PATH_MAX];
 
     snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path);
 
-    ply = ply_open(plypath, NULL, 0, NULL);
+    model_t static_model = model_init(plypath, (v3_t){0.0, 0.0, 0.0});
 
-    if (!ply) mt_log_debug("cannot read %s", plypath);
-    if (!ply_read_header(ply)) mt_log_debug("cannot read ply header");
+    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
+    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
 
-    nvertices = ply_set_read_cb(ply, "vertex", "x", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "y", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "z", vertex_cb, NULL, 1);
-    ply_set_read_cb(ply, "vertex", "red", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "green", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "blue", vertex_cb, NULL, 1);
-    ply_set_read_cb(ply, "vertex", "nx", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1);
-    mt_log_debug("cloud point count : %lu", nvertices);
-
-    model_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    model_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    model_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    model_count    = nvertices * 4;
-    model_index    = 0;
-
-    if (!ply_read(ply)) return;
-    ply_close(ply);
-
-    for (int index = 0; index < model_count; index += 4)
+    static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    for (int index = 0; index < static_model.point_count * 4; index += 4)
     {
 	bool leaf;
 	octree_insert_fast(
-	    &cubearr,
+	    &static_octree,
 	    0,
 	    index / 4,
-	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
+	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], -1620 + static_model.vertexes[index + 2]},
 	    &leaf);
     }
 
-    renderconn_alloc_normals(&rc, model_normals, model_count * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, model_colors, model_count * sizeof(GLfloat), false);
-    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t), false);
+    mt_log_debug("cube count %lu leaf count %lu compacted %f", static_octree.len, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
+    mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t));
 
-    REL(model_vertexes);
-    REL(model_normals);
-    REL(model_colors);
-
-    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
     snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
 
-    ply = ply_open(plypath, NULL, 0, NULL);
+    dynamic_model = model_init(plypath, (v3_t){-270.0, -600.0, -10.0});
 
-    offset.x = -270.0;
-    offset.y = -600.0;
-    offset.z = -10.0;
+    renderconn_alloc_normals(&rc, dynamic_model.normals, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
+    renderconn_alloc_colors(&rc, dynamic_model.colors, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
 
-    if (!ply) mt_log_debug("cannot read %s", plypath);
-    if (!ply_read_header(ply)) mt_log_debug("cannot read ply header");
-
-    nvertices = ply_set_read_cb(ply, "vertex", "x", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "y", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "z", vertex_cb, NULL, 1);
-    ply_set_read_cb(ply, "vertex", "red", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "green", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "blue", vertex_cb, NULL, 1);
-    ply_set_read_cb(ply, "vertex", "nx", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "ny", vertex_cb, NULL, 0);
-    ply_set_read_cb(ply, "vertex", "nz", vertex_cb, NULL, 1);
-    mt_log_debug("cloud point count : %lu", nvertices);
-
-    model_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    model_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    model_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    model_count    = nvertices * 4;
-    model_index    = 0;
-
-    if (!ply_read(ply)) return;
-    ply_close(ply);
-
-    GLfloat* nmodel_vertexes = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    GLfloat* nmodel_normals  = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    GLfloat* nmodel_colors   = mt_memory_alloc(sizeof(GLfloat) * nvertices * 4, NULL, NULL);
-    size_t   nmodel_count    = 0;
-    size_t   nmodel_index    = 0;
-
-    for (int index = 0; index < model_count; index += 4)
+    dynamic_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
     {
-	bool leaf = false;
+	bool leaf;
 	octree_insert_fast(
-	    &cubearr,
+	    &dynamic_octree,
 	    0,
 	    index / 4,
-	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
-	    &leaf);
-	if (leaf)
-	{
-	    // filter usable points to reduce gpu/cpu load later
-	    nmodel_vertexes[nmodel_index]     = model_vertexes[index];
-	    nmodel_vertexes[nmodel_index + 1] = model_vertexes[index + 1];
-	    nmodel_vertexes[nmodel_index + 2] = model_vertexes[index + 2];
-	    nmodel_vertexes[nmodel_index + 3] = model_vertexes[index + 3];
-	    nmodel_normals[nmodel_index]      = model_normals[index];
-	    nmodel_normals[nmodel_index + 1]  = model_normals[index + 1];
-	    nmodel_normals[nmodel_index + 2]  = model_normals[index + 2];
-	    nmodel_normals[nmodel_index + 3]  = model_normals[index + 3];
-	    nmodel_colors[nmodel_index]       = model_colors[index];
-	    nmodel_colors[nmodel_index + 1]   = model_colors[index + 1];
-	    nmodel_colors[nmodel_index + 2]   = model_colors[index + 2];
-	    nmodel_colors[nmodel_index + 3]   = model_colors[index + 3];
-	    nmodel_index += 4;
-	    nmodel_count += 4;
-	}
-    }
-
-    /* bool leaf = false; */
-    /* octree_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (v4_t){110.0, 790.0, -110.0, 0.0}, (v4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
-    /* octree_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (v4_t){110.0, 790.0, -110.0, 0.0}, (v4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
-
-    model_vertexes = nmodel_vertexes;
-    model_normals  = nmodel_normals;
-    model_colors   = nmodel_colors;
-    model_index    = nmodel_index;
-    model_count    = nmodel_count;
-
-    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-
-    for (int index = 0; index < model_count; index += 4)
-    {
-	bool leaf = false;
-	octree_insert_fast(
-	    &cubearr,
-	    0,
-	    index / 4,
-	    (v3_t){model_vertexes[index], model_vertexes[index + 1], -1620 + model_vertexes[index + 2]},
+	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], -1620 + dynamic_model.vertexes[index + 2]},
 	    &leaf);
     }
 
-    renderconn_alloc_normals(&rc, model_normals, model_count * sizeof(GLfloat), true);
-    renderconn_alloc_colors(&rc, model_colors, model_count * sizeof(GLfloat), true);
+    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
-    mt_log_debug("model count : %lu", model_count);
-    mt_log_debug("cube count : %lu", cubearr.len);
-    mt_log_debug("leaf count : %lu", cubearr.leaves);
-    mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t));
-    mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
+    computeconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 4 * sizeof(GLfloat));
+    computeconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
+    computeconn_update(&cc, lighta, dynamic_model.point_count);
 
-    // set compute buffers
+    // add modified point coords by compute shader
 
-    computeconn_alloc_in(&cc, model_vertexes, model_count * sizeof(GLfloat));
-    computeconn_alloc_out(&cc, NULL, model_count / 4 * sizeof(GLint) * 12);
-    computeconn_update(&cc, lighta, model_count);
+    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
-    printf("TRANS %i %i", cc.octqueue[0], cc.octqueue[1]);
-
-    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-
-    for (int index = 0; index < model_count; index += 4)
+    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
     {
 	bool leaf = false;
 	octree_insert_fast_octs(
-	    &cubearr,
+	    &dynamic_octree,
 	    0,
 	    index / 4,
-	    &cc.octqueue[index * 3],
+	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
 	    &leaf);
     }
 
-    /* mt_log_debug("cube count : %lu", cubearr.len); */
-    /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
-    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
-    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, ymindz); */
-
-    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t), true);
+    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
     /* for (int i = 0; i < 100; i++) */
     /* { */
@@ -618,27 +421,24 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    computeconn_update(&cc, lighta, model_count);
+    computeconn_update(&cc, lighta, dynamic_model.point_count);
 
-    octree_reset(&cubearr, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    // add modified point coords by compute shader
 
-    for (int index = 0; index < model_count; index += 4)
+    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+
+    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
     {
 	bool leaf = false;
 	octree_insert_fast_octs(
-	    &cubearr,
+	    &dynamic_octree,
 	    0,
 	    index / 4,
-	    &cc.octqueue[index * 3],
+	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
 	    &leaf);
     }
 
-    /* mt_log_debug("cube count : %lu", cubearr.len); */
-    /* mt_log_debug("leaf count : %lu", cubearr.leaves); */
-    /* mt_log_debug("buffer size is %lu bytes", cubearr.size * sizeof(octets_t)); */
-    /* mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz); */
-
-    renderconn_alloc_octree(&rc, cubearr.octs, cubearr.len * sizeof(octets_t), true);
+    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
     renderconn_update(&rc, width, height, position, angle, lighta);
 

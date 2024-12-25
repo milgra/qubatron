@@ -131,7 +131,7 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 
     // run compute shader
     glBeginTransformFeedback(GL_POINTS);
-    glDrawArrays(GL_POINTS, 0, model_count / 4);
+    glDrawArrays(GL_POINTS, 0, model_count);
     glEndTransformFeedback();
     glFlush();
 
