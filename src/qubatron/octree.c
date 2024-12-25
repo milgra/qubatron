@@ -108,6 +108,7 @@ void octree_insert_fast(octree_t* arr, size_t arrind, size_t orind, v3_t pnt, bo
 		arr->size *= 2;
 		arr->octs = mt_memory_realloc(arr->octs, arr->size * sizeof(octets_t));
 		if (arr->octs == NULL) mt_log_debug("not enough memory");
+		mt_log_debug("octree array size %lu", arr->size * sizeof(octets_t));
 	    }
 
 	    if (level == levels - 1)

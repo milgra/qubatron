@@ -92,22 +92,22 @@ renderconn_t renderconn_init()
     /* GLfloat lightarr[3] = {0.0, 2000.0, -500.0}; */
     /* glUniform3fv(sha.uni_loc[3], 1, lightarr); */
 
-    glGenBuffers(1, &rc.oct_ssbo_d);
+    glGenBuffers(1, &rc.oct_ssbo_s);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, rc.oct_ssbo_s);
 
-    glGenBuffers(1, &rc.nrm_ssbo_d);
+    glGenBuffers(1, &rc.nrm_ssbo_s);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, rc.nrm_ssbo_s);
 
-    glGenBuffers(1, &rc.col_ssbo_d);
+    glGenBuffers(1, &rc.col_ssbo_s);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, rc.col_ssbo_s);
 
-    glGenBuffers(1, &rc.oct_ssbo_s);
+    glGenBuffers(1, &rc.oct_ssbo_d);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, rc.oct_ssbo_d);
 
-    glGenBuffers(1, &rc.nrm_ssbo_s);
+    glGenBuffers(1, &rc.nrm_ssbo_d);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, rc.nrm_ssbo_d);
 
-    glGenBuffers(1, &rc.col_ssbo_s);
+    glGenBuffers(1, &rc.col_ssbo_d);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, rc.col_ssbo_d);
 
     return rc;

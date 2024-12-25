@@ -509,7 +509,6 @@ void main()
     }
     else
     {
-
 	vec4   col;
 	ctlres ccres_s = cube_trace_line(camfp, csv); // camera cube, cube touched by cam
 	model_state    = 1;                           // have to do this for cube_trace_line function's global ssbo access
