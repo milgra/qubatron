@@ -2,31 +2,20 @@
 #include <SDL.h>
 #include <getopt.h>
 #include <limits.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
-#include <GL/gl.h>
-#include <GL/glu.h>
-
 #include "computeconn.c"
-#include "ku_gl_floatbuffer.c"
 #include "ku_gl_shader.c"
 #include "model.c"
 #include "mt_log.c"
-#include "mt_math_3d.c"
-#include "mt_matrix_4d.c"
-#include "mt_memory.c"
 #include "mt_time.c"
-#include "mt_vector.c"
 #include "mt_vector_2d.c"
-#include "mt_vector_3d.c"
 #include "octree.c"
 #include "readfile.c"
 #include "renderconn.c"
-#include "rply.h"
 
 #ifdef EMSCRIPTEN
     #include <emscripten.h>
@@ -47,11 +36,9 @@ uint32_t start_time = 0;
 SDL_Window*   window;
 SDL_GLContext context;
 
-GLuint vbo;
-m4_t   pers;
+int strafe  = 0;
+int forward = 0;
 
-int   strafe      = 0;
-int   forward     = 0;
 float anglex      = 0.0;
 float speed       = 0.0;
 float strafespeed = 0.0;
@@ -63,17 +50,6 @@ v3_t directionX  = {-1.0, 0.0, 0.0};
 
 float lighta = 0.0;
 
-GLfloat* model_vertexes;
-GLfloat* model_colors;
-GLfloat* model_normals;
-size_t   model_count = 0;
-size_t   model_index = 0;
-
-void GLAPIENTRY
-MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
-{
-    mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
-}
 uint32_t cnt = 0;
 uint32_t ind = 0;
 
@@ -88,6 +64,12 @@ octree_t dynamic_octree;
 
 model_t static_model;
 model_t dynamic_model;
+
+void GLAPIENTRY
+MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+    mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+}
 
 void main_init()
 {
@@ -126,7 +108,7 @@ void main_init()
 	    &leaf);
     }
 
-    mt_log_debug("cube count %lu leaf count %lu compacted %f", static_octree.len, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
+    mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
     mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t));
 
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
@@ -149,6 +131,9 @@ void main_init()
 	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], -1620 + dynamic_model.vertexes[index + 2]},
 	    &leaf);
     }
+
+    mt_log_debug("point count %lu leaf count %lu compacted %f", dynamic_model.point_count, dynamic_octree.leaves, (float) dynamic_octree.leaves / (float) dynamic_model.point_count);
+    mt_log_debug("buffer size is %lu bytes", dynamic_octree.size * sizeof(octets_t));
 
     renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
