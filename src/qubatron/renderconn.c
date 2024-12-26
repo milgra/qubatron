@@ -18,6 +18,7 @@
 typedef struct renderconn_t
 {
     glsha_t sha;
+    glsha_t sha_texquad;
 
     GLuint oct_ssbo_d;
     GLuint nrm_ssbo_d;
@@ -29,6 +30,11 @@ typedef struct renderconn_t
 
     GLuint frg_vbo_in;
     GLuint frg_vao;
+
+    GLuint vao_texquad;
+    GLuint vbo_texquad;
+    GLuint texture;
+    GLuint framebuffer;
 } renderconn_t;
 
 renderconn_t renderconn_init();
@@ -65,10 +71,28 @@ renderconn_t renderconn_init()
 	((const char*[]){"position"}),
 	5,
 	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube"}));
+
     free(vsh);
     free(fsh);
 
-    // vbo
+    snprintf(vshpath, PATH_MAX, "%svsh_texquad.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%sfsh_texquad.c", base_path);
+
+    char* vsh_texquad = readfile(vshpath);
+    char* fsh_texquad = readfile(fshpath);
+
+    rc.sha_texquad = ku_gl_shader_create(
+	vsh_texquad,
+	fsh_texquad,
+	2,
+	((const char*[]){"position", "texcoord"}),
+	2,
+	((const char*[]){"projection", "texture_base"}));
+
+    free(vsh_texquad);
+    free(fsh_texquad);
+
+    // scene sha
 
     // create vertex array object for vertex buffer
     glGenVertexArrays(1, &rc.frg_vao);
@@ -82,6 +106,24 @@ renderconn_t renderconn_init()
     GLint inputAttrib = glGetAttribLocation(rc.sha.name, "position");
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+
+    // texquad sha
+
+    // create vertex array object for vertex buffer
+    glGenVertexArrays(1, &rc.vao_texquad);
+    glBindVertexArray(rc.vao_texquad);
+
+    // create vertex buffer object
+    glGenBuffers(1, &rc.vbo_texquad);
+    glBindBuffer(GL_ARRAY_BUFFER, rc.vbo_texquad);
+
+    // create attribute for compute shader
+    inputAttrib = glGetAttribLocation(rc.sha_texquad.name, "position");
+    glEnableVertexAttribArray(inputAttrib);
+    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
+    inputAttrib = glGetAttribLocation(rc.sha_texquad.name, "texcoord");
+    glEnableVertexAttribArray(inputAttrib);
+    glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (const GLvoid*) 12);
 
     /* glGenBuffers(1, &vbo); */
     /* glbindbuffer(GL_ARRAY_BUFFER, vbo); */
@@ -110,12 +152,38 @@ renderconn_t renderconn_init()
     glGenBuffers(1, &rc.col_ssbo_d);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, rc.col_ssbo_d);
 
+    // render to texture
+
+    glGenFramebuffers(1, &rc.framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, rc.framebuffer);
+
+    glGenTextures(1, &rc.texture);
+    glBindTexture(GL_TEXTURE_2D, rc.texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    /* glBindTexture(GL_TEXTURE_2D, 0); */
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rc.texture, 0);
+
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) printf("Failed to create framebuffer at ogl_framebuffer_with_texture ");
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glEnable(GL_BLEND);
+
     return rc;
 }
 
 void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta)
 {
+    // first render scene to texture
+
     glUseProgram(rc->sha.name);
+
+    glBindFramebuffer(
+	GL_FRAMEBUFFER,
+	rc->framebuffer);
 
     matrix4array_t projection = {0};
 
@@ -163,12 +231,68 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 	vertexes,
 	GL_DYNAMIC_DRAW);
 
+    glClearColor(
+	0.0,
+	0.1,
+	0.0,
+	1.0);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glDrawArrays(
 	GL_TRIANGLES,
 	0,
 	6);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // render unit quad with texture
+
+    glBindFramebuffer(
+	GL_FRAMEBUFFER,
+	0);
+
+    glClearColor(
+	0.0,
+	0.1,
+	0.0,
+	1.0);
+
+    /* glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); */
+
+    glUseProgram(rc->sha_texquad.name);
+
+    glViewport(
+	-200.0,
+	-200.0,
+	800.0,
+	800.0);
+
+    glBindVertexArray(rc->vao_texquad);
+
+    glActiveTexture(GL_TEXTURE0 + 0);
+
+    glUniform1i(rc->sha_texquad.uni_loc[1], 0);
+
+    glBindTexture(GL_TEXTURE_2D, rc->texture);
+
+    GLfloat vertexes_uni[] = {
+	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f};
+
+    glBindBuffer(
+	GL_ARRAY_BUFFER,
+	rc->vbo_texquad);
+
+    glBufferData(
+	GL_ARRAY_BUFFER,
+	sizeof(GLfloat) * 6 * 5,
+	vertexes_uni,
+	GL_DYNAMIC_DRAW);
+
+    glDrawArrays(
+	GL_TRIANGLES,
+	0,
+	6);
 }
 
 void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)

@@ -26,7 +26,7 @@ char  drag  = 0;
 char  quit  = 0;
 float scale = 1.0;
 
-int32_t width  = 1200;
+int32_t width  = 800;
 int32_t height = 800;
 
 uint32_t frames     = 0;
@@ -89,29 +89,29 @@ void main_init()
 
     char plypath[PATH_MAX];
 
-    snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path);
+    /* snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path); */
 
-    model_t static_model = model_init(plypath, (v3_t){0.0, 0.0, 0.0});
+    /* model_t static_model = model_init(plypath, (v3_t){0.0, 0.0, 0.0}); */
 
-    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
+    /* renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false); */
+    /* renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false); */
 
-    static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < static_model.point_count * 4; index += 4)
-    {
-	bool leaf;
-	octree_insert_fast(
-	    &static_octree,
-	    0,
-	    index / 4,
-	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], -1620 + static_model.vertexes[index + 2]},
-	    &leaf);
-    }
+    /* static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
+    /* for (int index = 0; index < static_model.point_count * 4; index += 4) */
+    /* { */
+    /* 	bool leaf; */
+    /* 	octree_insert_fast( */
+    /* 	    &static_octree, */
+    /* 	    0, */
+    /* 	    index / 4, */
+    /* 	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], -1620 + static_model.vertexes[index + 2]}, */
+    /* 	    &leaf); */
+    /* } */
 
-    mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
-    mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t));
+    /* mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count); */
+    /* mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t)); */
 
-    renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
+    /* renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false); */
 
     snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
 

@@ -570,5 +570,9 @@ void main()
 		}
 	    }
 	}
+
+	// dark yellowish look
+	fragColor *= 0.8;
+	fragColor.z *= 0.4;
     }
 };

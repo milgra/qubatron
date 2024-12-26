@@ -61,6 +61,8 @@ fs.copyfile('src/qubatron/vsh.c', 'vsh.c')
 fs.copyfile('src/qubatron/fsh.c', 'fsh.c')
 fs.copyfile('src/qubatron/csh.c', 'csh.c')
 fs.copyfile('src/qubatron/dsh.c', 'dsh.c')
+fs.copyfile('src/qubatron/vsh_texquad.c', 'vsh_texquad.c')
+fs.copyfile('src/qubatron/fsh_texquad.c', 'fsh_texquad.c')
 
 executable(
   'qubatron',
