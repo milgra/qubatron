@@ -69,8 +69,8 @@ renderconn_t renderconn_init()
 	fsh,
 	1,
 	((const char*[]){"position"}),
-	5,
-	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube"}));
+	6,
+	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions"}));
 
     free(vsh);
     free(fsh);
@@ -161,7 +161,7 @@ renderconn_t renderconn_init()
     glBindTexture(GL_TEXTURE_2D, rc.texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 1024, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, 2048, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     /* glBindTexture(GL_TEXTURE_2D, 0); */
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rc.texture, 0);
@@ -179,8 +179,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 {
     // first render scene to texture
 
-    width  = 400;
-    height = 400;
+    width  = 1200;
+    height = 800;
 
     glUseProgram(rc->sha.name);
 
@@ -190,8 +190,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     matrix4array_t projection = {0};
 
-    float ow = 600;
-    float oh = 400;
+    float ow = 800;
+    float oh = 600;
 
     m4_t pers         = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
@@ -213,6 +213,10 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glUniform4fv(rc->sha.uni_loc[4], 1, basecubearr);
 
+    GLfloat dimensions[2] = {ow, oh};
+
+    glUniform2fv(rc->sha.uni_loc[5], 1, dimensions);
+
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -222,8 +226,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glViewport(
 	0.0,
 	0.0,
-	width,
-	height);
+	ow,
+	oh);
 
     glBindVertexArray(rc->frg_vao);
 
@@ -260,21 +264,21 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glClearColor(
 	0.0,
-	0.1,
+	0.0,
 	0.0,
 	1.0);
 
-    /* glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); */
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(rc->sha_texquad.name);
 
     glViewport(
 	0.0,
 	0.0,
-	1024.0,
-	1024.0);
+	width,
+	height);
 
-    pers              = m4_defaultortho(0.0, 400, 0.0, 400, -10, 10);
+    pers              = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
     glUniformMatrix4fv(rc->sha_texquad.uni_loc[0], 1, 0, projection.array);
 
@@ -287,7 +291,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glBindTexture(GL_TEXTURE_2D, rc->texture);
 
     GLfloat vertexes_uni[] = {
-	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, (float) 1024, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float) 1024, 0.0f, 0.0f, 1.0f, 0.0f, (float) 1024, 0.0f, 0.0f, 1.0f, (float) 1024, 0.0f, 0.0f, 1.0f, 0.0f, (float) 1024, (float) 1024, 0.0f, 1.0f, 1.0f};
+	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, (float) 2048, 0.0f, 1.0f, 1.0f};
 
     glBindBuffer(
 	GL_ARRAY_BUFFER,

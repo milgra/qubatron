@@ -1,16 +1,17 @@
 #version 310 es
 
-in highp vec2  coord;
-out highp vec4 fragColor;
+precision highp float;
 
-uniform highp vec3 camfp;
-uniform highp vec3 angle_in;
-uniform highp vec3 light;
-uniform highp vec4 basecube;
+in vec2  coord;
+out vec4 fragColor;
+
+uniform vec3 camfp;
+uniform vec3 angle_in;
+uniform vec3 light;
+uniform vec4 basecube;
+uniform vec2 dimensions;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
-
-precision highp float;
 
 // octets
 //     4 5
@@ -465,8 +466,9 @@ vec3 qrot(vec4 q, vec3 v)
 
 void main()
 {
-    vec3 ctp = vec3(coord.xy, 300.0);           // camera target point
-    vec3 csv = ctp - vec3(300.0, 200.0, 500.0); // current screen vector
+    vec3 ctp = vec3(coord.xy, 500.0 - dimensions.y / 2.0);                // camera target point
+    vec3 csv = ctp - vec3(dimensions.x / 2.0, dimensions.y / 2.0, 500.0); // current screen vector
+    /* vec3 csv = ctp - vec3(300.0, 200.0, 500.0);                           // current screen vector */
 
     vec4 qz = quat_from_axis_angle(vec3(0.0, 1.0, 0.0), -angle_in.x); // rotation quaternion
     vec3 vx = qrot(qz, vec3(-1.0, 0.0, 0.0));

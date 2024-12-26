@@ -1,11 +1,13 @@
 #version 310 es
 
+precision highp float;
+
 in vec3 position;
 
 uniform mat4 projection;
 
-out highp vec2 coord;
-out highp vec4 gl_Position;
+out vec2 coord;
+out vec4 gl_Position;
 
 void main()
 {
