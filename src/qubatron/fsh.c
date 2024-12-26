@@ -465,8 +465,8 @@ vec3 qrot(vec4 q, vec3 v)
 
 void main()
 {
-    vec3 ctp = vec3(coord.xy, 100.0);           // camera target point
-    vec3 csv = ctp - vec3(600.0, 400.0, 500.0); // current screen vector
+    vec3 ctp = vec3(coord.xy, 300.0);           // camera target point
+    vec3 csv = ctp - vec3(300.0, 200.0, 500.0); // current screen vector
 
     vec4 qz = quat_from_axis_angle(vec3(0.0, 1.0, 0.0), -angle_in.x); // rotation quaternion
     vec3 vx = qrot(qz, vec3(-1.0, 0.0, 0.0));

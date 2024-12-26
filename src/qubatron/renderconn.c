@@ -179,6 +179,9 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 {
     // first render scene to texture
 
+    width  = 400;
+    height = 400;
+
     glUseProgram(rc->sha.name);
 
     glBindFramebuffer(
@@ -187,7 +190,10 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     matrix4array_t projection = {0};
 
-    m4_t pers         = m4_defaultortho(0.0, width, 0.0, height, -10, 10);
+    float ow = 600;
+    float oh = 400;
+
+    m4_t pers         = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
     glUniformMatrix4fv(rc->sha.uni_loc[0], 1, 0, projection.array);
 
@@ -211,7 +217,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLfloat vertexes[] = {
-	0.0f, 0.0f, 0.0f, (float) width, 0.0f, 0.0f, 0.0f, (float) height, 0.0f, 0.0f, (float) height, 0.0f, (float) width, 0.0f, 0.0f, (float) width, (float) height, 0.0f};
+	0.0f, 0.0f, 0.0f, (float) ow, 0.0f, 0.0f, 0.0f, (float) oh, 0.0f, 0.0f, (float) oh, 0.0f, (float) ow, 0.0f, 0.0f, (float) ow, (float) oh, 0.0f};
 
     glViewport(
 	0.0,
@@ -263,10 +269,14 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glUseProgram(rc->sha_texquad.name);
 
     glViewport(
-	-200.0,
-	-200.0,
-	800.0,
-	800.0);
+	0.0,
+	0.0,
+	1024.0,
+	1024.0);
+
+    pers              = m4_defaultortho(0.0, 400, 0.0, 400, -10, 10);
+    projection.matrix = pers;
+    glUniformMatrix4fv(rc->sha_texquad.uni_loc[0], 1, 0, projection.array);
 
     glBindVertexArray(rc->vao_texquad);
 
@@ -277,7 +287,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glBindTexture(GL_TEXTURE_2D, rc->texture);
 
     GLfloat vertexes_uni[] = {
-	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f};
+	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, (float) 1024, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float) 1024, 0.0f, 0.0f, 1.0f, 0.0f, (float) 1024, 0.0f, 0.0f, 1.0f, (float) 1024, 0.0f, 0.0f, 1.0f, 0.0f, (float) 1024, (float) 1024, 0.0f, 1.0f, 1.0f};
 
     glBindBuffer(
 	GL_ARRAY_BUFFER,
