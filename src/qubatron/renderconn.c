@@ -39,7 +39,7 @@ typedef struct renderconn_t
 
 renderconn_t renderconn_init();
 
-void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta);
+void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality);
 void         renderconn_alloc_normals(renderconn_t* cc, void* data, size_t size, bool dynamic);
 void         renderconn_alloc_colors(renderconn_t* cc, void* data, size_t size, bool dynamic);
 void         renderconn_alloc_octree(renderconn_t* cc, void* data, size_t size, bool dynamic);
@@ -175,7 +175,7 @@ renderconn_t renderconn_init()
     return rc;
 }
 
-void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta)
+void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality)
 {
     // first render scene to texture
 
@@ -190,8 +190,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     matrix4array_t projection = {0};
 
-    float ow = 800;
-    float oh = 600;
+    float ow = width / (11 - quality);
+    float oh = height / (11 - quality);
 
     m4_t pers         = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;

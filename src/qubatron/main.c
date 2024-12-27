@@ -50,6 +50,8 @@ v3_t directionX  = {-1.0, 0.0, 0.0};
 
 float lighta = 0.0;
 
+uint8_t quality = 10;
+
 uint32_t cnt = 0;
 uint32_t ind = 0;
 
@@ -143,20 +145,20 @@ void main_init()
 
     // add modified point coords by compute shader
 
-    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
 
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
-    {
-	bool leaf = false;
-	octree_insert_fast_octs(
-	    &dynamic_octree,
-	    0,
-	    index / 4,
-	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
-	    &leaf);
-    }
+    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
+    /* { */
+    /* 	bool leaf = false; */
+    /* 	octree_insert_fast_octs( */
+    /* 	    &dynamic_octree, */
+    /* 	    0, */
+    /* 	    index / 4, */
+    /* 	    &cc.octqueue[index * 3], // 48 bytes stride 12 int */
+    /* 	    &leaf); */
+    /* } */
 
-    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
+    /* renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true); */
 
     /* for (int i = 0; i < 100; i++) */
     /* { */
@@ -301,30 +303,20 @@ int main_loop(double time, void* userdata)
 	}
 	else if (event.type == SDL_KEYUP)
 	{
-	    switch (event.key.keysym.sym)
-	    {
-		case SDLK_f:
-		    break;
-
-		case SDLK_ESCAPE:
-		    break;
-
-		case SDLK_a:
-		    strafe = 0;
-		    break;
-
-		case SDLK_d:
-		    strafe = 0;
-		    break;
-
-		case SDLK_w:
-		    forward = 0;
-		    break;
-
-		case SDLK_s:
-		    forward = 0;
-		    break;
-	    }
+	    if (event.key.keysym.sym == SDLK_a) strafe = 0;
+	    if (event.key.keysym.sym == SDLK_d) strafe = 0;
+	    if (event.key.keysym.sym == SDLK_w) forward = 0;
+	    if (event.key.keysym.sym == SDLK_s) forward = 0;
+	    if (event.key.keysym.sym == SDLK_1) quality = 1;
+	    if (event.key.keysym.sym == SDLK_2) quality = 2;
+	    if (event.key.keysym.sym == SDLK_3) quality = 3;
+	    if (event.key.keysym.sym == SDLK_4) quality = 4;
+	    if (event.key.keysym.sym == SDLK_5) quality = 5;
+	    if (event.key.keysym.sym == SDLK_6) quality = 6;
+	    if (event.key.keysym.sym == SDLK_7) quality = 7;
+	    if (event.key.keysym.sym == SDLK_8) quality = 8;
+	    if (event.key.keysym.sym == SDLK_9) quality = 9;
+	    if (event.key.keysym.sym == SDLK_0) quality = 10;
 	}
 	else if (event.type == SDL_KEYDOWN)
 	{
@@ -406,26 +398,26 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    computeconn_update(&cc, lighta, dynamic_model.point_count);
+    /* computeconn_update(&cc, lighta, dynamic_model.point_count); */
 
-    // add modified point coords by compute shader
+    /* // add modified point coords by compute shader */
 
-    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
 
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
-    {
-	bool leaf = false;
-	octree_insert_fast_octs(
-	    &dynamic_octree,
-	    0,
-	    index / 4,
-	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
-	    &leaf);
-    }
+    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
+    /* { */
+    /* 	bool leaf = false; */
+    /* 	octree_insert_fast_octs( */
+    /* 	    &dynamic_octree, */
+    /* 	    0, */
+    /* 	    index / 4, */
+    /* 	    &cc.octqueue[index * 3], // 48 bytes stride 12 int */
+    /* 	    &leaf); */
+    /* } */
 
-    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
+    /* renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true); */
 
-    renderconn_update(&rc, width, height, position, angle, lighta);
+    renderconn_update(&rc, width, height, position, angle, lighta, quality);
 
     SDL_GL_SwapWindow(window);
 
