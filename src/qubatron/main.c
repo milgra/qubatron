@@ -44,7 +44,8 @@ float speed       = 0.0;
 float strafespeed = 0.0;
 
 v3_t angle       = {0.0};
-v3_t position    = {440.0, 200.0, -1000.0};
+v3_t position    = {50.0, 100.0, 200.0};
+/* v3_t position    = {440.0, 200.0, -1000.0}; */
 v3_t direction   = {0.0, 0.0, -1.0};
 v3_t directionX  = {-1.0, 0.0, 0.0};
 
@@ -91,33 +92,34 @@ void main_init()
 
     char plypath[PATH_MAX];
 
-    snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path);
+    /* snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path); */
 
-    model_t static_model = model_init(plypath, (v3_t){0.0, 0.0, 0.0});
+    /* model_t static_model = model_init(plypath, (v3_t){0.0, 0.0, 0.0}); */
 
-    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
+    /* renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false); */
+    /* renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false); */
 
-    static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < static_model.point_count * 4; index += 4)
-    {
-	bool leaf;
-	octree_insert_fast(
-	    &static_octree,
-	    0,
-	    index / 4,
-	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], -1620 + static_model.vertexes[index + 2]},
-	    &leaf);
-    }
+    /* static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
+    /* for (int index = 0; index < static_model.point_count * 4; index += 4) */
+    /* { */
+    /* 	bool leaf; */
+    /* 	octree_insert_fast( */
+    /* 	    &static_octree, */
+    /* 	    0, */
+    /* 	    index / 4, */
+    /* 	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], -1620 + static_model.vertexes[index + 2]}, */
+    /* 	    &leaf); */
+    /* } */
 
-    mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
-    mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t));
+    /* mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count); */
+    /* mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t)); */
 
-    renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
+    /* renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false); */
 
     snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
 
-    dynamic_model = model_init(plypath, (v3_t){-270.0, -600.0, -10.0});
+    /* dynamic_model = model_init(plypath, (v3_t){-270.0, -600.0, -10.0}); */
+    dynamic_model = model_init(plypath, (v3_t){0.0, 0.0, 100.0});
 
     renderconn_alloc_normals(&rc, dynamic_model.normals, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
     renderconn_alloc_colors(&rc, dynamic_model.colors, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
@@ -130,7 +132,7 @@ void main_init()
 	    &dynamic_octree,
 	    0,
 	    index / 4,
-	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], -1620 + dynamic_model.vertexes[index + 2]},
+	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
 	    &leaf);
     }
 
@@ -398,24 +400,24 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    /* computeconn_update(&cc, lighta, dynamic_model.point_count); */
+    computeconn_update(&cc, lighta, dynamic_model.point_count);
 
-    /* // add modified point coords by compute shader */
+    // add modified point coords by compute shader
 
-    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
+    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
-    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
-    /* { */
-    /* 	bool leaf = false; */
-    /* 	octree_insert_fast_octs( */
-    /* 	    &dynamic_octree, */
-    /* 	    0, */
-    /* 	    index / 4, */
-    /* 	    &cc.octqueue[index * 3], // 48 bytes stride 12 int */
-    /* 	    &leaf); */
-    /* } */
+    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+    {
+	bool leaf = false;
+	octree_insert_fast_octs(
+	    &dynamic_octree,
+	    0,
+	    index / 4,
+	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
+	    &leaf);
+    }
 
-    /* renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true); */
+    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
     renderconn_update(&rc, width, height, position, angle, lighta, quality);
 

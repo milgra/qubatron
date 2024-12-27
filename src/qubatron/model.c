@@ -41,8 +41,8 @@ static int model_vertex_cb(p_ply_argument argument)
     ply_get_argument_user_data(argument, (void**) &model, &eol);
 
     if (model->ind == 0) px = (ply_get_argument_value(argument) - model->offset.x);
-    if (model->ind == 1) pz = (ply_get_argument_value(argument) - model->offset.y);
-    if (model->ind == 2) py = (ply_get_argument_value(argument) - model->offset.z);
+    if (model->ind == 1) pz = (ply_get_argument_value(argument) - model->offset.z);
+    if (model->ind == 2) py = (ply_get_argument_value(argument) - model->offset.y);
 
     if (model->ind == 3) cx = ply_get_argument_value(argument);
     if (model->ind == 4) cy = ply_get_argument_value(argument);

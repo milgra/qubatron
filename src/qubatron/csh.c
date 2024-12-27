@@ -17,9 +17,15 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 void main()
 {
     float d = distance(inValue.xyz, fpori);
-    vec3  v = fpnew - inValue.xyz;
 
-    vec4 pnt = vec4(inValue.xyz + v * (300.0 - d) / 300.0, 1.0);
+    vec3 pnt;
+    if (d < 30.0)
+    {
+	vec3 deltav = inValue.xyz - fpori;
+	pnt         = fpnew + deltav;
+    }
+    else
+	pnt = inValue.xyz;
 
     int  levels = 12;
     vec4 cube   = basecube;
