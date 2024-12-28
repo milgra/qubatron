@@ -101,20 +101,27 @@ computeconn_t computeconn_init()
 
 void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 {
-    glUseProgram(cc->cmp_sp);
 
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
 
+    glUseProgram(cc->cmp_sp);
+
     glBindVertexArray(cc->cmp_vao);
 
-    GLfloat pivot_old[3] = {50.0, 200.0, -100.0};
+    GLfloat pivot_old[9] =
+	{50.0, 200.0, -100.0,
+	 50.0, 180.0, -100.0,
+	 50.0, 150.0, -100.0};
 
-    glUniform3fv(cc->oril, 1, pivot_old);
+    glUniform3fv(cc->oril, 3, pivot_old);
 
-    GLfloat pivot_new[3] = {100.0 + sinf(lighta) * 100., 200.0, -100.0};
+    GLfloat pivot_new[9] =
+	{50.0 + sinf(lighta) * 20., 200.0, -100.0,
+	 50.0, 180.0, -100.0,
+	 50.0, 150.0, -100.0};
 
-    glUniform3fv(cc->newl, 1, pivot_new);
+    glUniform3fv(cc->newl, 3, pivot_new);
 
     GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
     glUniform4fv(cc->cubl, 1, basecubearr);

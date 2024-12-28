@@ -5,8 +5,9 @@ precision highp float;
 in vec4 inValue;
 out int[12] outOctet;
 
-uniform vec3 fpori;
-uniform vec3 fpnew;
+// TODO change these to quaternion queues for speed
+uniform vec3 fpori[3];
+uniform vec3 fpnew[3];
 
 uniform vec4 basecube;
 
@@ -16,13 +17,18 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 void main()
 {
-    float d = distance(inValue.xyz, fpori);
+    // go through skeleton point pairs
+    // calculate original direction vector from second point
+    // calculate angle between new and origin vectors
+    // rotate direction vector and add it
+    // calculate second original direction vector if affected by other bone
+    float d = distance(inValue.xyz, fpori[0]);
 
     vec3 pnt;
     if (d < 30.0)
     {
-	vec3 deltav = inValue.xyz - fpori;
-	pnt         = fpnew + deltav;
+	vec3 deltav = inValue.xyz - fpori[0];
+	pnt         = fpnew[0] + deltav;
     }
     else
 	pnt = inValue.xyz;
