@@ -544,34 +544,34 @@ void main()
 	// else show debug color ( put intersection count in ccres?
 
 	// we found a subcube
-	if (result_isp.w > 0.0)
-	{
-	    /* test against light */
-	    vec3 lvec = result_isp.xyz - light;
+	/* if (result_isp.w > 0.0) */
+	/* { */
+	/*     /\* test against light *\/ */
+	/*     vec3 lvec = result_isp.xyz - light; */
 
-	    model_state  = result_state;
-	    ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
-	    if (lcres.isp.w > 0.0)
-	    {
-		if (result_isp.x != lcres.isp.x &&
-		    result_isp.y != lcres.isp.y &&
-		    result_isp.z != lcres.isp.z &&
-		    result_tlf.x != lcres.tlf.x &&
-		    result_tlf.y != lcres.tlf.y &&
-		    result_tlf.z != lcres.tlf.z)
-		/* if ((abs(result_isp.x - lcres.isp.x) < 0.01) && */
-		/* 	(abs(result_isp.y - lcres.isp.y) < 0.01) && */
-		/* 	(abs(result_isp.z - lcres.isp.z) < 0.01)) */
-		{
-		    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w);
-		}
-		else
-		{
-		    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
-		    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w);
-		}
-	    }
-	}
+	/*     model_state  = result_state; */
+	/*     ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light */
+	/*     if (lcres.isp.w > 0.0) */
+	/*     { */
+	/* 	if (result_isp.x != lcres.isp.x && */
+	/* 	    result_isp.y != lcres.isp.y && */
+	/* 	    result_isp.z != lcres.isp.z && */
+	/* 	    result_tlf.x != lcres.tlf.x && */
+	/* 	    result_tlf.y != lcres.tlf.y && */
+	/* 	    result_tlf.z != lcres.tlf.z) */
+	/* 	/\* if ((abs(result_isp.x - lcres.isp.x) < 0.01) && *\/ */
+	/* 	/\* 	(abs(result_isp.y - lcres.isp.y) < 0.01) && *\/ */
+	/* 	/\* 	(abs(result_isp.z - lcres.isp.z) < 0.01)) *\/ */
+	/* 	{ */
+	/* 	    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w); */
+	/* 	} */
+	/* 	else */
+	/* 	{ */
+	/* 	    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0); */
+	/* 	    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w); */
+	/* 	} */
+	/*     } */
+	/* } */
 
 	// dark yellowish look
 	fragColor *= 0.8;

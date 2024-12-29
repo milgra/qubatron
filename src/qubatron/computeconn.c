@@ -110,16 +110,16 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
     glBindVertexArray(cc->cmp_vao);
 
     GLfloat pivot_old[9] =
-	{50.0, 200.0, -100.0,
-	 50.0, 180.0, -100.0,
-	 50.0, 150.0, -100.0};
+	{52.0, 200.0, -90.0,
+	 52.0, 180.0, -90.0,
+	 52.0, 150.0, -90.0};
 
     glUniform3fv(cc->oril, 3, pivot_old);
 
     GLfloat pivot_new[9] =
-	{50.0 + sinf(lighta) * 20., 200.0, -100.0,
-	 50.0, 180.0, -100.0,
-	 50.0, 150.0, -100.0};
+	{52.0 + sinf(lighta) * 20., 200.0, -90.0,
+	 52.0, 180.0, -90.0,
+	 52.0, 150.0, -90.0};
 
     glUniform3fv(cc->newl, 3, pivot_new);
 
