@@ -5,8 +5,8 @@ precision highp float;
 in vec4 inValue;
 out int[12] outOctet;
 
-uniform vec3 fpori[3];
-uniform vec3 fpnew[3];
+uniform vec4 fpori[4];
+uniform vec3 fpnew[4];
 
 uniform vec4 basecube;
 
@@ -65,54 +65,68 @@ void main()
 
     vec3 pnt = inValue.xyz; // by default point stays in place
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 2; i++)
     {
 	// check if bone belongs to us
+	// all bones have to be vertical
 
-	vec3  prp = project_point(fpori[i], fpori[i + 1], inValue.xyz);
-	float dop = distance(inValue.xyz, prp); // distance of original point and projection point
+	vec3 prp = project_point(fpori[i].xyz, fpori[i + 1].xyz, inValue.xyz);
 
-	// check distance and if projected point is on the bone
-	if (dop < 12.0 && prp.y < fpori[i].y && prp.y > fpori[i + 1].y)
+	if (prp.y < fpori[i].y && prp.y > fpori[i + 1].y)
 	{
-	    vec3 oldbone = normalize(fpori[i + 1] - fpori[i]);
-	    vec3 newbone = normalize(fpnew[i + 1] - fpnew[i]);
+	    float dop = distance(inValue.xyz, prp); // distance of original point and projection point
 
-	    float len = distance(fpori[i], fpori[i + 1]); // length of bone
+	    // check distance
 
-	    if (oldbone != newbone)
+	    if (dop < fpori[i].w)
 	    {
-		float dbp = distance(fpori[i], prp); // distance of vector start point and bone projection point
+		vec3  oldbone = normalize(fpori[i + 1].xyz - fpori[i].xyz);
+		vec3  newbone = normalize(fpnew[i + 1] - fpnew[i]);
+		vec3  olddir  = inValue.xyz - fpori[i].xyz;
+		float bonelen = distance(fpori[i].xyz, fpori[i + 1].xyz); // length of bone
 
-		vec3  olddir  = inValue.xyz - fpori[i];
-		float angle   = acos(dot(oldbone, newbone));
-		vec3  axis    = cross(oldbone, newbone);
-		vec4  rotquat = quat_from_axis_angle(axis, angle);
-		vec3  newdir  = qrot(rotquat, olddir);
-		vec3  newpnt  = fpnew[i] + newdir;
+		pnt = fpnew[i] + olddir;
 
-		if (len - dbp > 6.0)
+		if (oldbone != newbone)
 		{
-		    // top part of the bone, affects mesh alone
+		    float dbp = distance(fpori[i].xyz, prp); // distance of vector start point and bone projection point
 
-		    pnt = newpnt;
-		}
-		else
-		{
-		    float part  = 6.0 - (len - dbp);
-		    float ratio = part / 6.0;
-		    // lower part of the bone, affected by second bone
-		    vec3 oldbonea = normalize(fpori[i + 2] - fpori[i + 1]);
-		    vec3 newbonea = normalize(fpnew[i + 2] - fpnew[i + 1]);
+		    float angle   = acos(dot(oldbone, newbone));
+		    vec3  axis    = cross(oldbone, newbone);
+		    vec4  rotquat = quat_from_axis_angle(normalize(axis), angle);
+		    vec3  newdir  = qrot(rotquat, olddir);
+		    vec3  newpnt  = fpnew[i] + newdir;
 
-		    vec3  olddira  = inValue.xyz - fpori[i + 1];
-		    float anglea   = acos(dot(oldbonea, newbonea));
-		    vec3  axisa    = cross(oldbonea, newbonea);
-		    vec4  rotquata = quat_from_axis_angle(axisa, anglea);
-		    vec3  newdira  = qrot(rotquata, olddira);
-		    vec3  newpnta  = fpnew[i + 1] + newdira;
+		    if (bonelen - dbp > 6.0)
+		    {
+			// top part of the bone, affects mesh alone
+			pnt = newpnt;
+		    }
+		    else
+		    {
+			float part  = 6.0 - (bonelen - dbp);
+			float ratio = part / 6.0;
 
-		    pnt = newpnt + (newpnta - newpnt) * ratio;
+			// lower part of the bone, affected by second bone
+			vec3 oldbonea = normalize(fpori[i + 2].xyz - fpori[i + 1].xyz);
+			vec3 newbonea = normalize(fpnew[i + 2] - fpnew[i + 1]);
+
+			if (oldbonea != newbonea)
+			{
+			    vec3  olddira  = inValue.xyz - fpori[i + 1].xyz;
+			    float anglea   = acos(dot(oldbonea, newbonea));
+			    vec3  axisa    = cross(oldbonea, newbonea);
+			    vec4  rotquata = quat_from_axis_angle(normalize(axisa), anglea);
+			    vec3  newdira  = qrot(rotquata, olddira);
+			    vec3  newpnta  = fpnew[i + 1] + newdira;
+
+			    pnt = newpnt + (newpnta - newpnt) * ratio;
+			}
+			else
+			{
+			    pnt = newpnt;
+			}
+		    }
 		}
 	    }
 	}
