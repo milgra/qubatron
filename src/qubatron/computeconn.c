@@ -109,21 +109,63 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 
     glBindVertexArray(cc->cmp_vao);
 
-    GLfloat pivot_old[16] =
+    GLfloat pivot_old[52] =
+	// head
 	{54.0, 205.0, -90.0, 20.0,
 	 54.0, 174.0, -90.0, 25.0,
+	 // torso
 	 54.0, 110.0, -90.0, 25.0,
-	 54.0, 80.0, -90.0, 25.0};
+	 54.0, 105.0, -90.0, 25.0,
+	 // right leg
+	 64.0, 70.0, -80.0, 25.0,
+	 74.0, 12.0, -75.0, 30.0,
+	 74.0, 0.0, -75.0, 30.0,
+	 74.0, -10.0, -70.0, 0.0, // end sequence with 0.0 radius
+	 // left leg
+	 /* 54.0, 105.0, -90.0, 25.0, */
+	 34.0, 70.0, -80.0, 25.0,
+	 24.0, 12.0, -75.0, 30.0,
+	 24.0, 0.0, -75.0, 30.0,
+	 24.0, -10.0, -70.0, 30.0}; // end sequence
 
-    glUniform4fv(cc->oril, 4, pivot_old);
+    glUniform4fv(cc->oril, 12, pivot_old);
 
-    GLfloat pivot_new[12] =
+    GLfloat pivot_new[39] =
+	// head
 	{54.0, 205.0, -200.0 + sinf(lighta) * 10.0,
 	 54.0, 174.0, -190.0,
-	 54.0 + sinf(lighta) * 4.0, 110.0, -190.0,
-	 54.0, 80.0, -190.0};
+	 // torso
+	 55.0, 110.0, -190.0,
+	 54.0, 105.0, -190.0 + sinf(lighta) * 4.0,
+	 // left leg
+	 65.0 + sinf(lighta) * 4.0, 70.0, -190.0,
+	 75.0 + cosf(lighta) * 4.0, 12.0, -190.0,
+	 75.0, 0.0, -190.0,
+	 75.0, -10.0, -190.0,
+	 // right leg
+	 /* 54.0, 105.0, -190.0, */
+	 45.0 + sinf(lighta) * 4.0, 70.0, -180.0,
+	 45.0, 12.0, -175.0,
+	 45.0, 0.0, -175.0,
+	 45.0, -10.0, -170.0}; // end sequence
 
-    glUniform3fv(cc->newl, 3, pivot_new);
+    glUniform3fv(cc->newl, 12, pivot_new);
+
+    /* GLfloat pivot_old[16] = */
+    /* 	{54.0, 205.0, -90.0, 20.0, */
+    /* 	 54.0, 174.0, -90.0, 25.0, */
+    /* 	 54.0, 110.0, -90.0, 25.0, */
+    /* 	 54.0, 80.0, -90.0, 25.0}; */
+
+    /* glUniform4fv(cc->oril, 4, pivot_old); */
+
+    /* GLfloat pivot_new[12] = */
+    /* 	{54.0, 205.0, -200.0 + sinf(lighta) * 10.0, */
+    /* 	 54.0, 174.0, -190.0, */
+    /* 	 54.0 + sinf(lighta) * 4.0, 110.0, -190.0, */
+    /* 	 54.0, 80.0, -190.0}; */
+
+    /* glUniform3fv(cc->newl, 3, pivot_new); */
 
     GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
     glUniform4fv(cc->cubl, 1, basecubearr);

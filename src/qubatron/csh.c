@@ -5,8 +5,8 @@ precision highp float;
 in vec4 inValue;
 out int[12] outOctet;
 
-uniform vec4 fpori[4];
-uniform vec3 fpnew[4];
+uniform vec4 fpori[12];
+uniform vec3 fpnew[12];
 
 uniform vec4 basecube;
 
@@ -65,7 +65,7 @@ void main()
 
     vec3 pnt = inValue.xyz; // by default point stays in place
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 10; i++)
     {
 	// check if bone belongs to us
 	// all bones have to be vertical
@@ -130,6 +130,8 @@ void main()
 		}
 	    }
 	}
+
+	if (fpori[i + 2].w == 0.0) i += 2;
     }
 
     int  levels = 12;
