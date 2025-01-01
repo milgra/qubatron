@@ -5,8 +5,8 @@ precision highp float;
 in vec4 inValue;
 out int[12] outOctet;
 
-uniform vec4 fpori[16];
-uniform vec3 fpnew[16];
+uniform vec4 fpori[8];
+uniform vec3 fpnew[8];
 
 uniform vec4 basecube;
 
@@ -67,20 +67,25 @@ void main()
     // calculate second original direction vector if affected by other bone
 
     vec3 pnt         = inValue.xyz; // by default point stays in place
-    int  point_count = 14;
+    int  point_count = 8;
 
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < point_count; i += 2)
     {
+	vec3 fpd1 = inValue.xyz - fpori[i].xyz;
+	vec3 fpd2 = inValue.xyz - fpori[i + 1].xyz;
 	vec3 bone = fpori[i + 1].xyz - fpori[i].xyz;
-	vec3 prop = project_point(fpori[i].xyz, fpori[i + 1].xyz, inValue.xyz);
 
-	/* float tx = (prop.x - fpori[i].x) / bone.x; */
-	float ty = (prop.y - fpori[i].y) / bone.y;
-	/* float tz = (prop.z - fpori[i].z) / bone.z; */
-	/* float ts = tx + ty + tz; */
+	float orad = length(bone) + fpori[i].w;
+	float nrad = length(fpd1) + length(fpd2);
+	float rat  = nrad / orad;
 
-	if (length(inValue.xyz - prop) < fpori[i].w && ty > 0.0 && ty < 1.0)
+	if (rat < 1.3)
 	{
+	    if (rat > 1.0)
+		rat = (1.3 - rat) / 0.3;
+	    else
+		rat = 1.0;
+
 	    vec3 oldd0 = inValue.xyz - fpori[i].xyz;
 	    /* vec3 oldd1 = inValue.xyz - fpori[i + 1].xyz; */
 
@@ -107,7 +112,11 @@ void main()
 	    /* vec3 newp1 = fpnew[i + 1] + newd1; */
 
 	    /* pnt = newp0 + (newp1 - newp0) * ty; */
-	    pnt = newp0;
+	    vec3 newpnt = inValue.xyz + (newp0 - inValue.xyz) * rat;
+	    if (pnt == inValue.xyz)
+		pnt = newpnt;
+	    else
+		pnt = pnt + (newpnt - pnt) / 2.0;
 	}
 
 	/* if (fpori[i + 2].w == 0.0) i += 2; */
