@@ -5,14 +5,17 @@ precision highp float;
 in vec4 inValue;
 out int[12] outOctet;
 
-uniform vec4 fpori[12];
-uniform vec3 fpnew[12];
+uniform vec4 fpori[16];
+uniform vec3 fpnew[16];
 
 uniform vec4 basecube;
 
 const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
 const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+const float PI   = 3.1415926535897932384626433832795;
+const float PI_2 = 1.57079632679489661923;
 
 // A line point 0
 // B line point 1
@@ -63,75 +66,51 @@ void main()
     // rotate direction vector and add it
     // calculate second original direction vector if affected by other bone
 
-    vec3 pnt = inValue.xyz; // by default point stays in place
+    vec3 pnt         = inValue.xyz; // by default point stays in place
+    int  point_count = 14;
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 15; i++)
     {
-	// check if bone belongs to us
-	// all bones have to be vertical
+	vec3 bone = fpori[i + 1].xyz - fpori[i].xyz;
+	vec3 prop = project_point(fpori[i].xyz, fpori[i + 1].xyz, inValue.xyz);
 
-	vec3 prp = project_point(fpori[i].xyz, fpori[i + 1].xyz, inValue.xyz);
+	/* float tx = (prop.x - fpori[i].x) / bone.x; */
+	float ty = (prop.y - fpori[i].y) / bone.y;
+	/* float tz = (prop.z - fpori[i].z) / bone.z; */
+	/* float ts = tx + ty + tz; */
 
-	if (prp.y < fpori[i].y && prp.y > fpori[i + 1].y)
+	if (length(inValue.xyz - prop) < fpori[i].w && ty > 0.0 && ty < 1.0)
 	{
-	    float dop = distance(inValue.xyz, prp); // distance of original point and projection point
+	    vec3 oldd0 = inValue.xyz - fpori[i].xyz;
+	    /* vec3 oldd1 = inValue.xyz - fpori[i + 1].xyz; */
 
-	    // check distance
+	    vec3 oldb0 = normalize(fpori[i + 1].xyz - fpori[i].xyz);
+	    vec3 newb0 = normalize(fpnew[i + 1] - fpnew[i]);
+	    /* vec3 oldb1 = normalize(fpori[i + 2].xyz - fpori[i + 1].xyz); */
+	    /* vec3 newb1 = normalize(fpnew[i + 2] - fpnew[i + 1]); */
 
-	    if (dop < fpori[i].w)
-	    {
-		vec3  oldbone = normalize(fpori[i + 1].xyz - fpori[i].xyz);
-		vec3  newbone = normalize(fpnew[i + 1] - fpnew[i]);
-		vec3  olddir  = inValue.xyz - fpori[i].xyz;
-		float bonelen = distance(fpori[i].xyz, fpori[i + 1].xyz); // length of bone
+	    float angle0 = acos(dot(oldb0, newb0));
+	    /* float angle1 = acos(dot(oldb1, newb1)); */
 
-		pnt = fpnew[i] + olddir;
+	    vec3 axis0 = normalize(cross(oldb0, newb0));
+	    /* vec3 axis1 = normalize(cross(oldb1, newb1)); */
 
-		if (oldbone != newbone)
-		{
-		    float dbp = distance(fpori[i].xyz, prp); // distance of vector start point and bone projection point
+	    // TODO rotation quaternions should be precalculated on the CPU per bone
 
-		    float angle   = acos(dot(oldbone, newbone));
-		    vec3  axis    = cross(oldbone, newbone);
-		    vec4  rotquat = quat_from_axis_angle(normalize(axis), angle);
-		    vec3  newdir  = qrot(rotquat, olddir);
-		    vec3  newpnt  = fpnew[i] + newdir;
+	    vec4 rotq0 = quat_from_axis_angle(axis0, angle0);
+	    /* vec4 rotq1 = quat_from_axis_angle(axis1, angle1); */
 
-		    if (bonelen - dbp > 6.0)
-		    {
-			// top part of the bone, affects mesh alone
-			pnt = newpnt;
-		    }
-		    else
-		    {
-			float part  = 6.0 - (bonelen - dbp);
-			float ratio = part / 6.0;
+	    vec3 newd0 = qrot(rotq0, oldd0);
+	    /* vec3 newd1 = qrot(rotq1, oldd1); */
 
-			// lower part of the bone, affected by second bone
-			vec3 oldbonea = normalize(fpori[i + 2].xyz - fpori[i + 1].xyz);
-			vec3 newbonea = normalize(fpnew[i + 2] - fpnew[i + 1]);
+	    vec3 newp0 = fpnew[i] + newd0;
+	    /* vec3 newp1 = fpnew[i + 1] + newd1; */
 
-			if (oldbonea != newbonea)
-			{
-			    vec3  olddira  = inValue.xyz - fpori[i + 1].xyz;
-			    float anglea   = acos(dot(oldbonea, newbonea));
-			    vec3  axisa    = cross(oldbonea, newbonea);
-			    vec4  rotquata = quat_from_axis_angle(normalize(axisa), anglea);
-			    vec3  newdira  = qrot(rotquata, olddira);
-			    vec3  newpnta  = fpnew[i + 1] + newdira;
-
-			    pnt = newpnt + (newpnta - newpnt) * ratio;
-			}
-			else
-			{
-			    pnt = newpnt;
-			}
-		    }
-		}
-	    }
+	    /* pnt = newp0 + (newp1 - newp0) * ty; */
+	    pnt = newp0;
 	}
 
-	if (fpori[i + 2].w == 0.0) i += 2;
+	/* if (fpori[i + 2].w == 0.0) i += 2; */
     }
 
     int  levels = 12;
