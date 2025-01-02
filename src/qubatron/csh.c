@@ -60,10 +60,7 @@ vec3 qrot(vec4 q, vec3 v)
 
 void main()
 {
-    vec3 pnt         = inValue.xyz; // by default point stays in place
-    int  point_count = 12;
-
-    // we will corner points and ratios
+    // we will store corner points and ratios
 
     vec3  corner_points[12];
     float corner_ratios[12];
@@ -72,8 +69,10 @@ void main()
 
     // go through skeleton point pairs
 
-    for (int i = 0; i < point_count; i += 2)
+    for (int i = 0; i < 12; i += 2)
     {
+	// TODO convert cover shape to capsule, ellipse is too wide
+
 	vec3 fpd1 = inValue.xyz - fpori[i].xyz;      // ellipse focus point dir vector 1
 	vec3 fpd2 = inValue.xyz - fpori[i + 1].xyz;  // ellips efocus point dir vector 2
 	vec3 bone = fpori[i + 1].xyz - fpori[i].xyz; // bone vector
@@ -103,10 +102,9 @@ void main()
 	    vec3 newd0 = qrot(rotq0, oldd0);
 	    vec3 newp0 = fpnew[i] + newd0;
 
-	    if (corner_count == 0)
-		corner_center = newp0;
-	    else
-		corner_center += (newp0 - corner_center) / 2.0;
+	    if (corner_count == 0) corner_center = newp0;
+
+	    corner_center += (newp0 - corner_center) / 2.0;
 
 	    corner_points[corner_count] = newp0;
 	    corner_ratios[corner_count] = rat;
@@ -114,14 +112,15 @@ void main()
 	}
     }
 
-    vec3 temp_center = corner_center;
+    vec3 pnt = corner_center;
 
     for (int i = 0; i < corner_count; i++)
     {
-	vec3 dir = corner_points[i] - temp_center;
-	corner_center += dir * corner_ratios[i];
+	vec3 dir = corner_points[i] - corner_center;
+	pnt += dir * corner_ratios[i];
     }
-    pnt = corner_center;
+
+    //  calculate out octets
 
     int  levels = 12;
     vec4 cube   = basecube;

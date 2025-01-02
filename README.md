@@ -73,5 +73,4 @@ Videos :
 
 Todo :
 
-- adjustable viewport res for speedup
 - webgl
