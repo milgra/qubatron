@@ -87,13 +87,8 @@ void main()
 
 	if (rat < 1.3)
 	{
-	    /* rat = 1.3 - rat; */
-
-	    rat = max(rat, 1.0);
-	    if (rat > 1.0)
-		rat = (1.3 - rat) / 0.3;
-	    else
-		rat = 1.0;
+	    rat = max(1.0, rat) - 1.0;
+	    rat = mix(1.0, 0.0, rat / 0.3);
 
 	    vec3 oldd0 = inValue.xyz - fpori[i].xyz;
 	    vec3 oldb0 = normalize(fpori[i + 1].xyz - fpori[i].xyz);
@@ -111,7 +106,7 @@ void main()
 	    if (corner_count == 0)
 		corner_center = newp0;
 	    else
-		corner_center = corner_center + (newp0 - corner_center) / 2.0;
+		corner_center += (newp0 - corner_center) / 2.0;
 
 	    corner_points[corner_count] = newp0;
 	    corner_ratios[corner_count] = rat;

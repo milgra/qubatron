@@ -7,7 +7,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "computeconn.c"
 #include "ku_gl_shader.c"
 #include "model.c"
 #include "mt_log.c"
@@ -16,6 +15,7 @@
 #include "octree.c"
 #include "readfile.c"
 #include "renderconn.c"
+#include "skeleconn.c"
 
 #ifdef EMSCRIPTEN
     #include <emscripten.h>
@@ -59,7 +59,7 @@ uint32_t ind = 0;
 v3_t  offset  = {0.0, 0.0, 0.0};
 float scaling = 1.0;
 
-computeconn_t cc;
+skeleconn_t   cc;
 renderconn_t  rc;
 
 octree_t static_octree;
@@ -87,7 +87,7 @@ void main_init()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    cc = computeconn_init();
+    cc = skeleconn_init();
     rc = renderconn_init();
 
     char plypath[PATH_MAX];
@@ -141,9 +141,9 @@ void main_init()
 
     renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
-    computeconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 4 * sizeof(GLfloat));
-    computeconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
-    computeconn_update(&cc, lighta, dynamic_model.point_count);
+    skeleconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 4 * sizeof(GLfloat));
+    skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
+    skeleconn_update(&cc, lighta, dynamic_model.point_count);
 
     // add modified point coords by compute shader
 
@@ -400,7 +400,7 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    computeconn_update(&cc, lighta, dynamic_model.point_count);
+    skeleconn_update(&cc, lighta, dynamic_model.point_count);
 
     // add modified point coords by compute shader
 

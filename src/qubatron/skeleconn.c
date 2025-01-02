@@ -1,7 +1,7 @@
 // compute shader connector
 
-#ifndef computeconn_h
-#define computeconn_h
+#ifndef skeleconn_h
+#define skeleconn_h
 
 #include "readfile.c"
 #include <GL/glew.h>
@@ -14,7 +14,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-typedef struct computeconn_t
+typedef struct skeleconn_t
 {
     GLuint cmp_sp;
     GLuint cmp_vbo_in;
@@ -27,23 +27,23 @@ typedef struct computeconn_t
 
     GLint* octqueue;
 
-} computeconn_t;
+} skeleconn_t;
 
-computeconn_t computeconn_init();
-void          computeconn_update(computeconn_t* cc, float lighta, int model_count);
-void          computeconn_alloc_in(computeconn_t* cc, void* data, size_t size);
-void          computeconn_alloc_out(computeconn_t* cc, void* data, size_t size);
+skeleconn_t   skeleconn_init();
+void          skeleconn_update(skeleconn_t* cc, float lighta, int model_count);
+void          skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size);
+void          skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size);
 
-void computeconn_alloc_in(computeconn_t* cc, void* data, size_t size);
-void computeconn_alloc_out(computeconn_t* cc, void* data, size_t size);
+void skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size);
+void skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-computeconn_t computeconn_init()
+skeleconn_t skeleconn_init()
 {
-    computeconn_t cc;
+    skeleconn_t cc;
 
     char* base_path = SDL_GetBasePath();
     char  cshpath[PATH_MAX];
@@ -99,7 +99,7 @@ computeconn_t computeconn_init()
     return cc;
 }
 
-void computeconn_update(computeconn_t* cc, float lighta, int model_count)
+void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
 {
 
     // switch off fragment stage
@@ -225,13 +225,13 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
     glDisable(GL_RASTERIZER_DISCARD);
 }
 
-void computeconn_alloc_in(computeconn_t* cc, void* data, size_t size)
+void skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 }
 
-void computeconn_alloc_out(computeconn_t* cc, void* data, size_t size)
+void skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_READ);
