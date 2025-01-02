@@ -109,9 +109,9 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 
     glBindVertexArray(cc->cmp_vao);
 
-    GLfloat pivot_old[32] =
-	// head
+    GLfloat pivot_old[48] =
 	{
+	    // head
 	    54.0, 205.0, -90.0, 15.0,
 	    54.0, 170.0, -90.0, 15.0,
 	    // torso
@@ -122,7 +122,13 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 	    120.0, 70.0, -90.0, 3.0,
 	    // left arm
 	    5.0, 170.0, -90.0, 3.0,
-	    -10.0, 70.0, -90.0, 3.0};
+	    -10.0, 70.0, -90.0, 3.0,
+	    // right leg
+	    70.0, 90.0, -70.0, 6.0,
+	    100.0, -10.0, -70.0, 8.0,
+	    // left leg
+	    38.0, 90.0, -70.0, 6.0,
+	    8.0, -10.0, -70.0, 8.0};
     // right leg
     /* 60.0, 100.0, -85.0, 20.0, */
     /* 60.0, 70.0, -85.0, 20.0, */
@@ -140,9 +146,9 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
     /* 90.0, 70.0, -90.0, 25.0, */
     /* 90.0, 50.0, -90.0, 0.0}; // end sequence */
 
-    glUniform4fv(cc->oril, 8, pivot_old);
+    glUniform4fv(cc->oril, 12, pivot_old);
 
-    GLfloat pivot_new[24] =
+    GLfloat pivot_new[36] =
 	// head
 	{
 	    54.0, 205.0, -90.0 + sinf(lighta) * 10.0,
@@ -155,7 +161,13 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 	    120.0 + sinf(lighta) * 15.0, 70.0, -90.0 + cosf(lighta) * 15.0,
 	    // left arm
 	    5.0, 170.0, -90.0,
-	    -10.0 + sinf(lighta) * 15.0, 70.0, -90.0 + cosf(lighta) * 15.0};
+	    -10.0 + sinf(lighta) * 15.0, 70.0, -90.0 + cosf(lighta) * 15.0,
+	    // right leg
+	    70.0, 90.0, -70.0,
+	    90.0, -10.0, -70 + cosf(lighta) * 15.0,
+	    // left leg
+	    38.0, 90.0, -70.0,
+	    8.0, -10.0, -70.0 + cosf(lighta) * 15.0};
     // left leg
     /* 60.0, 100.0, -190.0 + sinf(lighta) * 5.0, */
     /* 60.0, 70.0, -190.0 + sinf(lighta) * 5.0, */
@@ -173,7 +185,7 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
     /* 90.0, 70.0, -180.0, */
     /* 90.0, 50.0, -180.0}; // end sequence */
 
-    glUniform3fv(cc->newl, 8, pivot_new);
+    glUniform3fv(cc->newl, 12, pivot_new);
 
     /* GLfloat pivot_old[16] = */
     /* 	{54.0, 205.0, -90.0, 20.0, */

@@ -5,8 +5,8 @@ precision highp float;
 in vec4 inValue;
 out int[12] outOctet;
 
-uniform vec4 fpori[8];
-uniform vec3 fpnew[8];
+uniform vec4 fpori[12];
+uniform vec3 fpnew[12];
 
 uniform vec4 basecube;
 
@@ -67,7 +67,7 @@ void main()
     // calculate second original direction vector if affected by other bone
 
     vec3 pnt         = inValue.xyz; // by default point stays in place
-    int  point_count = 8;
+    int  point_count = 12;
 
     for (int i = 0; i < point_count; i += 2)
     {
@@ -79,7 +79,7 @@ void main()
 	float nrad = length(fpd1) + length(fpd2);
 	float rat  = nrad / orad;
 
-	if (rat < 1.3)
+	if (rat < 1.2)
 	{
 	    if (rat > 1.0)
 		rat = (1.3 - rat) / 0.3;
