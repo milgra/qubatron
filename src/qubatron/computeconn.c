@@ -115,7 +115,7 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 	    54.0, 205.0, -90.0, 15.0,
 	    54.0, 170.0, -90.0, 15.0,
 	    // torso
-	    54.0, 150.0, -90.0, 22.0,
+	    54.0, 170.0, -90.0, 22.0,
 	    52.0, 120.0, -90.0, 22.0,
 	    // right arm
 	    105.0, 170.0, -90.0, 3.0,
@@ -124,10 +124,10 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
 	    5.0, 170.0, -90.0, 3.0,
 	    -10.0, 70.0, -90.0, 3.0,
 	    // right leg
-	    70.0, 90.0, -70.0, 6.0,
+	    70.0, 120.0, -70.0, 6.0,
 	    100.0, -10.0, -70.0, 8.0,
 	    // left leg
-	    38.0, 90.0, -70.0, 6.0,
+	    38.0, 120.0, -70.0, 6.0,
 	    8.0, -10.0, -70.0, 8.0};
     // right leg
     /* 60.0, 100.0, -85.0, 20.0, */
@@ -151,23 +151,23 @@ void computeconn_update(computeconn_t* cc, float lighta, int model_count)
     GLfloat pivot_new[36] =
 	// head
 	{
-	    54.0, 205.0, -90.0 + sinf(lighta) * 10.0,
-	    54.0, 170.0, -90.0,
+	    54.0, 205.0, -190.0 + sinf(lighta) * 10.0,
+	    54.0, 170.0, -190.0,
 	    // torso
-	    54.0, 150.0, -90.0,
-	    55.0, 120.0, -90.0 + sinf(lighta) * 2.0,
+	    54.0, 170.0, -190.0,
+	    55.0, 120.0, -190.0 + sinf(lighta) * 2.0,
 	    // right arm
-	    105.0, 170.0, -90.0,
-	    120.0 + sinf(lighta) * 15.0, 70.0, -90.0 + cosf(lighta) * 15.0,
+	    105.0, 170.0, -190.0,
+	    120.0 + sinf(lighta) * 15.0, 70.0, -190.0 + cosf(lighta) * 15.0,
 	    // left arm
-	    5.0, 170.0, -90.0,
-	    -10.0 + sinf(lighta) * 15.0, 70.0, -90.0 + cosf(lighta) * 15.0,
+	    5.0, 170.0, -190.0,
+	    -10.0 + sinf(lighta) * 15.0, 70.0, -190.0 + cosf(lighta) * 15.0,
 	    // right leg
-	    70.0, 90.0, -70.0,
-	    90.0, -10.0, -70 + cosf(lighta) * 15.0,
+	    70.0, 120.0, -170.0,
+	    90.0, -10.0, -170 + cosf(lighta) * 15.0,
 	    // left leg
-	    38.0, 90.0, -70.0,
-	    8.0, -10.0, -70.0 + cosf(lighta) * 15.0};
+	    38.0, 120.0, -170.0,
+	    8.0, -10.0, -170.0 + cosf(lighta) * 15.0};
     // left leg
     /* 60.0, 100.0, -190.0 + sinf(lighta) * 5.0, */
     /* 60.0, 70.0, -190.0 + sinf(lighta) * 5.0, */
