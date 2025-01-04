@@ -8,6 +8,7 @@
 #include "mt_log.c"
 #include "mt_memory.c"
 #include "mt_vector_3d.c"
+#include "mt_vector_4d.c"
 #include "rply.h"
 #include <stdbool.h>
 
@@ -17,20 +18,26 @@ typedef struct model_t
     GLfloat* colors;
     GLfloat* normals;
     long     point_count;
-    long     leaf_count;
     long     index;
     long     ind;
     long     cnt;
     v3_t     offset;
 } model_t;
 
-model_t model_init(char* path, v3_t offset);
+model_t model_init();
+void    model_delete(model_t* model);
+
+void model_load_ply(model_t* model, char* path, v3_t offset);
+void model_load_flat(char* vertex_path, char* color_path, char* normal_path);
+void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color);
+void model_remove_unnecessary_vertexes();
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-float minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz, lx, ly, lz;
+    float minpx,
+    maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz, lx, ly, lz;
 float px, py, pz, cx, cy, cz, nx, ny, nz;
 
 static int model_vertex_cb(p_ply_argument argument)
@@ -119,44 +126,87 @@ static int model_vertex_cb(p_ply_argument argument)
     return 1;
 }
 
+model_t model_init()
+{
+    model_t model = {0};
+    return model;
+}
+
 // init test model
 /* bool leaf = false; */
 /* octree_insert1(&cubearr, 0, (v3_t){110.0, 790.0, -110.0}, (v4_t){110.0, 790.0, -110.0, 0.0}, (v4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
 /* octree_insert1(&cubearr, 0, (v3_t){110.0, 440.0, -110.0}, (v4_t){110.0, 790.0, -110.0, 0.0}, (v4_t){1.0, 1.0, 1.0, 1.0}, &leaf); */
 
-model_t model_init(char* path, v3_t offset)
+void model_load_ply(model_t* model, char* path, v3_t offset)
 {
-    model_t model = {0};
-
-    model.offset = offset;
+    model->offset = offset;
 
     p_ply ply = ply_open(path, NULL, 0, NULL);
 
     if (!ply) mt_log_debug("cannot read %s", path);
     if (!ply_read_header(ply)) mt_log_debug("cannot read ply header");
 
-    model.point_count = ply_set_read_cb(ply, "vertex", "x", model_vertex_cb, &model, 0);
-    ply_set_read_cb(ply, "vertex", "y", model_vertex_cb, &model, 0);
-    ply_set_read_cb(ply, "vertex", "z", model_vertex_cb, &model, 1);
-    ply_set_read_cb(ply, "vertex", "red", model_vertex_cb, &model, 0);
-    ply_set_read_cb(ply, "vertex", "green", model_vertex_cb, &model, 0);
-    ply_set_read_cb(ply, "vertex", "blue", model_vertex_cb, &model, 1);
-    ply_set_read_cb(ply, "vertex", "nx", model_vertex_cb, &model, 0);
-    ply_set_read_cb(ply, "vertex", "ny", model_vertex_cb, &model, 0);
-    ply_set_read_cb(ply, "vertex", "nz", model_vertex_cb, &model, 1);
+    model->point_count = ply_set_read_cb(ply, "vertex", "x", model_vertex_cb, model, 0);
+    ply_set_read_cb(ply, "vertex", "y", model_vertex_cb, model, 0);
+    ply_set_read_cb(ply, "vertex", "z", model_vertex_cb, model, 1);
+    ply_set_read_cb(ply, "vertex", "red", model_vertex_cb, model, 0);
+    ply_set_read_cb(ply, "vertex", "green", model_vertex_cb, model, 0);
+    ply_set_read_cb(ply, "vertex", "blue", model_vertex_cb, model, 1);
+    ply_set_read_cb(ply, "vertex", "nx", model_vertex_cb, model, 0);
+    ply_set_read_cb(ply, "vertex", "ny", model_vertex_cb, model, 0);
+    ply_set_read_cb(ply, "vertex", "nz", model_vertex_cb, model, 1);
 
-    mt_log_debug("cloud point count : %lu", model.point_count);
+    mt_log_debug("cloud point count : %lu", model->point_count);
 
-    model.vertexes = mt_memory_alloc(sizeof(GLfloat) * model.point_count * 4, NULL, NULL);
-    model.normals  = mt_memory_alloc(sizeof(GLfloat) * model.point_count * 4, NULL, NULL);
-    model.colors   = mt_memory_alloc(sizeof(GLfloat) * model.point_count * 4, NULL, NULL);
+    model->vertexes = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+    model->normals  = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+    model->colors   = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
 
-    if (!ply_read(ply)) return model;
+    if (!ply_read(ply)) mt_log_debug("PLY read error");
     ply_close(ply);
 
     mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
+}
 
-    return model;
+void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color)
+{
+    if (model->point_count == 0)
+    {
+	model->point_count = 1000;
+	model->vertexes    = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+	model->normals     = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+	model->colors      = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+    }
+    else if (model->index + 4 > model->point_count - 1)
+    {
+	model->point_count *= 2;
+	model->vertexes = mt_memory_realloc(model->vertexes, sizeof(GLfloat) * model->point_count * 4);
+	model->normals  = mt_memory_realloc(model->normals, sizeof(GLfloat) * model->point_count * 4);
+	model->colors   = mt_memory_realloc(model->colors, sizeof(GLfloat) * model->point_count * 4);
+    }
+
+    model->vertexes[model->index]     = vertex.x;
+    model->vertexes[model->index + 1] = vertex.y;
+    model->vertexes[model->index + 2] = vertex.z;
+
+    model->normals[model->index]     = normal.x;
+    model->normals[model->index + 1] = normal.y;
+    model->normals[model->index + 2] = normal.z;
+    model->normals[model->index + 3] = 0.0;
+
+    model->colors[model->index]     = color.x;
+    model->colors[model->index + 1] = color.y;
+    model->colors[model->index + 2] = color.z;
+    model->colors[model->index + 3] = color.w;
+
+    model->index += 4;
+}
+
+void model_delete(model_t* model)
+{
+    REL(model->vertexes);
+    REL(model->normals);
+    REL(model->colors);
 }
 
 #endif
