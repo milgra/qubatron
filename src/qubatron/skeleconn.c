@@ -3,6 +3,7 @@
 #ifndef skeleconn_h
 #define skeleconn_h
 
+#include "mt_log.c"
 #include "readfile.c"
 #include <GL/glew.h>
 #include <SDL.h>
@@ -11,6 +12,7 @@
 #include <stdlib.h>
 
 #include "ku_gl_shader.c"
+#include "mt_memory.c"
 #include <GL/gl.h>
 #include <GL/glu.h>
 
@@ -27,6 +29,7 @@ typedef struct skeleconn_t
 
     GLint* octqueue;
 
+    size_t size;
 } skeleconn_t;
 
 skeleconn_t   skeleconn_init();
@@ -49,8 +52,15 @@ skeleconn_t skeleconn_init()
     char  cshpath[PATH_MAX];
     char  dshpath[PATH_MAX];
 
+#ifdef EMSCRIPTEN
+    snprintf(cshpath, PATH_MAX, "%s/src/qubatron/csh.c", base_path);
+    snprintf(dshpath, PATH_MAX, "%s/src/qubatron/dsh.c", base_path);
+#else
     snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
     snprintf(dshpath, PATH_MAX, "%sdsh.c", base_path);
+#endif
+
+    mt_log_debug("loading shaders %s %s", cshpath, dshpath);
 
     char* csh = readfile(cshpath);
     char* dsh = readfile(dshpath);
@@ -159,7 +169,7 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
     glUniform4fv(cc->cubl, 1, basecubearr);
 
     /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
-    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
+    /* glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in); */
     /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW); */
     /* glBindBuffer(GL_ARRAY_BUFFER, 0); */
 
@@ -173,6 +183,11 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
     glDrawArrays(GL_POINTS, 0, model_count);
     glEndTransformFeedback();
     glFlush();
+
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->size, cc->octqueue);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glDisable(GL_RASTERIZER_DISCARD);
 }
@@ -189,7 +204,10 @@ void skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size)
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_READ);
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
-    cc->octqueue = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT);
+
+    /* cc->octqueue = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT); */
+    cc->octqueue = mt_memory_alloc(size, NULL, NULL);
+    cc->size     = size;
 }
 
 #endif

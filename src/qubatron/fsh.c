@@ -44,6 +44,15 @@ const float maxc_size = 3.0;
 int  model_state = 0; // 0 static 1 dynamic
 bool procgen = false;
 
+layout(binding = 7) uniform sampler2D coltexbuf_s; // color data per point for static model
+layout(binding = 8) uniform sampler2D coltexbuf_d; // color data per point for dynamic model
+
+layout(binding = 9) uniform sampler2D nrmtexbuf_s;  // normal data per point for static
+layout(binding = 10) uniform sampler2D nrmtexbuf_d; // normal data per point for dynamic
+
+layout(binding = 11) uniform lowp usampler2D octtexbuf_s; // octree for static in a format, nine ints, first 8 is octets for cube, 9th is index for next octet/color/normal
+layout(binding = 12) uniform lowp usampler2D octtexbuf_d; // octree for dynamic
+
 layout(std430, binding = 1) readonly buffer octreelayout_s
 {
     octets_t g_octree_s[];
@@ -155,6 +164,11 @@ cube_trace_line(vec3 pos, vec3 dir)
 	cb = g_octree_s[0];
     else
 	cb = g_octree_d[0];
+
+    int cy = 0 / 8192;
+    int cx = 0 - cy * 8192;
+
+    uint myuintvalue = texelFetch(octtexbuf_s, ivec2(0, 0), 0).r;
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
@@ -521,16 +535,26 @@ void main()
 	int  result_state = 0;
 	vec4 result_isp   = ccres_s.isp;
 	vec4 result_tlf   = ccres_s.tlf;
-	vec4 result_col   = g_colors_s[ccres_s.ind];
-	vec4 result_nrm   = g_normals_s[ccres_s.ind];
+	/* vec4 result_col   = g_colors_s[ccres_s.ind]; */
+	/* vec4 result_nrm = g_normals_s[ccres_s.ind]; */
+
+	int  cy         = ccres_s.ind / 8192;
+	int  cx         = ccres_s.ind - cy * 8192;
+	vec4 result_col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
+	vec4 result_nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
 
 	if (ccres_d.ind > 0 && (ccres_s.ind == 0 || ccres_d.isp.w < ccres_s.isp.w))
 	{
 	    result_state = 1;
 	    result_isp   = ccres_d.isp;
 	    result_tlf   = ccres_d.tlf;
-	    result_col   = g_colors_d[ccres_d.ind];
 	    result_nrm   = g_normals_d[ccres_d.ind];
+
+	    int cy = ccres_d.ind / 8192;
+	    int cx = ccres_d.ind - cy * 8192;
+
+	    result_col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
+	    result_nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
 	}
 
 	/* if (ccres_d.ind == 0 && ccres_s.ind == 0) result_col = ccres_s.col; */
@@ -538,43 +562,43 @@ void main()
 	fragColor = result_col;
 
 	/* show normals */
-	/* fragColor = vec4(abs(ccres.nrm.x), abs(ccres.nrm.y), abs(ccres.nrm.z), 1.0); */
+	/* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
 
 	// if we found cube, get normal and color from corresponding arrays
 	// else show debug color ( put intersection count in ccres?
 
 	// we found a subcube
-	if (result_isp.w > 0.0)
-	{
-	    /* test against light */
-	    vec3 lvec = result_isp.xyz - light;
+	/* if (result_isp.w > 0.0) */
+	/* { */
+	/*     /\* test against light *\/ */
+	/*     vec3 lvec = result_isp.xyz - light; */
 
-	    model_state  = result_state;
-	    ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
-	    if (lcres.isp.w > 0.0)
-	    {
-		if (result_isp.x != lcres.isp.x &&
-		    result_isp.y != lcres.isp.y &&
-		    result_isp.z != lcres.isp.z &&
-		    result_tlf.x != lcres.tlf.x &&
-		    result_tlf.y != lcres.tlf.y &&
-		    result_tlf.z != lcres.tlf.z)
-		/* if ((abs(result_isp.x - lcres.isp.x) < 0.01) && */
-		/* 	(abs(result_isp.y - lcres.isp.y) < 0.01) && */
-		/* 	(abs(result_isp.z - lcres.isp.z) < 0.01)) */
-		{
-		    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w);
-		}
-		else
-		{
-		    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
-		    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w);
-		}
-	    }
-	}
+	/*     model_state  = result_state; */
+	/*     ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light */
+	/*     if (lcres.isp.w > 0.0) */
+	/*     { */
+	/* 	if (result_isp.x != lcres.isp.x && */
+	/* 	    result_isp.y != lcres.isp.y && */
+	/* 	    result_isp.z != lcres.isp.z && */
+	/* 	    result_tlf.x != lcres.tlf.x && */
+	/* 	    result_tlf.y != lcres.tlf.y && */
+	/* 	    result_tlf.z != lcres.tlf.z) */
+	/* 	/\* if ((abs(result_isp.x - lcres.isp.x) < 0.01) && *\/ */
+	/* 	/\* 	(abs(result_isp.y - lcres.isp.y) < 0.01) && *\/ */
+	/* 	/\* 	(abs(result_isp.z - lcres.isp.z) < 0.01)) *\/ */
+	/* 	{ */
+	/* 	    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w); */
+	/* 	} */
+	/* 	else */
+	/* 	{ */
+	/* 	    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0); */
+	/* 	    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w); */
+	/* 	} */
+	/*     } */
+	/* } */
 
-	// dark yellowish look
-	fragColor *= 0.8;
-	fragColor.z *= 0.4;
+	/* // dark yellowish look */
+	/* fragColor *= 0.8; */
+	/* fragColor.z *= 0.4; */
     }
 };

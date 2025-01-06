@@ -97,9 +97,6 @@ void main_init()
     model_t static_model = model_init();
     model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
 
-    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
-
     static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
     for (int index = 0; index < static_model.point_count * 4; index += 4)
     {
@@ -115,6 +112,8 @@ void main_init()
     mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
     mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t));
 
+    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
+    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
     snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
@@ -135,11 +134,14 @@ void main_init()
 	    (v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]},
 	    &leaf);
 
-	model_add_point(
-	    &dynamic_model,
-	    (v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]},
-	    (v3_t){temp_model.normals[index], temp_model.normals[index + 1], temp_model.normals[index + 2]},
-	    (v4_t){temp_model.colors[index], temp_model.colors[index + 1], temp_model.colors[index + 2], temp_model.colors[index + 3]});
+	if (leaf)
+	{
+	    model_add_point(
+		&dynamic_model,
+		(v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]},
+		(v3_t){temp_model.normals[index], temp_model.normals[index + 1], temp_model.normals[index + 2]},
+		(v4_t){temp_model.colors[index], temp_model.colors[index + 1], temp_model.colors[index + 2], temp_model.colors[index + 3]});
+	}
     }
 
     model_delete(&temp_model);
@@ -285,7 +287,7 @@ v3_t qrot(v4_t q, v3_t v)
     return v3_add(v, v3_scale(v3_cross(qv, v3_add(v3_cross(qv, v), v3_scale(v, q.w))), 2.0));
 }
 
-int main_loop(double time, void* userdata)
+bool main_loop(double time, void* userdata)
 {
     SDL_Event event;
 
@@ -423,24 +425,24 @@ int main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    skeleconn_update(&cc, lighta, dynamic_model.point_count);
+    /* skeleconn_update(&cc, lighta, dynamic_model.point_count); */
 
     // add modified point coords by compute shader
 
-    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
 
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
-    {
-	bool leaf = false;
-	octree_insert_fast_octs(
-	    &dynamic_octree,
-	    0,
-	    index / 4,
-	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
-	    &leaf);
-    }
+    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
+    /* { */
+    /* 	bool leaf = false; */
+    /* 	octree_insert_fast_octs( */
+    /* 	    &dynamic_octree, */
+    /* 	    0, */
+    /* 	    index / 4, */
+    /* 	    &cc.octqueue[index * 3], // 48 bytes stride 12 int */
+    /* 	    &leaf); */
+    /* } */
 
-    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
+    /* renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true); */
 
     renderconn_update(&rc, width, height, position, angle, lighta, quality);
 
@@ -493,13 +495,18 @@ int main(int argc, char* argv[])
     {
 	// setup opengl version
 
+#ifdef EMSCRIPTEN
+	mt_log_inc_verbosity();
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+#endif
 
 	/* window size should be full screen on phones, scaled down on desktops */
 

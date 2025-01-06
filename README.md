@@ -71,6 +71,14 @@ Videos :
 - normal detail - 3318142 voxels with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
 - normal detail - 3318142 voxels with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]
 
+WebAssembly :
+
+find src -type f -name "*.c" > files.txt
+
+source "/home/milgra/Downloads/emsdk/emsdk_env.sh"
+
+emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) --embed-file src/qubatron -o qubatron.html
+
 Todo :
 
 - webgl

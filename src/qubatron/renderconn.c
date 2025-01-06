@@ -1,6 +1,7 @@
 #ifndef renderconn_h
 #define renderconn_h
 
+#include "mt_log.c"
 #include "mt_math_3d.c"
 #include "mt_matrix_4d.c"
 #include "readfile.c"
@@ -35,6 +36,13 @@ typedef struct renderconn_t
     GLuint vbo_texquad;
     GLuint texture;
     GLuint framebuffer;
+
+    GLuint col1_tex;
+    GLuint col2_tex;
+    GLuint nrm1_tex;
+    GLuint nrm2_tex;
+    GLuint oct1_tex;
+    GLuint oct2_tex;
 } renderconn_t;
 
 renderconn_t renderconn_init();
@@ -58,8 +66,16 @@ renderconn_t renderconn_init()
     char* base_path = SDL_GetBasePath();
     char  vshpath[PATH_MAX];
     char  fshpath[PATH_MAX];
+
+#ifdef EMSCRIPTEN
+    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/vsh.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/fsh.c", base_path);
+#else
     snprintf(vshpath, PATH_MAX, "%svsh.c", base_path);
     snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
+#endif
+
+    mt_log_debug("loading shaders %s %s", vshpath, fshpath);
 
     char* vsh = readfile(vshpath);
     char* fsh = readfile(fshpath);
@@ -125,6 +141,36 @@ renderconn_t renderconn_init()
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (const GLvoid*) 12);
 
+    glGenTextures(1, &rc.col1_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.col1_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glGenTextures(1, &rc.col2_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.col2_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glGenTextures(1, &rc.nrm1_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.nrm1_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glGenTextures(1, &rc.nrm2_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.nrm2_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glGenTextures(1, &rc.oct1_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.oct1_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glGenTextures(1, &rc.oct2_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.oct2_tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
     /* glGenBuffers(1, &vbo); */
     /* glbindbuffer(GL_ARRAY_BUFFER, vbo); */
 
@@ -184,9 +230,9 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glUseProgram(rc->sha.name);
 
-    glBindFramebuffer(
-	GL_FRAMEBUFFER,
-	rc->framebuffer);
+    /* glBindFramebuffer( */
+    /* 	GL_FRAMEBUFFER, */
+    /* 	rc->framebuffer); */
 
     matrix4array_t projection = {0};
 
@@ -249,6 +295,24 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    /* glActiveTexture(GL_TEXTURE0 + 0); */
+    /* glBindTexture(GL_TEXTURE_2D, rc->col1_tex); */
+
+    /* float color[16] = { */
+    /* 	1.0, 0.0, 1.0, 1.0, */
+    /* 	1.0, 0.0, 1.0, 1.0, */
+    /* 	1.0, 0.0, 1.0, 1.0, */
+    /* 	1.0, 0.0, 1.0, 1.0}; */
+
+    /* glUniform1i(rc->sha.uni_loc[6], GL_TEXTURE0 + 0); */
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 2, 2, 0, GL_RGBA, GL_FLOAT, color); */
+
+    glActiveTexture(GL_TEXTURE0 + 7);
+    glBindTexture(GL_TEXTURE_2D, rc->col1_tex);
+
+    glActiveTexture(GL_TEXTURE0 + 8);
+    glBindTexture(GL_TEXTURE_2D, rc->col2_tex);
+
     glDrawArrays(
 	GL_TRIANGLES,
 	0,
@@ -258,69 +322,115 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     // render unit quad with texture
 
-    glBindFramebuffer(
-	GL_FRAMEBUFFER,
-	0);
+    /* glBindFramebuffer( */
+    /* 	GL_FRAMEBUFFER, */
+    /* 	0); */
 
-    glClearColor(
-	0.0,
-	0.0,
-	0.0,
-	1.0);
+    /* glClearColor( */
+    /* 	0.0, */
+    /* 	0.0, */
+    /* 	0.0, */
+    /* 	1.0); */
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    /* glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); */
 
-    glUseProgram(rc->sha_texquad.name);
+    /* glUseProgram(rc->sha_texquad.name); */
 
-    glViewport(
-	0.0,
-	0.0,
-	width,
-	height);
+    /* glViewport( */
+    /* 	0.0, */
+    /* 	0.0, */
+    /* 	width, */
+    /* 	height); */
 
-    pers              = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
-    projection.matrix = pers;
-    glUniformMatrix4fv(rc->sha_texquad.uni_loc[0], 1, 0, projection.array);
+    /* pers              = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10); */
+    /* projection.matrix = pers; */
+    /* glUniformMatrix4fv(rc->sha_texquad.uni_loc[0], 1, 0, projection.array); */
 
-    glBindVertexArray(rc->vao_texquad);
+    /* glBindVertexArray(rc->vao_texquad); */
 
-    glActiveTexture(GL_TEXTURE0 + 0);
+    /* glActiveTexture(GL_TEXTURE0 + 0); */
 
-    glUniform1i(rc->sha_texquad.uni_loc[1], 0);
+    /* glUniform1i(rc->sha_texquad.uni_loc[1], 0); */
 
-    glBindTexture(GL_TEXTURE_2D, rc->texture);
+    /* glBindTexture(GL_TEXTURE_2D, rc->texture); */
 
-    GLfloat vertexes_uni[] = {
-	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, (float) 2048, 0.0f, 1.0f, 1.0f};
+    /* GLfloat vertexes_uni[] = { */
+    /* 	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, (float) 2048, 0.0f, 1.0f, 1.0f}; */
 
-    glBindBuffer(
-	GL_ARRAY_BUFFER,
-	rc->vbo_texquad);
+    /* glBindBuffer( */
+    /* 	GL_ARRAY_BUFFER, */
+    /* 	rc->vbo_texquad); */
 
-    glBufferData(
-	GL_ARRAY_BUFFER,
-	sizeof(GLfloat) * 6 * 5,
-	vertexes_uni,
-	GL_DYNAMIC_DRAW);
+    /* glBufferData( */
+    /* 	GL_ARRAY_BUFFER, */
+    /* 	sizeof(GLfloat) * 6 * 5, */
+    /* 	vertexes_uni, */
+    /* 	GL_DYNAMIC_DRAW); */
 
-    glDrawArrays(
-	GL_TRIANGLES,
-	0,
-	6);
+    /* glDrawArrays( */
+    /* 	GL_TRIANGLES, */
+    /* 	0, */
+    /* 	6); */
+
+    /* glActiveTexture(0); */
 }
 
 void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->nrm_ssbo_d : rc->nrm_ssbo_s);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                           // unbind
+    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->nrm_ssbo_d : rc->nrm_ssbo_s); */
+    /* glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
+    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                           // unbind */
+
+    int points = size / 16;
+    int height = floor(points / 8192);
+    /* int width  = points - height * 8192; */
+    glUseProgram(rc->sha.name);
+
+    if (dynamic)
+    {
+	glActiveTexture(GL_TEXTURE0 + 10);
+	glBindTexture(GL_TEXTURE_2D, rc->nrm2_tex);
+
+	/* glUniform1i(rc->sha.uni_loc[7], 8); */
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+    }
+    else
+    {
+	glActiveTexture(GL_TEXTURE0 + 9);
+	glBindTexture(GL_TEXTURE_2D, rc->nrm1_tex);
+
+	/* glUniform1i(rc->sha.uni_loc[6], 7); */
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+    }
 }
 
 void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->col_ssbo_d : rc->col_ssbo_s);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                           // unbind
+    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, dynamic ? rc->col_ssbo_d : rc->col_ssbo_s); */
+    /* glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
+    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                           // unbind */
+
+    int points = size / 16;
+    int height = floor(points / 8192);
+    /* int width  = points - height * 8192; */
+    glUseProgram(rc->sha.name);
+
+    if (dynamic)
+    {
+	glActiveTexture(GL_TEXTURE0 + 8);
+	glBindTexture(GL_TEXTURE_2D, rc->col2_tex);
+
+	/* glUniform1i(rc->sha.uni_loc[7], 8); */
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+    }
+    else
+    {
+	glActiveTexture(GL_TEXTURE0 + 7);
+	glBindTexture(GL_TEXTURE_2D, rc->col1_tex);
+
+	/* glUniform1i(rc->sha.uni_loc[6], 7); */
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+    }
 }
 
 void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dynamic)
@@ -329,6 +439,21 @@ void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dyn
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays.
     /* glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, cubearr.len * sizeof(octets_t), cubearr.octs); // sizeof(data) only works for statically sized C/C++ arrays. */
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+
+    if (dynamic)
+    {
+    }
+    else
+    {
+	int points = size / (12 * sizeof(GLint));
+	int height = floor(points / 8192);
+
+	glActiveTexture(GL_TEXTURE0 + 11);
+	glBindTexture(GL_TEXTURE_2D, rc->oct1_tex);
+
+	/* glUniform1i(rc->sha.uni_loc[6], 7); */
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, 8192, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, data);
+    }
 }
 
 #endif
