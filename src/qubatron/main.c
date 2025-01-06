@@ -82,8 +82,8 @@ void main_init()
 
     // opengl init
 
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
+    /* glEnable(GL_DEBUG_OUTPUT); */
+    /* glDebugMessageCallback(MessageCallback, 0); */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
@@ -92,7 +92,7 @@ void main_init()
 
     char plypath[PATH_MAX];
 
-    snprintf(plypath, PATH_MAX, "%s../abandoned1.ply", base_path);
+    snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
 
     model_t static_model = model_init();
     model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
@@ -116,7 +116,7 @@ void main_init()
     renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
-    snprintf(plypath, PATH_MAX, "%s../zombie.ply", base_path);
+    snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path);
 
     dynamic_model = model_init();
 

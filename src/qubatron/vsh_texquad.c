@@ -15,4 +15,4 @@ void main()
     gl_Position = projection * vec4(position, 1.0);
     varTexcoord = texcoord;
     varPos      = gl_Position;
-};
+}

@@ -77,7 +77,7 @@ find src -type f -name "*.c" > files.txt
 
 source "/home/milgra/Downloads/emsdk/emsdk_env.sh"
 
-emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) --embed-file src/qubatron -o qubatron.html
+emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4Gb --preload-file src/qubatron --preload-file res -o qubatron.html
 
 Todo :
 

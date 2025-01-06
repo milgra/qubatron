@@ -76,16 +76,20 @@ renderconn_t renderconn_init()
 	vsh,
 	fsh,
 	1,
-	((const char*[]){"position"}),
+	((char*[]){"position"}),
 	12,
-	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d"}));
+	((char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d"}));
 
     free(vsh);
     free(fsh);
 
+#ifdef EMSCRIPTEN
+    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/vsh_texquad.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/fsh_texquad.c", base_path);
+#else
     snprintf(vshpath, PATH_MAX, "%svsh_texquad.c", base_path);
     snprintf(fshpath, PATH_MAX, "%sfsh_texquad.c", base_path);
-
+#endif
     char* vsh_texquad = readfile(vshpath);
     char* fsh_texquad = readfile(fshpath);
 
@@ -93,9 +97,9 @@ renderconn_t renderconn_init()
 	vsh_texquad,
 	fsh_texquad,
 	2,
-	((const char*[]){"position", "texcoord"}),
+	((char*[]){"position", "texcoord"}),
 	2,
-	((const char*[]){"projection", "texture_base"}));
+	((char*[]){"projection", "texture_base"}));
 
     free(vsh_texquad);
     free(fsh_texquad);

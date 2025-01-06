@@ -3,7 +3,7 @@
 precision highp float;
 
 in vec4 inValue;
-out int[12] outOctet;
+flat    out int[12] outOctet;
 
 uniform vec4 fpori[12];
 uniform vec3 fpnew[12];

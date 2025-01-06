@@ -582,4 +582,4 @@ void main()
 	/* fragColor *= 0.8; */
 	/* fragColor.z *= 0.4; */
     }
-};
+}
