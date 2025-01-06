@@ -425,24 +425,24 @@ bool main_loop(double time, void* userdata)
     lighta += 0.05;
     if (lighta > 6.28) lighta = 0.0;
 
-    /* skeleconn_update(&cc, lighta, dynamic_model.point_count); */
+    skeleconn_update(&cc, lighta, dynamic_model.point_count);
 
     // add modified point coords by compute shader
 
-    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
+    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
-    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
-    /* { */
-    /* 	bool leaf = false; */
-    /* 	octree_insert_fast_octs( */
-    /* 	    &dynamic_octree, */
-    /* 	    0, */
-    /* 	    index / 4, */
-    /* 	    &cc.octqueue[index * 3], // 48 bytes stride 12 int */
-    /* 	    &leaf); */
-    /* } */
+    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+    {
+	bool leaf = false;
+	octree_insert_fast_octs(
+	    &dynamic_octree,
+	    0,
+	    index / 4,
+	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
+	    &leaf);
+    }
 
-    /* renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true); */
+    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
     renderconn_update(&rc, width, height, position, angle, lighta, quality);
 

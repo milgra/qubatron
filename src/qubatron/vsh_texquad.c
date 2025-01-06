@@ -1,11 +1,10 @@
-#version 310 es
+#version 300 es
 
 precision highp float;
 
 in vec3 position;
 in vec2 texcoord;
 
-out vec4 gl_Position;
 out vec2 varTexcoord;
 out vec4 varPos;
 

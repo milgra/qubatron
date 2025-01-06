@@ -1,4 +1,4 @@
-#version 310 es
+#version 300 es
 
 precision highp float;
 
@@ -44,44 +44,14 @@ const float maxc_size = 3.0;
 int  model_state = 0; // 0 static 1 dynamic
 bool procgen = false;
 
-layout(binding = 7) uniform sampler2D coltexbuf_s; // color data per point for static model
-layout(binding = 8) uniform sampler2D coltexbuf_d; // color data per point for dynamic model
+uniform sampler2D coltexbuf_s; // color data per point for static model
+uniform sampler2D coltexbuf_d; // color data per point for dynamic model
 
-layout(binding = 9) uniform sampler2D nrmtexbuf_s;  // normal data per point for static
-layout(binding = 10) uniform sampler2D nrmtexbuf_d; // normal data per point for dynamic
+uniform sampler2D nrmtexbuf_s; // normal data per point for static
+uniform sampler2D nrmtexbuf_d; // normal data per point for dynamic
 
-layout(binding = 11) uniform lowp usampler2D octtexbuf_s; // octree for static in a format, nine ints, first 8 is octets for cube, 9th is index for next octet/color/normal
-layout(binding = 12) uniform lowp usampler2D octtexbuf_d; // octree for dynamic
-
-layout(std430, binding = 1) readonly buffer octreelayout_s
-{
-    octets_t g_octree_s[];
-};
-
-layout(std430, binding = 2) readonly buffer normallayout_s
-{
-    vec4 g_normals_s[];
-};
-
-layout(std430, binding = 3) readonly buffer colorlayout_s
-{
-    vec4 g_colors_s[];
-};
-
-layout(std430, binding = 4) readonly buffer octreelayout_d
-{
-    octets_t g_octree_d[];
-};
-
-layout(std430, binding = 5) readonly buffer normallayout_d
-{
-    vec4 g_normals_d[];
-};
-
-layout(std430, binding = 6) readonly buffer colorlayout_d
-{
-    vec4 g_colors_d[];
-};
+uniform lowp isampler2D octtexbuf_s; // octree for static in a format, nine ints, first 8 is octets for cube, 9th is index for next octet/color/normal
+uniform lowp isampler2D octtexbuf_d; // octree for dynamic
 
 struct ctlres
 {
@@ -154,21 +124,38 @@ float random(vec3 pos)
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 
+octets_t octets_for_index(int i)
+{
+
+    i *= 3; // octet is 12 byte long in octet texture
+
+    int cy = i / 8192;
+    int cx = i - cy * 8192;
+
+    ivec4 p0, p1, p2;
+
+    if (model_state == 0)
+    {
+	p0 = texelFetch(octtexbuf_s, ivec2(cx, cy), 0);
+	p1 = texelFetch(octtexbuf_s, ivec2(cx + 1, cy), 0);
+	p2 = texelFetch(octtexbuf_s, ivec2(cx + 2, cy), 0);
+    }
+    else
+    {
+	p0 = texelFetch(octtexbuf_d, ivec2(cx, cy), 0);
+	p1 = texelFetch(octtexbuf_d, ivec2(cx + 1, cy), 0);
+	p2 = texelFetch(octtexbuf_d, ivec2(cx + 2, cy), 0);
+    }
+
+    return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
+}
+
 ctlres
 cube_trace_line(vec3 pos, vec3 dir)
 {
     int depth = 0; // current octree deptu
 
-    octets_t cb;
-    if (model_state == 0)
-	cb = g_octree_s[0];
-    else
-	cb = g_octree_d[0];
-
-    int cy = 0 / 8192;
-    int cx = 0 - cy * 8192;
-
-    uint myuintvalue = texelFetch(octtexbuf_s, ivec2(0, 0), 0).r;
+    octets_t cb = octets_for_index(0);
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
@@ -340,10 +327,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    if (!procgen)
 	    {
-		if (model_state == 0)
-		    nearest_cube = g_octree_s[ccube.nodes[nearest_oct]];
-		else if (model_state == 1)
-		    nearest_cube = g_octree_d[ccube.nodes[nearest_oct]];
+		nearest_cube = octets_for_index(ccube.nodes[nearest_oct]);
 	    }
 	    else
 	    {
@@ -535,8 +519,6 @@ void main()
 	int  result_state = 0;
 	vec4 result_isp   = ccres_s.isp;
 	vec4 result_tlf   = ccres_s.tlf;
-	/* vec4 result_col   = g_colors_s[ccres_s.ind]; */
-	/* vec4 result_nrm = g_normals_s[ccres_s.ind]; */
 
 	int  cy         = ccres_s.ind / 8192;
 	int  cx         = ccres_s.ind - cy * 8192;
@@ -548,7 +530,6 @@ void main()
 	    result_state = 1;
 	    result_isp   = ccres_d.isp;
 	    result_tlf   = ccres_d.tlf;
-	    result_nrm   = g_normals_d[ccres_d.ind];
 
 	    int cy = ccres_d.ind / 8192;
 	    int cx = ccres_d.ind - cy * 8192;

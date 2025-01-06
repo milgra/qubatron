@@ -1,9 +1,9 @@
-#version 310 es
+#version 300 es
 
 precision highp float;
 
 in vec4 inValue;
-out     flat int[12] outOctet;
+out int[12] outOctet;
 
 uniform vec4 fpori[12];
 uniform vec3 fpnew[12];
