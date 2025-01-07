@@ -320,12 +320,12 @@ bool main_loop(double time, void* userdata)
 	{
 	    if (event.window.event == SDL_WINDOWEVENT_RESIZED)
 	    {
-		width  = event.window.data1;
-		height = event.window.data2;
+		/* width  = event.window.data1; */
+		/* height = event.window.data2; */
 
-		v2_t dimensions = {.x = width * scale, .y = height * scale};
+		/* v2_t dimensions = {.x = width * scale, .y = height * scale}; */
 
-		mt_log_debug("new dimension %f %f scale %f", dimensions.x, dimensions.y, scale);
+		/* mt_log_debug("new dimension %f %f scale %f", dimensions.x, dimensions.y, scale); */
 	    }
 	}
 	else if (event.type == SDL_KEYUP)
@@ -427,7 +427,7 @@ bool main_loop(double time, void* userdata)
 
     skeleconn_update(&cc, lighta, dynamic_model.point_count);
 
-    // add modified point coords by compute shader
+    /* // add modified point coords by compute shader */
 
     octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
@@ -555,7 +555,8 @@ int main(int argc, char* argv[])
 
 		mt_log_debug("DRAWABLE %i %i", nw, nh);
 
-		scale = nw / width;
+		width  = nw;
+		height = nh;
 
 		// try to set up vsync
 

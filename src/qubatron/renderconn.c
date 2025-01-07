@@ -203,9 +203,6 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 {
     // first render scene to texture
 
-    width  = 800;
-    height = 600;
-
     glUseProgram(rc->sha.name);
 
     glBindFramebuffer(
@@ -245,7 +242,12 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLfloat vertexes[] = {
-	0.0f, 0.0f, 0.0f, (float) ow, 0.0f, 0.0f, 0.0f, (float) oh, 0.0f, 0.0f, (float) oh, 0.0f, (float) ow, 0.0f, 0.0f, (float) ow, (float) oh, 0.0f};
+	0.0f, 0.0f, 0.0f,
+	(float) ow, 0.0f, 0.0f,
+	0.0f, (float) oh, 0.0f,
+	0.0f, (float) oh, 0.0f,
+	(float) ow, 0.0f, 0.0f,
+	(float) ow, (float) oh, 0.0};
 
     glViewport(
 	0.0,
