@@ -76,9 +76,9 @@ renderconn_t renderconn_init()
 	vsh,
 	fsh,
 	1,
-	((char*[]){"position"}),
+	((const char*[]){"position"}),
 	12,
-	((char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d"}));
+	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d"}));
 
     free(vsh);
     free(fsh);
@@ -97,9 +97,9 @@ renderconn_t renderconn_init()
 	vsh_texquad,
 	fsh_texquad,
 	2,
-	((char*[]){"position", "texcoord"}),
+	((const char*[]){"position", "texcoord"}),
 	2,
-	((char*[]){"projection", "texture_base"}));
+	((const char*[]){"projection", "texture_base"}));
 
     free(vsh_texquad);
     free(fsh_texquad);
@@ -337,6 +337,7 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
 {
     int points = size / 16;
     int height = floor(points / 8192);
+    if (height > 0) height -= 1;
     /* int width  = points - height * 8192; */
     glUseProgram(rc->sha.name);
 
@@ -362,6 +363,7 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
 {
     int points = size / 16;
     int height = floor(points / 8192);
+    if (height > 0) height -= 1;
     /* int width  = points - height * 8192; */
     glUseProgram(rc->sha.name);
 
@@ -387,6 +389,7 @@ void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dyn
 {
     int points = size / (4 * sizeof(GLint));
     int height = floor(points / 8192);
+    if (height > 0) height -= 1;
 
     if (dynamic)
     {

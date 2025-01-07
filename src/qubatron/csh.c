@@ -2,8 +2,10 @@
 
 precision highp float;
 
-in vec4 inValue;
-flat    out int[12] outOctet;
+in vec4        inValue;
+flat out ivec4 oct14;
+flat out ivec4 oct54;
+flat out ivec4 oct94;
 
 uniform vec4 fpori[12];
 uniform vec3 fpnew[12];
@@ -123,7 +125,8 @@ void main()
     //  calculate out octets
 
     int  levels = 12;
-    vec4 cube   = basecube;
+    int  octets[12];
+    vec4 cube = basecube;
 
     for (int level = 0; level < levels; level++)
     {
@@ -144,6 +147,19 @@ void main()
 	    cube.z - zsft[octet] * size,
 	    size);
 
-	outOctet[level] = octet;
+	octets[level] = octet;
     }
+
+    oct14.x = octets[0];
+    oct14.y = octets[1];
+    oct14.z = octets[2];
+    oct14.w = octets[3];
+    oct54.x = octets[4];
+    oct54.y = octets[5];
+    oct54.z = octets[6];
+    oct54.w = octets[7];
+    oct94.x = octets[8];
+    oct94.y = octets[9];
+    oct94.z = octets[10];
+    oct94.w = octets[11];
 }

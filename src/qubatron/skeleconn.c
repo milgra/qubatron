@@ -78,8 +78,8 @@ skeleconn_t skeleconn_init()
     glAttachShader(cc.cmp_sp, cmp_fsh);
 
     // we want to capture outvalue in the result buffer
-    const GLchar* feedbackVaryings[] = {"outOctet"};
-    glTransformFeedbackVaryings(cc.cmp_sp, 1, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+    const GLchar* feedbackVaryings[] = {"oct14", "oct54", "oct94"};
+    glTransformFeedbackVaryings(cc.cmp_sp, 3, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
 
     // link
     ku_gl_shader_link(cc.cmp_sp);
@@ -173,7 +173,7 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
     /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW); */
     /* glBindBuffer(GL_ARRAY_BUFFER, 0); */
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
+    /* glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out); */
     /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ); */
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
@@ -187,7 +187,6 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
     glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->size, cc->octqueue);
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glDisable(GL_RASTERIZER_DISCARD);
 }
@@ -196,14 +195,16 @@ void skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
-    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STATIC_READ);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_READ);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
+    /* glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out); */
 
     /* cc->octqueue = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT); */
     cc->octqueue = mt_memory_alloc(size, NULL, NULL);
