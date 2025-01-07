@@ -178,13 +178,14 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
 
+    // get previous state to avoid feedback buffer stalling
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->size, cc->octqueue);
+
     // run compute shader
     glBeginTransformFeedback(GL_POINTS);
     glDrawArrays(GL_POINTS, 0, model_count);
     glEndTransformFeedback();
     glFlush();
-
-    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->size, cc->octqueue);
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
 

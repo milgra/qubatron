@@ -203,8 +203,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 {
     // first render scene to texture
 
-    width  = 1200;
-    height = 800;
+    width  = 800;
+    height = 600;
 
     glUseProgram(rc->sha.name);
 
@@ -214,8 +214,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     matrix4array_t projection = {0};
 
-    float ow = width / (11 - quality);
-    float oh = height / (11 - quality);
+    float ow = width / (6.0 - (float) quality / 2.0);
+    float oh = height / (6.0 - (float) quality / 2.0);
 
     m4_t pers         = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
@@ -337,8 +337,7 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
 {
     int points = size / 16;
     int height = floor(points / 8192);
-    if (height > 0) height -= 1;
-    /* int width  = points - height * 8192; */
+
     glUseProgram(rc->sha.name);
 
     if (dynamic)
@@ -363,8 +362,7 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
 {
     int points = size / 16;
     int height = floor(points / 8192);
-    if (height > 0) height -= 1;
-    /* int width  = points - height * 8192; */
+
     glUseProgram(rc->sha.name);
 
     if (dynamic)
@@ -389,7 +387,6 @@ void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dyn
 {
     int points = size / (4 * sizeof(GLint));
     int height = floor(points / 8192);
-    if (height > 0) height -= 1;
 
     glUseProgram(rc->sha.name);
 

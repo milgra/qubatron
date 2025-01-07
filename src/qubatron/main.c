@@ -26,8 +26,8 @@ char  drag  = 0;
 char  quit  = 0;
 float scale = 1.0;
 
-int32_t width  = 1200;
-int32_t height = 800;
+int32_t width  = 800;
+int32_t height = 600;
 
 uint32_t frames     = 0;
 uint32_t timestamp  = 0;
@@ -43,7 +43,7 @@ float anglex      = 0.0;
 float speed       = 0.0;
 float strafespeed = 0.0;
 
-v3_t angle       = {0.0};
+v3_t angle = {0.0};
 /* v3_t position    = {50.0, 200.0, -200.0}; // zombie initial position */
 v3_t position    = {440.0, 200.0, -1000.0};
 v3_t direction   = {0.0, 0.0, -1.0};
@@ -82,8 +82,8 @@ void main_init()
 
     // opengl init
 
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
+    /* glEnable(GL_DEBUG_OUTPUT); */
+    /* glDebugMessageCallback(MessageCallback, 0); */
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
@@ -528,8 +528,8 @@ int main(int argc, char* argv[])
 
 	window = SDL_CreateWindow(
 	    "Qubatron",
-	    SDL_WINDOWPOS_UNDEFINED,
-	    SDL_WINDOWPOS_UNDEFINED,
+	    SDL_WINDOWPOS_CENTERED,
+	    SDL_WINDOWPOS_CENTERED,
 	    width,
 	    height,
 	    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
@@ -552,6 +552,8 @@ int main(int argc, char* argv[])
 		int nh;
 
 		SDL_GL_GetDrawableSize(window, &nw, &nh);
+
+		mt_log_debug("DRAWABLE %i %i", nw, nh);
 
 		scale = nw / width;
 
