@@ -391,6 +391,8 @@ void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dyn
     int height = floor(points / 8192);
     if (height > 0) height -= 1;
 
+    glUseProgram(rc->sha.name);
+
     if (dynamic)
     {
 	glActiveTexture(GL_TEXTURE0 + 12);

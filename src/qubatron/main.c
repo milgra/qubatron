@@ -170,8 +170,6 @@ void main_init()
     skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
     skeleconn_update(&cc, lighta, dynamic_model.point_count);
 
-    printf("OCTQUEUE %i %i %i %i %i %i %i %i\n", cc.octqueue[0], cc.octqueue[1], cc.octqueue[2], cc.octqueue[3], cc.octqueue[4], cc.octqueue[5], cc.octqueue[6], cc.octqueue[7]);
-
     // add modified point coords by compute shader
 
     /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
