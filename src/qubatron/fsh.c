@@ -27,13 +27,7 @@ const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
 const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
-struct octets_t
-{
-    // 8 octets
-    // the 9th element is the original index of the point
-    // we need 12 element for std430 padding
-    int nodes[12];
-};
+const int nulloct[9] = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
@@ -61,9 +55,9 @@ struct ctlres
 
 struct stck_t
 {
-    vec4     tlf;   // cube dimensions for stack level
-    octets_t scube; // static cube octets for stack level
-    octets_t dcube; // static cube octets for stack level
+    vec4 tlf;      // cube dimensions for stack level
+    int  scube[9]; // static cube octets for stack level
+    int  dcube[9]; // static cube octets for stack level
 
     bool checked;  // stack level is checked for intersection
     int  octs[4];  // octets for ispts
@@ -118,7 +112,7 @@ float random(vec3 pos)
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 
-octets_t soctets_for_index(int i)
+int[9] soctets_for_index(int i)
 {
     i *= 3; // octet is 12 byte long in octet texture
 
@@ -134,13 +128,10 @@ octets_t soctets_for_index(int i)
     p1 = texelFetch(octtexbuf_s, ivec2(cx + 1, cy), 0);
     p2 = texelFetch(octtexbuf_s, ivec2(cx + 2, cy), 0);
 
-    return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
-    /* } */
-    /* else */
-    /* 	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)); */
+    return int[9](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x);
 }
 
-octets_t doctets_for_index(int i)
+int[9] doctets_for_index(int i)
 {
     i *= 3; // octet is 12 byte long in octet texture
 
@@ -156,10 +147,7 @@ octets_t doctets_for_index(int i)
     p1 = texelFetch(octtexbuf_d, ivec2(cx + 1, cy), 0);
     p2 = texelFetch(octtexbuf_d, ivec2(cx + 2, cy), 0);
 
-    return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
-    /* } */
-    /* else */
-    /* 	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)); */
+    return int[9](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x);
 }
 
 ctlres
@@ -167,8 +155,8 @@ cube_trace_line(vec3 pos, vec3 dir)
 {
     int depth = 0; // current octree deptu
 
-    octets_t scb = soctets_for_index(0);
-    octets_t dcb = doctets_for_index(0);
+    int scb[9] = soctets_for_index(0);
+    int dcb[9] = doctets_for_index(0);
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
@@ -183,13 +171,12 @@ cube_trace_line(vec3 pos, vec3 dir)
     stck[0].ispt_ind = 0;
     stck[0].tlf      = basecube;
 
-    octets_t ccube;
-    int      btypestate = 0;
+    int btypestate = 0;
 
     while (true)
     {
-	octets_t scube = stck[depth].scube;
-	octets_t dcube = stck[depth].dcube;
+	int scube[9] = stck[depth].scube;
+	int dcube[9] = stck[depth].dcube;
 
 	vec4 tlf = stck[depth].tlf;
 
@@ -312,7 +299,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    prevoct = oct;
 
 		    // add to ispts if there are subnodes in current cube
-		    if (scube.nodes[oct] > 0 || dcube.nodes[oct] > 0)
+		    if (scube[oct] > 0 || dcube[oct] > 0)
 		    {
 			int len                = stck[depth].ispt_len;
 			stck[depth].octs[len]  = oct;
@@ -335,14 +322,14 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    vec4 nearest_isp = stck[depth].ispts[nearest_ind];
 	    int  nearest_oct = stck[depth].octs[nearest_ind];
 
-	    octets_t near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
-	    octets_t near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+	    int near_dcube[9] = nulloct;
+	    int near_scube[9] = nulloct;
 
-	    if (scube.nodes[nearest_oct] > 0)
-		near_scube = soctets_for_index(scube.nodes[nearest_oct]);
+	    if (scube[nearest_oct] > 0)
+		near_scube = soctets_for_index(scube[nearest_oct]);
 
-	    if (dcube.nodes[nearest_oct] > 0)
-		near_dcube = doctets_for_index(dcube.nodes[nearest_oct]);
+	    if (dcube[nearest_oct] > 0)
+		near_dcube = doctets_for_index(dcube[nearest_oct]);
 
 	    vec4 ntlf = vec4(
 		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
@@ -355,7 +342,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 		res.isp = nearest_isp;
 		res.tlf = ntlf;
 
-		res.ind = scube.nodes[8]; // original index is in the 8th node
+		res.ind = scube[8]; // original index is in the 8th node
 
 		int cy = res.ind / 8192;
 		int cx = res.ind - cy * 8192;
@@ -363,9 +350,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 		res.col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
 		res.nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
 
-		if (dcube.nodes[nearest_oct] > 0)
+		if (dcube[nearest_oct] > 0)
 		{
-		    res.ind = dcube.nodes[8]; // original index is in the 8th node
+		    res.ind = dcube[8]; // original index is in the 8th node
 
 		    cy = res.ind / 8192;
 		    cx = res.ind - cy * 8192;
@@ -399,7 +386,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    /* { */
 	    /* 	res.isp = nearest_isp; */
 	    /* 	res.tlf = ntlf; */
-	    /* 	res.ind = nearest_cube.nodes[8]; */
+	    /* 	res.ind = nearest_cube[8]; */
 	    /* 	/\* res.col = vec4(1.0, 0.0, 0.0, 1.0); *\/ */
 	    /* 	return res; */
 	    /* } */
