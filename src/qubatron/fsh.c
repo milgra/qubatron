@@ -41,7 +41,6 @@ const float PI_2 = 1.57079632679489661923;
 float       minc_size = 1.0;
 const float maxc_size = 3.0;
 
-int  model_state = 0; // 0 static 1 dynamic
 bool procgen = false;
 
 uniform sampler2D coltexbuf_s; // color data per point for static model
@@ -60,6 +59,7 @@ struct ctlres
     vec4 nrm;
     vec4 tlf;
     int  ind;
+    int  btype;
 };
 
 struct ispt_t // intersection struct
@@ -71,13 +71,16 @@ struct ispt_t // intersection struct
 
 struct stck_t
 {
-    vec4     tlf;      // cube dimensions for stack level
-    octets_t cube;     // cube normal, color and octets for stack level
-    bool     checked;  // stack level is checked for intersection
-    int      octs[4];  // octets for ispts
-    ispt_t   ispts[4]; // is point for stack level cube
-    int      ispt_len; // ispt length for is points
-    int      ispt_ind;
+    vec4     tlf;   // cube dimensions for stack level
+    octets_t scube; // static cube octets for stack level
+    octets_t dcube; // static cube octets for stack level
+
+    bool   checked;   // stack level is checked for intersection
+    int    btypes[4]; // buffer type for ispts, 0 static 1 dynamic
+    int    octs[4];   // octets for ispts
+    ispt_t ispts[4];  // is point for stack level cube
+    int    ispt_len;  // ispt length for is points
+    int    ispt_ind;
 };
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
@@ -124,30 +127,48 @@ float random(vec3 pos)
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 
-octets_t octets_for_index(int i)
+octets_t soctets_for_index(int i)
 {
-
     i *= 3; // octet is 12 byte long in octet texture
 
     int cy = i / 8192;
     int cx = i - cy * 8192;
 
     ivec4 p0, p1, p2;
+    ivec2 ts = textureSize(octtexbuf_s, 0);
 
-    if (model_state == 0)
+    if (cx <= ts.x && cy <= ts.y)
     {
 	p0 = texelFetch(octtexbuf_s, ivec2(cx, cy), 0);
 	p1 = texelFetch(octtexbuf_s, ivec2(cx + 1, cy), 0);
 	p2 = texelFetch(octtexbuf_s, ivec2(cx + 2, cy), 0);
+
+	return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
     }
     else
+	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+}
+
+octets_t doctets_for_index(int i)
+{
+    i *= 3; // octet is 12 byte long in octet texture
+
+    int cy = i / 8192;
+    int cx = i - cy * 8192;
+
+    ivec4 p0, p1, p2;
+    ivec2 ts = textureSize(octtexbuf_d, 0);
+
+    if (cx <= ts.x && cy <= ts.y)
     {
 	p0 = texelFetch(octtexbuf_d, ivec2(cx, cy), 0);
 	p1 = texelFetch(octtexbuf_d, ivec2(cx + 1, cy), 0);
 	p2 = texelFetch(octtexbuf_d, ivec2(cx + 2, cy), 0);
-    }
 
-    return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
+	return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
+    }
+    else
+	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
 }
 
 ctlres
@@ -155,7 +176,10 @@ cube_trace_line(vec3 pos, vec3 dir)
 {
     int depth = 0; // current octree deptu
 
-    octets_t cb = octets_for_index(0);
+    octets_t scb = soctets_for_index(0);
+    octets_t dcb = doctets_for_index(0);
+
+    /* dcb = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)); */
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
@@ -163,17 +187,21 @@ cube_trace_line(vec3 pos, vec3 dir)
     res.ind = 0;
 
     stck_t stck[20];
-    stck[0].cube     = cb;
+    stck[0].scube    = scb;
+    stck[0].dcube    = dcb;
     stck[0].checked  = false;
     stck[0].ispt_len = 0;
     stck[0].ispt_ind = 0;
     stck[0].tlf      = basecube;
 
     octets_t ccube;
+    int      btypestate = 0;
 
     while (true)
     {
-	ccube    = stck[depth].cube;
+	octets_t scube = stck[depth].scube;
+	octets_t dcube = stck[depth].dcube;
+
 	vec4 tlf = stck[depth].tlf;
 
 	if (!stck[depth].checked)
@@ -295,12 +323,19 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    prevoct = oct;
 
 		    // add to ispts if there are subnodes in current cube
-		    if (ccube.nodes[oct] > 0)
+		    if (scube.nodes[oct] > 0 || dcube.nodes[oct] > 0)
 		    {
 			int len                = stck[depth].ispt_len;
 			stck[depth].octs[len]  = oct;
 			stck[depth].ispts[len] = act_hitp;
 			stck[depth].ispt_len += 1;
+
+			if (scube.nodes[oct] > 0 && dcube.nodes[oct] > 0)
+			    stck[depth].btypes[len] = 0;
+			else if (scube.nodes[oct] > 0)
+			    stck[depth].btypes[len] = 1;
+			else if (dcube.nodes[oct] > 0)
+			    stck[depth].btypes[len] = 2;
 		    }
 		}
 	    }
@@ -314,10 +349,29 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    /* res.cl.w += 0.1; */
 	    /* res.cl += nearest_isp.col * 0.1; */
 
-	    int      nearest_ind = stck[depth].ispt_ind++;
-	    ispt_t   nearest_isp = stck[depth].ispts[nearest_ind];
-	    int      nearest_oct = stck[depth].octs[nearest_ind];
-	    octets_t nearest_cube;
+	    int    nearest_ind   = stck[depth].ispt_ind++;
+	    ispt_t nearest_isp   = stck[depth].ispts[nearest_ind];
+	    int    nearest_oct   = stck[depth].octs[nearest_ind];
+	    int    nearest_btype = stck[depth].btypes[nearest_ind];
+
+	    octets_t near_scube;
+	    octets_t near_dcube;
+
+	    if (nearest_btype == 0)
+	    {
+		near_scube = soctets_for_index(scube.nodes[nearest_oct]);
+		near_dcube = doctets_for_index(dcube.nodes[nearest_oct]);
+	    }
+	    else if (nearest_btype == 1)
+	    {
+		near_scube = soctets_for_index(scube.nodes[nearest_oct]);
+		near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+	    }
+	    else
+	    {
+		near_dcube = doctets_for_index(dcube.nodes[nearest_oct]);
+		near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+	    }
 
 	    vec4 ntlf = vec4(
 		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
@@ -325,30 +379,31 @@ cube_trace_line(vec3 pos, vec3 dir)
 		tlf.z -= zsft[nearest_oct] * tlf.w / 2.0,
 		tlf.w / 2.0);
 
-	    if (!procgen)
-	    {
-		nearest_cube = octets_for_index(ccube.nodes[nearest_oct]);
-	    }
-	    else
-	    {
-		// generate subnode proced
+	    /* if (!procgen) */
+	    /* { */
+	    /* near_scube = soctets_for_index(scube.nodes[nearest_oct]); */
+	    /* near_dcube = doctets_for_index(dcube.nodes[nearest_oct]); */
+	    /* } */
+	    /* else */
+	    /* { */
+	    // generate subnode proced
 
-		/* nearest_cube       = octets_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
-		/* nearest_cube.tlf.w = ccube.tlf.w / 2.0; */
+	    /* nearest_cube       = octets_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
+	    /* nearest_cube.tlf.w = ccube.tlf.w / 2.0; */
 
-		/* nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w; */
-		/* nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w; */
-		/* nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w; */
+	    /* nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w; */
+	    /* nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w; */
+	    /* nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w; */
 
-		/* float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0; */
+	    /* float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0; */
 
-		/* nearest_cube.col -= nearest_cube.col * rnd; */
+	    /* nearest_cube.col -= nearest_cube.col * rnd; */
 
-		/* // fill up octets based on nearby octets */
+	    /* // fill up octets based on nearby octets */
 
-		/* int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0)); */
-		/* nearest_cube.nodes[pick] = 0; */
-	    };
+	    /* int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0)); */
+	    /* nearest_cube.nodes[pick] = 0; */
+	    /* }; */
 
 	    if (depth == 11)
 	    {
@@ -372,7 +427,17 @@ cube_trace_line(vec3 pos, vec3 dir)
 		/* { */
 		res.isp = nearest_isp.isp;
 		res.tlf = ntlf;
-		res.ind = nearest_cube.nodes[8]; // original index is in the 8th node
+
+		if (nearest_btype == 0 || nearest_btype == 1)
+		{
+		    res.ind   = scube.nodes[8]; // original index is in the 8th node
+		    res.btype = 0;
+		}
+		else
+		{
+		    res.ind   = dcube.nodes[8]; // original index is in the 8th node
+		    res.btype = 1;
+		}
 		/* res.col = nearest_isp.col; */
 		return res;
 		/* } */
@@ -387,8 +452,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[depth].tlf      = ntlf;
 	    stck[depth].ispt_len = 0;
 	    stck[depth].ispt_ind = 0;
-	    stck[depth].cube     = nearest_cube;
 	    stck[depth].checked  = false;
+	    stck[depth].scube    = near_scube;
+	    stck[depth].dcube    = near_dcube;
 
 	    /* makes sense in case of procedural sub-detail render */
 	    /* if (depth > 12) */
@@ -509,75 +575,54 @@ void main()
     }
     else
     {
-	vec4   col;
-	ctlres ccres_s = cube_trace_line(camfp, csv); // camera cube, cube touched by cam
-	model_state    = 1;                           // have to do this for cube_trace_line function's global ssbo access
-	ctlres ccres_d = cube_trace_line(camfp, csv); // camera cube, cube touched by cam
+	ctlres res        = cube_trace_line(camfp, csv);
+	vec4   result_col = res.col;
 
-	// TODO ssbo switching is fucked up, do something
-
-	int  result_state = 0;
-	vec4 result_isp   = ccres_s.isp;
-	vec4 result_tlf   = ccres_s.tlf;
-
-	int  cy         = ccres_s.ind / 8192;
-	int  cx         = ccres_s.ind - cy * 8192;
-	vec4 result_col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
-	vec4 result_nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
-
-	if (ccres_d.ind > 0 && (ccres_s.ind == 0 || ccres_d.isp.w < ccres_s.isp.w))
+	if (res.ind > 0)
 	{
-	    result_state = 1;
-	    result_isp   = ccres_d.isp;
-	    result_tlf   = ccres_d.tlf;
+	    int  cy = res.ind / 8192;
+	    int  cx = res.ind - cy * 8192;
+	    vec4 result_nrm;
 
-	    int cy = ccres_d.ind / 8192;
-	    int cx = ccres_d.ind - cy * 8192;
+	    result_col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
+	    result_nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
 
-	    result_col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
-	    result_nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
+	    if (res.btype == 1)
+	    {
+		result_col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
+		result_nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
+	    }
+
+	    /* show normals for debug */
+	    /* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
+
+	    /* /\* test against light *\/ */
+	    /* vec3 lvec = res.isp.xyz - light; */
+
+	    /* ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light */
+	    /* if (lcres.isp.w > 0.0) */
+	    /* { */
+	    /* 	if (res.isp.x != lcres.isp.x && */
+	    /* 	    res.isp.y != lcres.isp.y && */
+	    /* 	    res.isp.z != lcres.isp.z && */
+	    /* 	    res.tlf.x != lcres.tlf.x && */
+	    /* 	    res.tlf.y != lcres.tlf.y && */
+	    /* 	    res.tlf.z != lcres.tlf.z) */
+	    /* 	/\* if ((abs(res.isp.x - lcres.isp.x) < 0.01) && *\/ */
+	    /* 	/\* 	(abs(res.isp.y - lcres.isp.y) < 0.01) && *\/ */
+	    /* 	/\* 	(abs(res.isp.z - lcres.isp.z) < 0.01)) *\/ */
+	    /* 	{ */
+	    /* 	    result_col = vec4(fragColor.xyz * 0.2, fragColor.w); */
+	    /* 	} */
+	    /* 	else */
+	    /* 	{ */
+	    /* 	    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0); */
+	    /* 	    result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w); */
+	    /* 	} */
+	    /* } */
 	}
-
-	/* if (ccres_d.ind == 0 && ccres_s.ind == 0) result_col = ccres_s.col; */
 
 	fragColor = result_col;
-
-	/* show normals */
-	/* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
-
-	// if we found cube, get normal and color from corresponding arrays
-	// else show debug color ( put intersection count in ccres?
-
-	// we found a subcube
-	if (result_isp.w > 0.0)
-	{
-	    /* test against light */
-	    vec3 lvec = result_isp.xyz - light;
-
-	    model_state  = result_state;
-	    ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
-	    if (lcres.isp.w > 0.0)
-	    {
-		if (result_isp.x != lcres.isp.x &&
-		    result_isp.y != lcres.isp.y &&
-		    result_isp.z != lcres.isp.z &&
-		    result_tlf.x != lcres.tlf.x &&
-		    result_tlf.y != lcres.tlf.y &&
-		    result_tlf.z != lcres.tlf.z)
-		/* if ((abs(result_isp.x - lcres.isp.x) < 0.01) && */
-		/* 	(abs(result_isp.y - lcres.isp.y) < 0.01) && */
-		/* 	(abs(result_isp.z - lcres.isp.z) < 0.01)) */
-		{
-		    fragColor = vec4(fragColor.xyz * 0.2, fragColor.w);
-		}
-		else
-		{
-		    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
-		    fragColor   = vec4(fragColor.xyz * (0.2 + angle * 0.8), fragColor.w);
-		}
-	    }
-	}
-
 	// dark yellowish look
 	fragColor *= 0.8;
 	fragColor.z *= 0.4;
