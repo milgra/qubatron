@@ -135,18 +135,18 @@ octets_t soctets_for_index(int i)
     int cx = i - cy * 8192;
 
     ivec4 p0, p1, p2;
-    ivec2 ts = textureSize(octtexbuf_s, 0);
 
-    if (cx <= ts.x && cy <= ts.y)
-    {
-	p0 = texelFetch(octtexbuf_s, ivec2(cx, cy), 0);
-	p1 = texelFetch(octtexbuf_s, ivec2(cx + 1, cy), 0);
-	p2 = texelFetch(octtexbuf_s, ivec2(cx + 2, cy), 0);
+    /* ivec2 ts = textureSize(octtexbuf_s, 0); */
+    /* if (cx <= ts.x && cy <= ts.y) */
+    /* { */
+    p0 = texelFetch(octtexbuf_s, ivec2(cx, cy), 0);
+    p1 = texelFetch(octtexbuf_s, ivec2(cx + 1, cy), 0);
+    p2 = texelFetch(octtexbuf_s, ivec2(cx + 2, cy), 0);
 
-	return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
-    }
-    else
-	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+    return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
+    /* } */
+    /* else */
+    /* 	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)); */
 }
 
 octets_t doctets_for_index(int i)
@@ -157,18 +157,18 @@ octets_t doctets_for_index(int i)
     int cx = i - cy * 8192;
 
     ivec4 p0, p1, p2;
-    ivec2 ts = textureSize(octtexbuf_d, 0);
 
-    if (cx <= ts.x && cy <= ts.y)
-    {
-	p0 = texelFetch(octtexbuf_d, ivec2(cx, cy), 0);
-	p1 = texelFetch(octtexbuf_d, ivec2(cx + 1, cy), 0);
-	p2 = texelFetch(octtexbuf_d, ivec2(cx + 2, cy), 0);
+    /* ivec2 ts = textureSize(octtexbuf_d, 0); */
+    /* if (cx <= ts.x && cy <= ts.y) */
+    /* { */
+    p0 = texelFetch(octtexbuf_d, ivec2(cx, cy), 0);
+    p1 = texelFetch(octtexbuf_d, ivec2(cx + 1, cy), 0);
+    p2 = texelFetch(octtexbuf_d, ivec2(cx + 2, cy), 0);
 
-	return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
-    }
-    else
-	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+    return octets_t(int[12](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x, p2.y, p2.z, p2.w));
+    /* } */
+    /* else */
+    /* 	return octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)); */
 }
 
 ctlres
@@ -178,8 +178,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 
     octets_t scb = soctets_for_index(0);
     octets_t dcb = doctets_for_index(0);
-
-    /* dcb = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)); */
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
@@ -329,13 +327,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 			stck[depth].octs[len]  = oct;
 			stck[depth].ispts[len] = act_hitp;
 			stck[depth].ispt_len += 1;
-
-			if (scube.nodes[oct] > 0 && dcube.nodes[oct] > 0)
-			    stck[depth].btypes[len] = 0;
-			else if (scube.nodes[oct] > 0)
-			    stck[depth].btypes[len] = 1;
-			else if (dcube.nodes[oct] > 0)
-			    stck[depth].btypes[len] = 2;
 		    }
 		}
 	    }
@@ -349,13 +340,24 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    /* res.cl.w += 0.1; */
 	    /* res.cl += nearest_isp.col * 0.1; */
 
-	    int    nearest_ind   = stck[depth].ispt_ind++;
-	    ispt_t nearest_isp   = stck[depth].ispts[nearest_ind];
-	    int    nearest_oct   = stck[depth].octs[nearest_ind];
-	    int    nearest_btype = stck[depth].btypes[nearest_ind];
+	    int    nearest_ind = stck[depth].ispt_ind++;
+	    ispt_t nearest_isp = stck[depth].ispts[nearest_ind];
+	    int    nearest_oct = stck[depth].octs[nearest_ind];
+
+	    int nearest_btype = 0;
+
+	    if (scube.nodes[nearest_oct] > 0 && dcube.nodes[nearest_oct] > 0)
+		nearest_btype = 0;
+	    else if (scube.nodes[nearest_oct] > 0)
+		nearest_btype = 1;
+	    else if (dcube.nodes[nearest_oct] > 0)
+		nearest_btype = 2;
 
 	    octets_t near_scube;
 	    octets_t near_dcube;
+
+	    near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+	    near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
 
 	    if (nearest_btype == 0)
 	    {
@@ -365,12 +367,10 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    else if (nearest_btype == 1)
 	    {
 		near_scube = soctets_for_index(scube.nodes[nearest_oct]);
-		near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
 	    }
-	    else
+	    else if (nearest_btype == 2)
 	    {
 		near_dcube = doctets_for_index(dcube.nodes[nearest_oct]);
-		near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
 	    }
 
 	    vec4 ntlf = vec4(
@@ -425,15 +425,12 @@ cube_trace_line(vec3 pos, vec3 dir)
 		/* } */
 		/* else */
 		/* { */
-		res.isp = nearest_isp.isp;
-		res.tlf = ntlf;
+		res.isp   = nearest_isp.isp;
+		res.tlf   = ntlf;
+		res.ind   = scube.nodes[8]; // original index is in the 8th node
+		res.btype = 0;
 
-		if (nearest_btype == 0 || nearest_btype == 1)
-		{
-		    res.ind   = scube.nodes[8]; // original index is in the 8th node
-		    res.btype = 0;
-		}
-		else
+		if (nearest_btype == 2)
 		{
 		    res.ind   = dcube.nodes[8]; // original index is in the 8th node
 		    res.btype = 1;
@@ -596,8 +593,8 @@ void main()
 	    /* show normals for debug */
 	    /* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
 
-	    /* /\* test against light *\/ */
-	    /* vec3 lvec = res.isp.xyz - light; */
+	    /* test against light */
+	    vec3 lvec = res.isp.xyz - light;
 
 	    /* ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light */
 	    /* if (lcres.isp.w > 0.0) */
@@ -612,7 +609,7 @@ void main()
 	    /* 	/\* 	(abs(res.isp.y - lcres.isp.y) < 0.01) && *\/ */
 	    /* 	/\* 	(abs(res.isp.z - lcres.isp.z) < 0.01)) *\/ */
 	    /* 	{ */
-	    /* 	    result_col = vec4(fragColor.xyz * 0.2, fragColor.w); */
+	    /* 	    result_col = vec4(result_col.xyz * 0.2, result_col.w); */
 	    /* 	} */
 	    /* 	else */
 	    /* 	{ */
