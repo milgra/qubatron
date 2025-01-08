@@ -41,8 +41,6 @@ const float PI_2 = 1.57079632679489661923;
 float       minc_size = 1.0;
 const float maxc_size = 3.0;
 
-bool procgen = false;
-
 uniform sampler2D coltexbuf_s; // color data per point for static model
 uniform sampler2D coltexbuf_d; // color data per point for dynamic model
 
@@ -61,26 +59,20 @@ struct ctlres
     int  ind;
 };
 
-struct ispt_t // intersection struct
-{
-    vec4 isp; // intersection point
-    /* vec4 col; // side color for debugging */
-    int oct; // octet of isp
-};
-
 struct stck_t
 {
     vec4     tlf;   // cube dimensions for stack level
     octets_t scube; // static cube octets for stack level
     octets_t dcube; // static cube octets for stack level
 
-    bool   checked;   // stack level is checked for intersection
-    int    btypes[4]; // buffer type for ispts, 0 static 1 dynamic
-    int    octs[4];   // octets for ispts
-    ispt_t ispts[4];  // is point for stack level cube
-    int    ispt_len;  // ispt length for is points
-    int    ispt_ind;
+    bool checked;  // stack level is checked for intersection
+    int  octs[4];  // octets for ispts
+    vec4 ispts[4]; // is point for stack level cube
+    int  ispt_len; // ispt length for is points
+    int  ispt_ind;
 };
+
+// x - x coordinate of plane, lp - line pointm lv - line vector
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
 {
@@ -113,7 +105,7 @@ vec4 is_cube_zplane(float z, vec3 lp, vec3 lv)
     vec4 r = vec4(0.0);
     if (lv.z != 0.0)
     {
-	r.w = (z - lp.z) / lv.z; // distance ratio
+	r.w = (z - lp.z) / lv.z;
 	r.x = lp.x + lv.x * r.w;
 	r.y = lp.y + lv.y * r.w;
 	r.z = z;
@@ -207,8 +199,8 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    // get is points
 
-	    int    hitc = 0; // hit count
-	    ispt_t hitp[5];  // hit point
+	    int  hitc = 0; // hit count
+	    vec4 hitp[5];  // hit point
 
 	    vec4 act;
 	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
@@ -218,41 +210,41 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    // front side
 	    act = is_cube_zplane(tlf.z, pos, dir);
 	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		hitp[hitc++].isp = act;
+		hitp[hitc++] = act;
 
 	    // back side
 	    act = is_cube_zplane(brb.z, pos, dir);
 	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		hitp[hitc++].isp = act;
+		hitp[hitc++] = act;
 
 	    // left side
 	    act = is_cube_xplane(tlf.x, pos, dir);
 	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++].isp = act;
+		hitp[hitc++] = act;
 
 	    // right side
 	    act = is_cube_xplane(brb.x, pos, dir);
 	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++].isp = act;
+		hitp[hitc++] = act;
 
 	    // top side
 	    act = is_cube_yplane(tlf.y, pos, dir);
 	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++].isp = act;
+		hitp[hitc++] = act;
 
 	    // bottom side
 	    act = is_cube_yplane(brb.y, pos, dir);
 	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++].isp = act;
+		hitp[hitc++] = act;
 
 	    // there is intersection
 	    if (hitc > 0)
 	    {
 		// inside an octet, set focus point as first isp
-		if (hitc == 1) hitp[0].isp = vec4(pos, 0.0);
+		if (hitc == 1) hitp[0] = vec4(pos, 0.0);
 
 		// order side hitpoints if there are two intersections
-		if (hitc > 1 && hitp[1].isp.w < hitp[0].isp.w) hitp[0] = hitp[1];
+		if (hitc > 1 && hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
 
 		// we can ignore the second isp from now
 		hitc = 1;
@@ -263,23 +255,23 @@ cube_trace_line(vec3 pos, vec3 dir)
 		// z div plane
 		act = is_cube_zplane(hlf.z, pos, dir);
 		if (act.w > 0.0 && act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		    hitp[hitc++].isp = act;
+		    hitp[hitc++] = act;
 
 		// x div plane
 		act = is_cube_xplane(hlf.x, pos, dir);
 		if (act.w > 0.0 && act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		    hitp[hitc++].isp = act;
+		    hitp[hitc++] = act;
 
 		// y div plane
 		act = is_cube_yplane(hlf.y, pos, dir);
 		if (act.w > 0.0 && act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		    hitp[hitc++].isp = act;
+		    hitp[hitc++] = act;
 
 		// sort hitpoints
 
-		ispt_t act_hitp;
-		int    oct     = 0;
-		int    prevoct = -1;
+		vec4 act_hitp;
+		int  oct     = 0;
+		int  prevoct = -1;
 
 		for (int i = 0; i < hitc; ++i)
 		{
@@ -287,7 +279,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    {
 			for (int j = i + 1; j < hitc; ++j)
 			{
-			    if (hitp[j].isp.w < hitp[i].isp.w)
+			    if (hitp[j].w < hitp[i].w)
 			    {
 				act_hitp = hitp[i];
 				hitp[i]  = hitp[j];
@@ -302,18 +294,18 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 		    oct = 0;
 
-		    if (act_hitp.isp.x > hlf.x) oct = 1;
-		    if (act_hitp.isp.y < hlf.y) oct += 2;
-		    if (act_hitp.isp.z < hlf.z) oct += 4;
+		    if (act_hitp.x > hlf.x) oct = 1;
+		    if (act_hitp.y < hlf.y) oct += 2;
+		    if (act_hitp.z < hlf.z) oct += 4;
 
 		    // from the second isp find octet pairs if needed
 		    if (oct == prevoct)
 		    {
-			if (act_hitp.isp.x == hlf.x)
+			if (act_hitp.x == hlf.x)
 			    oct = horpairs[oct];
-			else if (act_hitp.isp.y == hlf.y)
+			else if (act_hitp.y == hlf.y)
 			    oct = verpairs[oct];
-			else if (act_hitp.isp.z == hlf.z)
+			else if (act_hitp.z == hlf.z)
 			    oct = deppairs[oct];
 		    }
 
@@ -339,9 +331,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    /* res.cl.w += 0.1; */
 	    /* res.cl += nearest_isp.col * 0.1; */
 
-	    int    nearest_ind = stck[depth].ispt_ind++;
-	    ispt_t nearest_isp = stck[depth].ispts[nearest_ind];
-	    int    nearest_oct = stck[depth].octs[nearest_ind];
+	    int  nearest_ind = stck[depth].ispt_ind++;
+	    vec4 nearest_isp = stck[depth].ispts[nearest_ind];
+	    int  nearest_oct = stck[depth].octs[nearest_ind];
 
 	    octets_t near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
 	    octets_t near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
@@ -358,54 +350,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 		tlf.z -= zsft[nearest_oct] * tlf.w / 2.0,
 		tlf.w / 2.0);
 
-	    /* if (!procgen) */
-	    /* { */
-	    /* near_scube = soctets_for_index(scube.nodes[nearest_oct]); */
-	    /* near_dcube = doctets_for_index(dcube.nodes[nearest_oct]); */
-	    /* } */
-	    /* else */
-	    /* { */
-	    // generate subnode proced
-
-	    /* nearest_cube       = octets_t(ccube.tlf, ccube.nrm, ccube.col, int[8](1, 1, 1, 1, 1, 1, 1, 1)); */
-	    /* nearest_cube.tlf.w = ccube.tlf.w / 2.0; */
-
-	    /* nearest_cube.tlf.x += xsft[nearest_oct] * nearest_cube.tlf.w; */
-	    /* nearest_cube.tlf.y -= ysft[nearest_oct] * nearest_cube.tlf.w; */
-	    /* nearest_cube.tlf.z -= zsft[nearest_oct] * nearest_cube.tlf.w; */
-
-	    /* float rnd = -0.05 + random(nearest_cube.tlf.xyz) / 10.0; */
-
-	    /* nearest_cube.col -= nearest_cube.col * rnd; */
-
-	    /* // fill up octets based on nearby octets */
-
-	    /* int pick                 = int(round(random(nearest_cube.tlf.xyz) * 8.0)); */
-	    /* nearest_cube.nodes[pick] = 0; */
-	    /* }; */
-
 	    if (depth == 11)
 	    {
-		/* float visw = nearest_cube.tlf.w / nearest_isp.isp.w; */
-		/* if (visw > maxc_size) */
-		/* { */
-		/*     procgen = true; */
-		/*     /\* minc_size = 0.5; *\/ */
-		/*     nearest_cube.nodes       = int[8](1, 1, 1, 1, 1, 1, 1, 1); */
-		/*     int pick                 = int(round(random(nearest_cube.tlf.xyz) * 7.0)); */
-		/*     nearest_cube.nodes[pick] = 0; */
-		/*     /\* res.isp                  = nearest_isp.isp; *\/ */
-		/*     /\* res.col                  = nearest_cube.col; *\/ */
-		/*     /\* res.nrm                  = nearest_cube.nrm; *\/ */
-		/*     /\* res.tlf                  = nearest_cube.tlf; *\/ */
-		/*     /\* res.col                  = nearest_isp.col; *\/ */
-		/*     /\* res.col = vec4(1.0, 0.0, 0.0, 1.0); *\/ */
-		/*     /\* return res; *\/ */
-		/* } */
-		/* else */
-		/* { */
-
-		res.isp = nearest_isp.isp;
+		res.isp = nearest_isp;
 		res.tlf = ntlf;
 
 		res.ind = scube.nodes[8]; // original index is in the 8th node
@@ -426,9 +373,12 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    res.col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
 		    res.nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
 		}
-		/* res.col = nearest_isp.col; */
+
+		// add sub-detail fuzzyness SWITCHABLE
+		if (nearest_isp.w < 1.0)
+		    res.col.xyz += res.col.xyz * random(res.isp.xyz) * 0.4;
+
 		return res;
-		/* } */
 	    }
 
 	    stck[depth].ispt_len -= 1;
@@ -447,7 +397,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    /* makes sense in case of procedural sub-detail render */
 	    /* if (depth > 12) */
 	    /* { */
-	    /* 	res.isp = nearest_isp.isp; */
+	    /* 	res.isp = nearest_isp; */
 	    /* 	res.tlf = ntlf; */
 	    /* 	res.ind = nearest_cube.nodes[8]; */
 	    /* 	/\* res.col = vec4(1.0, 0.0, 0.0, 1.0); *\/ */
@@ -534,52 +484,48 @@ void main()
 
     vec3  camlight = light - camfp.xyz;
     float camangle = acos(dot(normalize(camlight), normalize(csv)));
-    if (camangle < 0.02)
-    {
-	fragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    else
-    {
-	ctlres res        = cube_trace_line(camfp, csv);
-	vec4   result_col = res.col;
 
-	if (res.ind > 0)
+    ctlres res        = cube_trace_line(camfp, csv);
+    vec4   result_col = res.col;
+
+    if (res.ind > 0)
+    {
+	vec4 result_nrm = res.nrm;
+	result_col      = res.col;
+
+	/* show normals for debug SWITCHABLE */
+	/* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
+
+	/* shadows, test against light SWITCHABLE */
+	vec3 lvec = res.isp.xyz - light;
+
+	ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
+	if (lcres.isp.w > 0.0)
 	{
-	    vec4 result_nrm = res.nrm;
-	    result_col      = res.col;
-
-	    /* show normals for debug */
-	    /* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
-
-	    /* test against light */
-	    vec3 lvec = res.isp.xyz - light;
-
-	    ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
-	    if (lcres.isp.w > 0.0)
+	    // checking isp is needed in case of bigger cube sizes where light can touch the top
+	    if (/* res.isp.x != lcres.isp.x && */
+		/* res.isp.y != lcres.isp.y && */
+		/* res.isp.z != lcres.isp.z && */
+		res.tlf.x != lcres.tlf.x &&
+		res.tlf.y != lcres.tlf.y &&
+		res.tlf.z != lcres.tlf.z)
 	    {
-		if (res.isp.x != lcres.isp.x &&
-		    res.isp.y != lcres.isp.y &&
-		    res.isp.z != lcres.isp.z &&
-		    res.tlf.x != lcres.tlf.x &&
-		    res.tlf.y != lcres.tlf.y &&
-		    res.tlf.z != lcres.tlf.z)
-		/* if ((abs(res.isp.x - lcres.isp.x) < 0.01) && */
-		/* 	(abs(res.isp.y - lcres.isp.y) < 0.01) && */
-		/* 	(abs(res.isp.z - lcres.isp.z) < 0.01)) */
-		{
-		    result_col = vec4(result_col.xyz * 0.2, result_col.w);
-		}
-		else
-		{
-		    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
-		    result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w);
-		}
+		result_col = vec4(result_col.xyz * 0.2, result_col.w);
+	    }
+	    else
+	    {
+		float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
+		result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w);
 	    }
 	}
-
-	fragColor = result_col;
-	// dark yellowish look
-	fragColor *= 0.8;
-	fragColor.z *= 0.4;
     }
+
+    fragColor = result_col;
+
+    // dark yellowish look SWITCHABLE
+
+    fragColor.xyz *= 0.8;
+    fragColor.z *= 0.4;
+    if (camangle < 0.02)
+	fragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
