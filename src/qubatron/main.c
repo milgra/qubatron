@@ -51,7 +51,7 @@ v3_t directionX  = {-1.0, 0.0, 0.0};
 
 float lighta = 0.0;
 
-uint8_t quality = 10;
+uint8_t quality = 6;
 
 uint32_t cnt = 0;
 uint32_t ind = 0;
@@ -134,30 +134,32 @@ void main_init()
 	    (v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]},
 	    &leaf);
 
-	if (leaf)
-	{
-	    model_add_point(
-		&dynamic_model,
-		(v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]},
-		(v3_t){temp_model.normals[index], temp_model.normals[index + 1], temp_model.normals[index + 2]},
-		(v4_t){temp_model.colors[index], temp_model.colors[index + 1], temp_model.colors[index + 2], temp_model.colors[index + 3]});
-	}
+	/* if (leaf) */
+	/* { */
+	/*     model_add_point( */
+	/* 	&dynamic_model, */
+	/* 	(v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]}, */
+	/* 	(v3_t){temp_model.normals[index], temp_model.normals[index + 1], temp_model.normals[index + 2]}, */
+	/* 	(v4_t){temp_model.colors[index], temp_model.colors[index + 1], temp_model.colors[index + 2], temp_model.colors[index + 3]}); */
+	/* } */
     }
 
-    model_delete(&temp_model);
+    dynamic_model = temp_model;
 
-    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    /* model_delete(&temp_model); */
 
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
-    {
-	bool leaf;
-	octree_insert_fast(
-	    &dynamic_octree,
-	    0,
-	    index / 4,
-	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
-	    &leaf);
-    }
+    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
+
+    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
+    /* { */
+    /* 	bool leaf; */
+    /* 	octree_insert_fast( */
+    /* 	    &dynamic_octree, */
+    /* 	    0, */
+    /* 	    index / 4, */
+    /* 	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]}, */
+    /* 	    &leaf); */
+    /* } */
 
     mt_log_debug("point count %lu leaf count %lu compacted %f", dynamic_model.point_count, dynamic_octree.leaves, (float) dynamic_octree.leaves / (float) dynamic_model.point_count);
     mt_log_debug("buffer size is %lu bytes", dynamic_octree.size * sizeof(octets_t));

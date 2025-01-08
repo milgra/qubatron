@@ -59,7 +59,6 @@ struct ctlres
     vec4 nrm;
     vec4 tlf;
     int  ind;
-    int  btype;
 };
 
 struct ispt_t // intersection struct
@@ -344,34 +343,14 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    ispt_t nearest_isp = stck[depth].ispts[nearest_ind];
 	    int    nearest_oct = stck[depth].octs[nearest_ind];
 
-	    int nearest_btype = 0;
+	    octets_t near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
+	    octets_t near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
 
-	    if (scube.nodes[nearest_oct] > 0 && dcube.nodes[nearest_oct] > 0)
-		nearest_btype = 0;
-	    else if (scube.nodes[nearest_oct] > 0)
-		nearest_btype = 1;
-	    else if (dcube.nodes[nearest_oct] > 0)
-		nearest_btype = 2;
-
-	    octets_t near_scube;
-	    octets_t near_dcube;
-
-	    near_dcube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
-	    near_scube = octets_t(int[12](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1));
-
-	    if (nearest_btype == 0)
-	    {
+	    if (scube.nodes[nearest_oct] > 0)
 		near_scube = soctets_for_index(scube.nodes[nearest_oct]);
+
+	    if (dcube.nodes[nearest_oct] > 0)
 		near_dcube = doctets_for_index(dcube.nodes[nearest_oct]);
-	    }
-	    else if (nearest_btype == 1)
-	    {
-		near_scube = soctets_for_index(scube.nodes[nearest_oct]);
-	    }
-	    else if (nearest_btype == 2)
-	    {
-		near_dcube = doctets_for_index(dcube.nodes[nearest_oct]);
-	    }
 
 	    vec4 ntlf = vec4(
 		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
@@ -425,15 +404,27 @@ cube_trace_line(vec3 pos, vec3 dir)
 		/* } */
 		/* else */
 		/* { */
-		res.isp   = nearest_isp.isp;
-		res.tlf   = ntlf;
-		res.ind   = scube.nodes[8]; // original index is in the 8th node
-		res.btype = 0;
 
-		if (nearest_btype == 2)
+		res.isp = nearest_isp.isp;
+		res.tlf = ntlf;
+
+		res.ind = scube.nodes[8]; // original index is in the 8th node
+
+		int cy = res.ind / 8192;
+		int cx = res.ind - cy * 8192;
+
+		res.col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
+		res.nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
+
+		if (dcube.nodes[nearest_oct] > 0)
 		{
-		    res.ind   = dcube.nodes[8]; // original index is in the 8th node
-		    res.btype = 1;
+		    res.ind = dcube.nodes[8]; // original index is in the 8th node
+
+		    cy = res.ind / 8192;
+		    cx = res.ind - cy * 8192;
+
+		    res.col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
+		    res.nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
 		}
 		/* res.col = nearest_isp.col; */
 		return res;
@@ -529,38 +520,15 @@ void main()
 {
     vec3 ctp = vec3(coord.xy, 500.0 - dimensions.y / 2.0);                // camera target point
     vec3 csv = ctp - vec3(dimensions.x / 2.0, dimensions.y / 2.0, 500.0); // current screen vector
-    /* vec3 csv = ctp - vec3(300.0, 200.0, 500.0);                           // current screen vector */
 
     vec4 qz = quat_from_axis_angle(vec3(0.0, 1.0, 0.0), -angle_in.x); // rotation quaternion
     vec3 vx = qrot(qz, vec3(-1.0, 0.0, 0.0));
     vec4 qx = quat_from_axis_angle(vx, -angle_in.y);
 
-    csv = qrot(qz, csv);
-    csv = qrot(qx, csv);
-
     // rotate and transform current screen vector based on camera vector
 
-    /* x' = x cos θ − y sin θ */
-    /* y' = x sin θ + y cos θ */
-
-    /* float rad = -0.6; */
-    /* float nx  = csv.x * cos(rad) - csv.z * sin(rad); */
-    /* float nz  = csv.x * sin(rad) + csv.z * cos(rad); */
-
-    /* csv.x = nx; */
-    /* csv.z = nz; */
-
-    /* cam_fp.z -= 300.0; */
-
-    // octets_t cb0 = cube(vec3(300.0, 300.0, 0.0), vec3(600.0, 600.0, -300.0), 300.0, 8);
-    /* octets_t cb0 = g_octree_s[0]; */
-
-    /* vec4 col = vec4(0.0, 0.0, 0.0, 0.0); */
-    /* for (int i = 0; i < 10; i++) */
-    /* { */
-    /* 	vec4 ncol = octets_trace_line_sep(g_octree_s[i], cam_fp, csv); */
-    /* 	col             = col + ncol; */
-    /* } */
+    csv = qrot(qz, csv);
+    csv = qrot(qx, csv);
 
     // check angle between light-fp and cam vec, if small, check collosion
 
@@ -577,18 +545,8 @@ void main()
 
 	if (res.ind > 0)
 	{
-	    int  cy = res.ind / 8192;
-	    int  cx = res.ind - cy * 8192;
-	    vec4 result_nrm;
-
-	    result_col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
-	    result_nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
-
-	    if (res.btype == 1)
-	    {
-		result_col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
-		result_nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
-	    }
+	    vec4 result_nrm = res.nrm;
+	    result_col      = res.col;
 
 	    /* show normals for debug */
 	    /* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
@@ -596,27 +554,27 @@ void main()
 	    /* test against light */
 	    vec3 lvec = res.isp.xyz - light;
 
-	    /* ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light */
-	    /* if (lcres.isp.w > 0.0) */
-	    /* { */
-	    /* 	if (res.isp.x != lcres.isp.x && */
-	    /* 	    res.isp.y != lcres.isp.y && */
-	    /* 	    res.isp.z != lcres.isp.z && */
-	    /* 	    res.tlf.x != lcres.tlf.x && */
-	    /* 	    res.tlf.y != lcres.tlf.y && */
-	    /* 	    res.tlf.z != lcres.tlf.z) */
-	    /* 	/\* if ((abs(res.isp.x - lcres.isp.x) < 0.01) && *\/ */
-	    /* 	/\* 	(abs(res.isp.y - lcres.isp.y) < 0.01) && *\/ */
-	    /* 	/\* 	(abs(res.isp.z - lcres.isp.z) < 0.01)) *\/ */
-	    /* 	{ */
-	    /* 	    result_col = vec4(result_col.xyz * 0.2, result_col.w); */
-	    /* 	} */
-	    /* 	else */
-	    /* 	{ */
-	    /* 	    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0); */
-	    /* 	    result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w); */
-	    /* 	} */
-	    /* } */
+	    ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
+	    if (lcres.isp.w > 0.0)
+	    {
+		if (res.isp.x != lcres.isp.x &&
+		    res.isp.y != lcres.isp.y &&
+		    res.isp.z != lcres.isp.z &&
+		    res.tlf.x != lcres.tlf.x &&
+		    res.tlf.y != lcres.tlf.y &&
+		    res.tlf.z != lcres.tlf.z)
+		/* if ((abs(res.isp.x - lcres.isp.x) < 0.01) && */
+		/* 	(abs(res.isp.y - lcres.isp.y) < 0.01) && */
+		/* 	(abs(res.isp.z - lcres.isp.z) < 0.01)) */
+		{
+		    result_col = vec4(result_col.xyz * 0.2, result_col.w);
+		}
+		else
+		{
+		    float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
+		    result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w);
+		}
+	    }
 	}
 
 	fragColor = result_col;
