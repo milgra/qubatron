@@ -446,9 +446,11 @@ bool main_loop(double time, void* userdata)
 
     renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
+    mt_time(NULL);
     renderconn_update(&rc, width, height, position, angle, lighta, quality);
 
     SDL_GL_SwapWindow(window);
+    mt_time("Render");
 
     frames++;
 

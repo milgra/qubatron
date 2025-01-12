@@ -62,8 +62,8 @@ struct stck_t
     bool checked;  // stack level is checked for intersection
     int  octs[4];  // octets for ispts
     vec4 ispts[4]; // is point for stack level cube
-    int  ispt_len; // ispt length for is points
-    int  ispt_ind;
+    int  ispt_len; // ispt arr length
+    int  ispt_ind; // ispt arr index
 };
 
 // x - x coordinate of plane, lp - line pointm lv - line vector
@@ -380,16 +380,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[depth].checked  = false;
 	    stck[depth].scube    = near_scube;
 	    stck[depth].dcube    = near_dcube;
-
-	    /* makes sense in case of procedural sub-detail render */
-	    /* if (depth > 12) */
-	    /* { */
-	    /* 	res.isp = nearest_isp; */
-	    /* 	res.tlf = ntlf; */
-	    /* 	res.ind = nearest_cube[8]; */
-	    /* 	/\* res.col = vec4(1.0, 0.0, 0.0, 1.0); *\/ */
-	    /* 	return res; */
-	    /* } */
 	}
 	else
 	{
