@@ -196,42 +196,42 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    // front side
 	    act = is_cube_zplane(tlf.z, pos, dir);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
+	    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
 		hitp[hitc++] = act;
 
 	    // back side
 	    act = is_cube_zplane(brb.z, pos, dir);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
+	    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
 		hitp[hitc++] = act;
 
 	    // left side
 	    act = is_cube_xplane(tlf.x, pos, dir);
-	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
+	    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
 		hitp[hitc++] = act;
 
 	    // right side
 	    act = is_cube_xplane(brb.x, pos, dir);
-	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
+	    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
 		hitp[hitc++] = act;
 
 	    // top side
 	    act = is_cube_yplane(tlf.y, pos, dir);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
+	    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
 		hitp[hitc++] = act;
 
 	    // bottom side
 	    act = is_cube_yplane(brb.y, pos, dir);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
+	    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
 		hitp[hitc++] = act;
 
 	    // there is intersection
-	    if (hitc > 0)
+	    if (hitc > 0 && (hitp[0].w > 0.0 || hitp[1].w > 0.0))
 	    {
-		// inside an octet, set focus point as first isp
-		if (hitc == 1) hitp[0] = vec4(pos, 0.0);
-
 		// order side hitpoints if there are two intersections
-		if (hitc > 1 && hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
+		if (hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
+
+		// inside an octet, set focus point as first isp
+		if (hitp[0].w < 0.0) hitp[0] = vec4(pos, 0.0);
 
 		// we can ignore the second isp from now
 		hitc = 1;

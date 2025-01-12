@@ -22,8 +22,10 @@
     #include <emscripten/html5.h>
 #endif
 
-char  drag  = 0;
-char  quit  = 0;
+char drag    = 0;
+char quit    = 0;
+char octtest = 0;
+
 float scale = 1.0;
 
 int32_t width  = 800;
@@ -82,21 +84,28 @@ void main_init()
 
     // opengl init
 
-    /* glEnable(GL_DEBUG_OUTPUT); */
-    /* glDebugMessageCallback(MessageCallback, 0); */
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(MessageCallback, 0);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
     cc = skeleconn_init();
     rc = renderconn_init();
 
+    dynamic_model = model_init();
+    static_model  = model_init();
+
+    if (octtest == 1)
+    {
+    }
+    else
+    {
+    }
+
     char plypath[PATH_MAX];
 
     snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
-
-    model_t static_model = model_init();
     model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
-
     static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
     for (int index = 0; index < static_model.point_count * 4; index += 4)
     {
@@ -117,34 +126,18 @@ void main_init()
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
     snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path);
-
-    dynamic_model = model_init();
-
-    model_t temp_model = model_init();
-    model_load_ply(&temp_model, plypath, (v3_t){0.0, 0.0, 100.0});
-
+    model_load_ply(&dynamic_model, plypath, (v3_t){0.0, 0.0, 100.0});
     dynamic_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < temp_model.point_count * 4; index += 4)
+    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
     {
 	bool leaf;
 	octree_insert_fast(
 	    &dynamic_octree,
 	    0,
 	    index / 4,
-	    (v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]},
+	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
 	    &leaf);
-
-	/* if (leaf) */
-	/* { */
-	/*     model_add_point( */
-	/* 	&dynamic_model, */
-	/* 	(v3_t){temp_model.vertexes[index], temp_model.vertexes[index + 1], temp_model.vertexes[index + 2]}, */
-	/* 	(v3_t){temp_model.normals[index], temp_model.normals[index + 1], temp_model.normals[index + 2]}, */
-	/* 	(v4_t){temp_model.colors[index], temp_model.colors[index + 1], temp_model.colors[index + 2], temp_model.colors[index + 3]}); */
-	/* } */
     }
-
-    dynamic_model = temp_model;
 
     /* model_delete(&temp_model); */
 
@@ -470,6 +463,7 @@ int main(int argc, char* argv[])
 	"\n"
 	"  -h, --help                          Show help message and quit.\n"
 	"  -v                                  Increase verbosity of messages, defaults to errors and warnings only.\n"
+	"  -t, --octtest                       Start with octree test scene\n"
 	"\n";
 
     const struct option long_options[] = {
@@ -485,6 +479,7 @@ int main(int argc, char* argv[])
 	{
 	    case '?': printf("parsing option %c value: %s\n", option, optarg); break;
 	    case 'v': mt_log_inc_verbosity(); break;
+	    case 't': octtest = 1; break;
 	    default: fprintf(stderr, "%s", usage); return EXIT_FAILURE;
 	}
     }

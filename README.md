@@ -83,6 +83,7 @@ Todo :
 
 - dx dy ratio square ispnel
 - sajat model konverter, qubatron model format, y0.0 vertical slice x012 row z012 point, flat structure
+- resuse outer ispts for next check
 - shotgun wall/figure deformation
 - ik skeleton/mass point engine
 
