@@ -77,8 +77,8 @@ renderconn_t renderconn_init()
 	fsh,
 	1,
 	((const char*[]){"position"}),
-	12,
-	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d"}));
+	13,
+	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d", "octtest"}));
 
     free(vsh);
     free(fsh);
@@ -194,6 +194,7 @@ renderconn_t renderconn_init()
     if (status != GL_FRAMEBUFFER_COMPLETE) printf("Failed to create framebuffer at ogl_framebuffer_with_texture ");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
     return rc;
@@ -201,6 +202,7 @@ renderconn_t renderconn_init()
 
 void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality)
 {
+
     // first render scene to texture
 
     glUseProgram(rc->sha.name);
@@ -338,7 +340,9 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
     int points = size / 16;
-    int height = floor(points / 8192);
+    int height = 1 + floor(points / 8192);
+
+    if (height == 8192) mt_log_error("reached maximum texture size");
 
     glUseProgram(rc->sha.name);
 
@@ -358,12 +362,19 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
 	glUniform1i(rc->sha.uni_loc[8], 9);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
     }
+
+    mt_log_debug("uploaded normals dyn %i", dynamic);
+    GLfloat* arr = data;
+    for (int i = 0; i < 12; i += 4)
+	mt_log_debug("%f %f %f %f", arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
 }
 
 void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
     int points = size / 16;
-    int height = floor(points / 8192);
+    int height = 1 + floor(points / 8192);
+
+    if (height == 8192) mt_log_error("reached maximum texture size");
 
     glUseProgram(rc->sha.name);
 
@@ -383,12 +394,19 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
 	glUniform1i(rc->sha.uni_loc[6], 7);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
     }
+
+    mt_log_debug("uploaded colors dyn %i", dynamic);
+    GLfloat* arr = data;
+    for (int i = 0; i < 12; i += 4)
+	mt_log_debug("%f %f %f %f", arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
 }
 
 void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
     int points = size / (4 * sizeof(GLint));
-    int height = floor(points / 8192);
+    int height = 1 + floor(points / 8192);
+
+    if (height == 8192) mt_log_error("reached maximum texture size");
 
     glUseProgram(rc->sha.name);
 
@@ -407,6 +425,23 @@ void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dyn
 
 	glUniform1i(rc->sha.uni_loc[10], 11);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, height, 0, GL_RGBA_INTEGER, GL_INT, data);
+    }
+
+    mt_log_debug("uploaded octree dyn %i, size %lu points %i width %i height %i", size, points, dynamic, 8192, height);
+    GLint* arr = data;
+    for (int i = 0; i < 12; i += 12)
+    {
+	printf(
+	    "nodes : %i | %i | %i | %i | %i | %i | %i | %i index %i\n",
+	    arr[i + 0],
+	    arr[i + 1],
+	    arr[i + 2],
+	    arr[i + 3],
+	    arr[i + 4],
+	    arr[i + 5],
+	    arr[i + 6],
+	    arr[i + 7],
+	    arr[i + 8]);
     }
 }
 

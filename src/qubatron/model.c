@@ -165,7 +165,12 @@ void model_load_ply(model_t* model, char* path, v3_t offset)
     if (!ply_read(ply)) mt_log_debug("PLY read error");
     ply_close(ply);
 
-    mt_log_debug("minpx %f maxpx %f minpy %f maxpy %f minpz %f maxpz %f mindx %f mindy %f mindz %f\n", minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz);
+    mt_log_debug(
+	"minpx %f maxpx\n %f minpy %f maxpy \n%f minpz %f maxpz %f mindx %f mindy %f mindz %f\n",
+	minpx, maxpx,
+	minpy, maxpy,
+	minpz, maxpz,
+	mindx, mindy, mindz);
 }
 
 void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color)

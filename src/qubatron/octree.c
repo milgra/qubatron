@@ -46,7 +46,7 @@ octree_t octree_create(size_t size, v4_t base)
 {
     octree_t arr;
     arr.size     = size;
-    arr.octs     = mt_memory_alloc(sizeof(octets_t) * arr.size, NULL, NULL);
+    arr.octs     = mt_memory_calloc(sizeof(octets_t) * arr.size, NULL, NULL);
     arr.len      = 0;
     arr.leaves   = 0;
     arr.basecube = base;
@@ -92,7 +92,7 @@ void octree_insert_fast(octree_t* arr, size_t arrind, size_t orind, v3_t pnt, bo
 	if (yi == 0) octet += 2;
 	if (zi == 1) octet += 4;
 
-	/* printf("level %i size %f octet %i %i %i %i\n", level, size, octet, xi, yi, zi); */
+	/* printf("pnt %f %f %f level %i size %f octet %i\n", pnt.x, pnt.y, pnt.z, level, size, octet); */
 
 	if (arr->octs[arrind].oct[octet] == 0)
 	{

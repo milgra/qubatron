@@ -1,4 +1,5 @@
 #version 300 es
+#define OCTTEST 1
 
 precision highp float;
 
@@ -10,6 +11,10 @@ uniform vec3 angle_in;
 uniform vec3 light;
 uniform vec4 basecube;
 uniform vec2 dimensions;
+
+// uniform lowp int levels;
+// from uniform!
+int levels = 4;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
@@ -153,25 +158,33 @@ int[9] doctets_for_index(int i)
 ctlres
 cube_trace_line(vec3 pos, vec3 dir)
 {
-    int depth = 0; // current octree deptu
+    int depth = 0;
 
     int scb[9] = soctets_for_index(0);
     int dcb[9] = doctets_for_index(0);
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
-    res.col = vec4(0.0, 0.5, 0.0, 0.1);
+    res.col = vec4(0.0, 0.2, 0.0, 0.0);
     res.ind = 0;
 
     stck_t stck[20];
     stck[0].scube    = scb;
-    stck[0].dcube    = dcb;
+    stck[0].dcube    = nulloct;
     stck[0].checked  = false;
     stck[0].ispt_len = 0;
     stck[0].ispt_ind = 0;
     stck[0].tlf      = basecube;
 
+    if (scb[3] > 1)
+    {
+	res.col = vec4(1.0, 0.0, 0.0, 1.0);
+	return res;
+    }
+
     int btypestate = 0;
+
+    // check basecube sides here, only check divison planes inside the loop
 
     while (true)
     {
@@ -191,8 +204,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    vec4 act;
 	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
-
-	    // NOTE : if-ing out or ordering is pairs are slower than this
 
 	    // front side
 	    act = is_cube_zplane(tlf.z, pos, dir);
@@ -314,9 +325,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	if (stck[depth].ispt_len > 0)
 	{
-	    // show subdivisons
-	    /* res.cl.w += 0.1; */
-	    /* res.cl += nearest_isp.col * 0.1; */
+#ifdef OCTTEST
+	    res.col.a += 0.2;
+#endif
 
 	    int  nearest_ind = stck[depth].ispt_ind++;
 	    vec4 nearest_isp = stck[depth].ispts[nearest_ind];
@@ -337,11 +348,10 @@ cube_trace_line(vec3 pos, vec3 dir)
 		tlf.z -= zsft[nearest_oct] * tlf.w / 2.0,
 		tlf.w / 2.0);
 
-	    if (depth == 11)
+	    if (depth == levels)
 	    {
 		res.isp = nearest_isp;
 		res.tlf = ntlf;
-
 		res.ind = scube[8]; // original index is in the 8th node
 
 		int cy = res.ind / 8192;
@@ -389,7 +399,8 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    depth -= 1;
 
-	    if (depth < 0) return res;
+	    if (depth < 0)
+		return res;
 	}
     }
 
@@ -465,6 +476,7 @@ void main()
     ctlres res        = cube_trace_line(camfp, csv);
     vec4   result_col = res.col;
 
+#ifndef OCTTEST
     if (res.ind > 0)
     {
 	vec4 result_nrm = res.nrm;
@@ -495,14 +507,15 @@ void main()
 		result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w);
 	    }
 	}
+
+	// dark yellowish look SWITCHABLE
+
+	result_col.xyz *= 0.8;
+	result_col.z *= 0.4;
+	if (camangle < 0.02)
+	    result_col = vec4(1.0, 1.0, 1.0, 1.0);
     }
+#endif
 
     fragColor = result_col;
-
-    // dark yellowish look SWITCHABLE
-
-    fragColor.xyz *= 0.8;
-    fragColor.z *= 0.4;
-    if (camangle < 0.02)
-	fragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }

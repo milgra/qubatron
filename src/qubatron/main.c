@@ -84,10 +84,8 @@ void main_init()
 
     // opengl init
 
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
+    /* glEnable(GL_DEBUG_OUTPUT); */
+    /* glDebugMessageCallback(MessageCallback, 0); */
 
     cc = skeleconn_init();
     rc = renderconn_init();
@@ -97,165 +95,156 @@ void main_init()
 
     if (octtest == 1)
     {
+	int point_count = 4;
+
+	GLfloat points[4 * 8192] = {
+	    10.0, 690.0, -10.0, 0.0,
+	    10.0, 340.0, -10.0, 0.0,
+	    10.0, 340.0, -690.0, 0.0,
+	    10.0, 10.0, -10.0, 0.0,
+	    690.0, 10.0, -690.0, 0.0};
+
+	GLfloat normals[4 * 8192] = {
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0};
+
+	GLfloat colors[4 * 8192] = {
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0,
+	    1.0, 1.0, 1.0, 1.0};
+
+	// !!! it works only with x 0 first
+	static_octree = octree_create(8192 * 12 * 4, (v4_t){0.0, 700.0, 0.0, 700.0});
+
+	for (int index = 0; index < point_count * 4; index += 4)
+	{
+	    bool leaf;
+	    octree_insert_fast(
+		&static_octree,
+		0,
+		index / 4,
+		(v3_t){points[index], points[index + 1], points[index + 2]},
+		&leaf);
+	}
+
+	for (int i = 0; i < static_octree.len; i++)
+	{
+	    printf(
+		"AFTER nodes ind %i : %i | %i | %i | %i | %i | %i | %i | %i orind %i\n",
+		i,
+		static_octree.octs[i].oct[0],
+		static_octree.octs[i].oct[1],
+		static_octree.octs[i].oct[2],
+		static_octree.octs[i].oct[3],
+		static_octree.octs[i].oct[4],
+		static_octree.octs[i].oct[5],
+		static_octree.octs[i].oct[6],
+		static_octree.octs[i].oct[7],
+		static_octree.octs[i].oct[8]);
+	}
+
+	renderconn_alloc_normals(&rc, normals, point_count * 4 * sizeof(GLfloat), false);
+	renderconn_alloc_colors(&rc, colors, point_count * 4 * sizeof(GLfloat), false);
+	renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
+
+	// init dynamic model
+
+	dynamic_octree = octree_create(8192 * 12 * 4, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+	renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
+
+	// set rendering mode to octtest
+	octtest = 1;
+
+	quality = 10;
+
+	// set camera position to see test cube
+	position = (v3_t){650.0, 700.0, 1000.0};
+
+	/* for (int i = 0; i < 20000; i++) */
+	/* { */
+	/* 	float x = 100.0 + (float) (rand() % 700); */
+	/* 	float y = 100.0 + (float) (rand() % 700); */
+	/* 	float z = -100.0 - (float) (rand() % 700); */
+
+	/* 	uint32_t c; */
+	/* 	c = rand() & 0xff; */
+	/* 	c |= (rand() & 0xff) << 8; */
+	/* 	c |= (rand() & 0xff) << 16; */
+	/* 	c |= (rand() & 0xff) << 24; */
+
+	/* 	cube_insert(basecube, (v3_t){x, y, z}, c); */
+	/* } */
+
+	/* int maxcol = 10; */
+	/* int maxrow = 10; */
+
+	/* for (int c = 0; c < maxcol; c++) */
+	/* { */
+	/* 	for (int r = 0; r < maxrow; r++) */
+	/* 	{ */
+	/* 	    float x = 100.0 + (float) (5 * c); */
+	/* 	    float y = 100.0 + (float) (5 * r); */
+	/* 	    float z = -110.0; */
+	/* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
+	/* 	    z = -790.0; */
+	/* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
+	/* 	} */
+	/* } */
     }
     else
     {
+	char plypath[PATH_MAX];
+	snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
+	model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
+	static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+	for (int index = 0; index < static_model.point_count * 4; index += 4)
+	{
+	    bool leaf;
+	    octree_insert_fast(
+		&static_octree,
+		0,
+		index / 4,
+		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]},
+		&leaf);
+	}
+
+	// upload static model
+
+	renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
+	renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
+	renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
+
+	snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path);
+	model_load_ply(&dynamic_model, plypath, (v3_t){0.0, 0.0, 100.0});
+	dynamic_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+	for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+	{
+	    bool leaf;
+	    octree_insert_fast(
+		&dynamic_octree,
+		0,
+		index / 4,
+		(v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
+		&leaf);
+	}
+
+	// uplaod dynamic model
+
+	renderconn_alloc_normals(&rc, dynamic_model.normals, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
+	renderconn_alloc_colors(&rc, dynamic_model.colors, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
+	renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
+
+	// upload actor to skeleton modifier
+
+	skeleconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 4 * sizeof(GLfloat));
+	skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
+	skeleconn_update(&cc, lighta, dynamic_model.point_count);
     }
-
-    char plypath[PATH_MAX];
-
-    snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
-    model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
-    static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < static_model.point_count * 4; index += 4)
-    {
-	bool leaf;
-	octree_insert_fast(
-	    &static_octree,
-	    0,
-	    index / 4,
-	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]},
-	    &leaf);
-    }
-
-    mt_log_debug("point count %lu leaf count %lu compacted %f", static_model.point_count, static_octree.leaves, (float) static_octree.leaves / (float) static_model.point_count);
-    mt_log_debug("buffer size is %lu bytes", static_octree.size * sizeof(octets_t));
-
-    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
-
-    snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path);
-    model_load_ply(&dynamic_model, plypath, (v3_t){0.0, 0.0, 100.0});
-    dynamic_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
-    {
-	bool leaf;
-	octree_insert_fast(
-	    &dynamic_octree,
-	    0,
-	    index / 4,
-	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
-	    &leaf);
-    }
-
-    /* model_delete(&temp_model); */
-
-    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
-
-    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
-    /* { */
-    /* 	bool leaf; */
-    /* 	octree_insert_fast( */
-    /* 	    &dynamic_octree, */
-    /* 	    0, */
-    /* 	    index / 4, */
-    /* 	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]}, */
-    /* 	    &leaf); */
-    /* } */
-
-    mt_log_debug("point count %lu leaf count %lu compacted %f", dynamic_model.point_count, dynamic_octree.leaves, (float) dynamic_octree.leaves / (float) dynamic_model.point_count);
-    mt_log_debug("buffer size is %lu bytes", dynamic_octree.size * sizeof(octets_t));
-
-    renderconn_alloc_normals(&rc, dynamic_model.normals, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
-    renderconn_alloc_colors(&rc, dynamic_model.colors, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
-    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
-
-    skeleconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 4 * sizeof(GLfloat));
-    skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
-    skeleconn_update(&cc, lighta, dynamic_model.point_count);
-
-    // add modified point coords by compute shader
-
-    /* octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0}); */
-
-    /* for (int index = 0; index < dynamic_model.point_count * 4; index += 4) */
-    /* { */
-    /* 	bool leaf = false; */
-    /* 	octree_insert_fast_octs( */
-    /* 	    &dynamic_octree, */
-    /* 	    0, */
-    /* 	    index / 4, */
-    /* 	    &cc.octqueue[index * 3], // 48 bytes stride 12 int */
-    /* 	    &leaf); */
-    /* } */
-
-    /* renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true); */
-
-    /* for (int i = 0; i < 100; i++) */
-    /* { */
-    /* 	printf( */
-    /* 	    "%i orind %i nodes : %i | %i | %i | %i | %i | %i | %i | %i\n", */
-    /* 	    i, */
-    /* 	    cubearr.octs[i].ind, */
-    /* 	    cubearr.octs[i].oct[0], */
-    /* 	    cubearr.octs[i].oct[1], */
-    /* 	    cubearr.octs[i].oct[2], */
-    /* 	    cubearr.octs[i].oct[3], */
-    /* 	    cubearr.octs[i].oct[4], */
-    /* 	    cubearr.octs[i].oct[5], */
-    /* 	    cubearr.octs[i].oct[6], */
-    /* 	    cubearr.octs[i].oct[7]); */
-    /* } */
-
-    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo); */
-    /* glBufferData(GL_SHADER_STORAGE_BUFFER, cubearr.len * sizeof(octets_t), cubearr.octs, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
-    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                                              // unbind */
-
-    /* cube_insert(basecube, (v3_t){110.0, 790.0, -110.0}, 0xFFFFFFFF); */
-    /* cube_insert(basecube, (v3_t){110.0, 440.0, -110.0}, 0xFFFFFFFF); */
-    /* cube_insert(basecube, (v3_t){110.0, 440.0, -790.0}, 0xFFFFFFFF); */
-    /* cube_insert(basecube, (v3_t){110.0, 110.0, -110.0}, 0xFFFFFFFF); */
-    /* cube_insert(basecube, (v3_t){790.0, 110.0, -790.0}, 0xFFFFFFFF); */
-
-    /* for (int i = 0; i < 20000; i++) */
-    /* { */
-    /* 	float x = 100.0 + (float) (rand() % 700); */
-    /* 	float y = 100.0 + (float) (rand() % 700); */
-    /* 	float z = -100.0 - (float) (rand() % 700); */
-
-    /* 	uint32_t c; */
-    /* 	c = rand() & 0xff; */
-    /* 	c |= (rand() & 0xff) << 8; */
-    /* 	c |= (rand() & 0xff) << 16; */
-    /* 	c |= (rand() & 0xff) << 24; */
-
-    /* 	cube_insert(basecube, (v3_t){x, y, z}, c); */
-    /* } */
-
-    /* int maxcol = 10; */
-    /* int maxrow = 10; */
-
-    /* for (int c = 0; c < maxcol; c++) */
-    /* { */
-    /* 	for (int r = 0; r < maxrow; r++) */
-    /* 	{ */
-    /* 	    float x = 100.0 + (float) (5 * c); */
-    /* 	    float y = 100.0 + (float) (5 * r); */
-    /* 	    float z = -110.0; */
-    /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
-    /* 	    z = -790.0; */
-    /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
-    /* 	} */
-    /* } */
-
-    /* for (int i = 0; i < 100; i++) */
-    /* { */
-    /* 	GLfloat x = (float) (rand() % 800); */
-    /* 	GLfloat y = (float) (rand() % 600); */
-    /* 	GLfloat z = -200.0 + (float) (rand() % 500); */
-    /* 	GLfloat s = (float) (10 + rand() % 90); */
-    /* 	/\* glocts[0] = (struct octets_t){{300.0, 300.0, 0.0}, {600.0, 600.0, -300.0}, 300.0, 8}; *\/ */
-    /* 	/\* glocts[1] = (struct octets_t){{700.0, 300.0, 0.0}, {600.0, 600.0, -300.0}, 300.0, 8}; *\/ */
-    /* 	glocts[i] = (struct octets_t){{x, y, -z, s}}; */
-    /* } */
-
-    /* glocts[0] = (struct octets_t){{100.0, 100.0, -200.0, 100.0}}; */
-    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, cub_ssbo); */
-    /* glBufferData(GL_SHADER_STORAGE_BUFFER, buffsize, glocts, GL_DYNAMIC_COPY); // sizeof(data) only works for statically sized C/C++ arrays. */
-    /* glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);                                  // unbind */
-
-    // perspective
 
     mt_log_debug("main init");
 }
@@ -417,33 +406,36 @@ bool main_loop(double time, void* userdata)
     {
     }
 
-    lighta += 0.05;
-    if (lighta > 6.28) lighta = 0.0;
-
-    skeleconn_update(&cc, lighta, dynamic_model.point_count);
-
-    /* // add modified point coords by compute shader */
-
-    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+    if (octtest == 0)
     {
-	bool leaf = false;
-	octree_insert_fast_octs(
-	    &dynamic_octree,
-	    0,
-	    index / 4,
-	    &cc.octqueue[index * 3], // 48 bytes stride 12 int
-	    &leaf);
+	lighta += 0.05;
+	if (lighta > 6.28) lighta = 0.0;
+
+	skeleconn_update(&cc, lighta, dynamic_model.point_count);
+
+	/* // add modified point coords by compute shader */
+
+	octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+
+	for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+	{
+	    bool leaf = false;
+	    octree_insert_fast_octs(
+		&dynamic_octree,
+		0,
+		index / 4,
+		&cc.octqueue[index * 3], // 48 bytes stride 12 int
+		&leaf);
+	}
+
+	renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
     }
 
-    renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
-
-    mt_time(NULL);
+    /* mt_time(NULL); */
     renderconn_update(&rc, width, height, position, angle, lighta, quality);
 
     SDL_GL_SwapWindow(window);
-    mt_time("Render");
+    /* mt_time("Render"); */
 
     frames++;
 
@@ -473,7 +465,7 @@ int main(int argc, char* argv[])
     int option       = 0;
     int option_index = 0;
 
-    while ((option = getopt_long(argc, argv, "vh", long_options, &option_index)) != -1)
+    while ((option = getopt_long(argc, argv, "vht", long_options, &option_index)) != -1)
     {
 	switch (option)
 	{
