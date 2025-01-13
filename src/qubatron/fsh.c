@@ -1,5 +1,5 @@
 #version 300 es
-#define OCTTEST 1
+// #define OCTTEST 1
 
 precision highp float;
 
@@ -14,7 +14,7 @@ uniform vec2 dimensions;
 
 // uniform lowp int levels;
 // from uniform!
-int levels = 4;
+int levels = 11;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
@@ -31,8 +31,6 @@ const int deppairs[] = int[8](4, 5, 6, 7, 0, 1, 2, 3);
 const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
 const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
-
-const int nulloct[9] = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
@@ -60,15 +58,17 @@ struct ctlres
 
 struct stck_t
 {
-    vec4 tlf;      // cube dimensions for stack level
-    int  scube[9]; // static cube octets for stack level
-    int  dcube[9]; // static cube octets for stack level
+    vec4 tlf;    // cube dimensions for stack level              16
+    int  scubei; // static cube octets for stack level           36
+    int  dcubei; // static cube octets for stack level           36
 
-    bool checked;  // stack level is checked for intersection
-    int  octs[4];  // octets for ispts
-    vec4 ispts[4]; // is point for stack level cube
-    int  ispt_len; // ispt arr length
-    int  ispt_ind; // ispt arr index
+    bool checked;  // stack level is checked for intersection      1
+    int  octs[4];  // octets for ispts                             16
+    vec4 ispts[4]; // is point for stack level cube                64
+    int  ispt_len; // ispt arr length                              4
+    int  ispt_ind; // ispt arr index                               4
+    vec4 near_isp; // nearest intersection points from camera for cube of depth 16
+		   // sum 193 bytes
 };
 
 // x - x coordinate of plane, lp - line pointm lv - line vector
@@ -160,36 +160,76 @@ cube_trace_line(vec3 pos, vec3 dir)
 {
     int depth = 0;
 
-    int scb[9] = soctets_for_index(0);
-    int dcb[9] = doctets_for_index(0);
-
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
     res.col = vec4(0.0, 0.2, 0.0, 0.0);
     res.ind = 0;
 
     stck_t stck[20];
-    stck[0].scube    = scb;
-    stck[0].dcube    = nulloct;
+    stck[0].scubei   = 0;
+    stck[0].dcubei   = 0;
     stck[0].checked  = false;
     stck[0].ispt_len = 0;
     stck[0].ispt_ind = 0;
     stck[0].tlf      = basecube;
+    stck[0].near_isp = vec4(0.0, 0.0, 0.0, -100000.0);
 
-    if (scb[3] > 1)
-    {
-	res.col = vec4(1.0, 0.0, 0.0, 1.0);
-	return res;
-    }
+    vec4 act;
+    vec4 tlf = basecube;
+    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
 
-    int btypestate = 0;
+    int  hitc = 0;
+    vec4 hitp[4];
+
+    // front side
+    act = is_cube_zplane(tlf.z, pos, dir);
+    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
+	hitp[hitc++] = act;
+
+    // back side
+    act = is_cube_zplane(brb.z, pos, dir);
+    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
+	hitp[hitc++] = act;
+
+    // left side
+    act = is_cube_xplane(tlf.x, pos, dir);
+    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
+	hitp[hitc++] = act;
+
+    // right side
+    act = is_cube_xplane(brb.x, pos, dir);
+    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
+	hitp[hitc++] = act;
+
+    // top side
+    act = is_cube_yplane(tlf.y, pos, dir);
+    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
+	hitp[hitc++] = act;
+
+    // bottom side
+    act = is_cube_yplane(brb.y, pos, dir);
+    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
+	hitp[hitc++] = act;
+
+    if (hitp[0].w < 0.0 && hitp[1].w < 0.0) discard;
+
+    // order side hitpoints, there are always two
+    if (hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
+
+    // inside cube, start point will be pos
+    if (hitp[0].w < 0.0) hitp[0] = vec4(pos, 0.0);
+
+    // store it
+    stck[depth].near_isp = hitp[0];
 
     // check basecube sides here, only check divison planes inside the loop
 
     while (true)
     {
-	int scube[9] = stck[depth].scube;
-	int dcube[9] = stck[depth].dcube;
+	int scube[9] = soctets_for_index(stck[depth].scubei);
+	int dcube[9] = doctets_for_index(stck[depth].dcubei);
+	if (depth > 0 && stck[depth].scubei == 0) scube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
+	if (depth > 0 && stck[depth].dcubei == 0) dcube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 	vec4 tlf = stck[depth].tlf;
 
@@ -197,79 +237,29 @@ cube_trace_line(vec3 pos, vec3 dir)
 	{
 	    stck[depth].checked = true;
 
-	    // get is points
-
-	    int  hitc = 0; // hit count
-	    vec4 hitp[5];  // hit point
-
-	    vec4 act;
-	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
-
-	    // front side
-	    act = is_cube_zplane(tlf.z, pos, dir);
-	    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		hitp[hitc++] = act;
-
-	    // back side
-	    act = is_cube_zplane(brb.z, pos, dir);
-	    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		hitp[hitc++] = act;
-
-	    // left side
-	    act = is_cube_xplane(tlf.x, pos, dir);
-	    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // right side
-	    act = is_cube_xplane(brb.x, pos, dir);
-	    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // top side
-	    act = is_cube_yplane(tlf.y, pos, dir);
-	    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // bottom side
-	    act = is_cube_yplane(brb.y, pos, dir);
-	    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // there is intersection
-	    if (hitc > 0 && (hitp[0].w > 0.0 || hitp[1].w > 0.0))
+	    // check edge intersection
+	    if (stck[depth].near_isp.w != -100000.0)
 	    {
-		// order side hitpoints if there are two intersections
-		if (hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
-
-		// inside an octet, set focus point as first isp
-		if (hitp[0].w < 0.0) hitp[0] = vec4(pos, 0.0);
-
-		// we can ignore the second isp from now
-		hitc = 1;
-
-		// check division planes
+		vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
 		vec4 hlf = brb + (tlf - brb) * 0.5;
+
+		hitc    = 1;
+		hitp[0] = stck[depth].near_isp;
 
 		// z div plane
 		act = is_cube_zplane(hlf.z, pos, dir);
-		if (act.w > 0.0 && act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		    hitp[hitc++] = act;
+		if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y) hitp[hitc++] = act;
 
 		// x div plane
 		act = is_cube_xplane(hlf.x, pos, dir);
-		if (act.w > 0.0 && act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		    hitp[hitc++] = act;
+		if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
 
 		// y div plane
 		act = is_cube_yplane(hlf.y, pos, dir);
-		if (act.w > 0.0 && act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		    hitp[hitc++] = act;
+		if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
 
-		// sort hitpoints
-
-		vec4 act_hitp;
-		int  oct     = 0;
-		int  prevoct = -1;
+		int oct     = 0;
+		int prevoct = -1;
 
 		for (int i = 0; i < hitc; ++i)
 		{
@@ -279,31 +269,30 @@ cube_trace_line(vec3 pos, vec3 dir)
 			{
 			    if (hitp[j].w < hitp[i].w)
 			    {
-				act_hitp = hitp[i];
-				hitp[i]  = hitp[j];
-				hitp[j]  = act_hitp;
+				act     = hitp[i];
+				hitp[i] = hitp[j];
+				hitp[j] = act;
 			    }
 			}
 		    }
 
 		    // calculate octets for current smallest
 
-		    act_hitp = hitp[i];
-
+		    act = hitp[i];
 		    oct = 0;
 
-		    if (act_hitp.x > hlf.x) oct = 1;
-		    if (act_hitp.y < hlf.y) oct += 2;
-		    if (act_hitp.z < hlf.z) oct += 4;
+		    if (act.x > hlf.x) oct = 1;
+		    if (act.y < hlf.y) oct += 2;
+		    if (act.z < hlf.z) oct += 4;
 
 		    // from the second isp find octet pairs if needed
 		    if (oct == prevoct)
 		    {
-			if (act_hitp.x == hlf.x)
+			if (act.x == hlf.x)
 			    oct = horpairs[oct];
-			else if (act_hitp.y == hlf.y)
+			else if (act.y == hlf.y)
 			    oct = verpairs[oct];
-			else if (act_hitp.z == hlf.z)
+			else if (act.z == hlf.z)
 			    oct = deppairs[oct];
 		    }
 
@@ -314,7 +303,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    {
 			int len                = stck[depth].ispt_len;
 			stck[depth].octs[len]  = oct;
-			stck[depth].ispts[len] = act_hitp;
+			stck[depth].ispts[len] = act;
 			stck[depth].ispt_len += 1;
 		    }
 		}
@@ -332,15 +321,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    int  nearest_ind = stck[depth].ispt_ind++;
 	    vec4 nearest_isp = stck[depth].ispts[nearest_ind];
 	    int  nearest_oct = stck[depth].octs[nearest_ind];
-
-	    int near_dcube[9] = nulloct;
-	    int near_scube[9] = nulloct;
-
-	    if (scube[nearest_oct] > 0)
-		near_scube = soctets_for_index(scube[nearest_oct]);
-
-	    if (dcube[nearest_oct] > 0)
-		near_dcube = doctets_for_index(dcube[nearest_oct]);
 
 	    vec4 ntlf = vec4(
 		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
@@ -388,8 +368,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[depth].ispt_len = 0;
 	    stck[depth].ispt_ind = 0;
 	    stck[depth].checked  = false;
-	    stck[depth].scube    = near_scube;
-	    stck[depth].dcube    = near_dcube;
+	    stck[depth].scubei   = scube[nearest_oct];
+	    stck[depth].dcubei   = dcube[nearest_oct];
+	    stck[depth].near_isp = nearest_isp;
 	}
 	else
 	{
@@ -507,8 +488,6 @@ void main()
 		result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w);
 	    }
 	}
-
-	// dark yellowish look SWITCHABLE
 
 	result_col.xyz *= 0.8;
 	result_col.z *= 0.4;

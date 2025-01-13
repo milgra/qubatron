@@ -26,8 +26,7 @@ char drag    = 0;
 char quit    = 0;
 char octtest = 0;
 
-float scale = 1.0;
-
+float   scale  = 1.0;
 int32_t width  = 800;
 int32_t height = 600;
 
@@ -84,8 +83,8 @@ void main_init()
 
     // opengl init
 
-    /* glEnable(GL_DEBUG_OUTPUT); */
-    /* glDebugMessageCallback(MessageCallback, 0); */
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(MessageCallback, 0);
 
     cc = skeleconn_init();
     rc = renderconn_init();
@@ -95,7 +94,7 @@ void main_init()
 
     if (octtest == 1)
     {
-	int point_count = 4;
+	int point_count = 5;
 
 	GLfloat points[4 * 8192] = {
 	    10.0, 690.0, -10.0, 0.0,
@@ -431,11 +430,11 @@ bool main_loop(double time, void* userdata)
 	renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
     }
 
-    /* mt_time(NULL); */
+    mt_time(NULL);
     renderconn_update(&rc, width, height, position, angle, lighta, quality);
 
     SDL_GL_SwapWindow(window);
-    /* mt_time("Render"); */
+    mt_time("Render");
 
     frames++;
 

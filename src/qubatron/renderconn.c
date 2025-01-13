@@ -340,7 +340,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
     int points = size / 16;
-    int height = 1 + floor(points / 8192);
+    int height = floor(points / 8192);
 
     if (height == 8192) mt_log_error("reached maximum texture size");
 
@@ -372,7 +372,7 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
 void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
     int points = size / 16;
-    int height = 1 + floor(points / 8192);
+    int height = floor(points / 8192);
 
     if (height == 8192) mt_log_error("reached maximum texture size");
 
@@ -404,7 +404,7 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
 void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
     int points = size / (4 * sizeof(GLint));
-    int height = 1 + floor(points / 8192);
+    int height = floor(points / 8192);
 
     if (height == 8192) mt_log_error("reached maximum texture size");
 
@@ -427,22 +427,22 @@ void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dyn
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, height, 0, GL_RGBA_INTEGER, GL_INT, data);
     }
 
-    mt_log_debug("uploaded octree dyn %i, size %lu points %i width %i height %i", size, points, dynamic, 8192, height);
-    GLint* arr = data;
-    for (int i = 0; i < 12; i += 12)
-    {
-	printf(
-	    "nodes : %i | %i | %i | %i | %i | %i | %i | %i index %i\n",
-	    arr[i + 0],
-	    arr[i + 1],
-	    arr[i + 2],
-	    arr[i + 3],
-	    arr[i + 4],
-	    arr[i + 5],
-	    arr[i + 6],
-	    arr[i + 7],
-	    arr[i + 8]);
-    }
+    /* mt_log_debug("uploaded octree dyn %i, size %lu points %i width %i height %i", size, points, dynamic, 8192, height); */
+    /* GLint* arr = data; */
+    /* for (int i = 0; i < 12; i += 12) */
+    /* { */
+    /* 	printf( */
+    /* 	    "nodes : %i | %i | %i | %i | %i | %i | %i | %i index %i\n", */
+    /* 	    arr[i + 0], */
+    /* 	    arr[i + 1], */
+    /* 	    arr[i + 2], */
+    /* 	    arr[i + 3], */
+    /* 	    arr[i + 4], */
+    /* 	    arr[i + 5], */
+    /* 	    arr[i + 6], */
+    /* 	    arr[i + 7], */
+    /* 	    arr[i + 8]); */
+    /* } */
 }
 
 #endif
