@@ -77,7 +77,7 @@ find src -type f -name "*.c" > files.txt
 
 source "/home/milgra/Downloads/emsdk/emsdk_env.sh"
 
-emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4Gb --preload-file src/qubatron --preload-file res -o qubatron.html
+emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -O3 -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4Gb --preload-file src/qubatron --preload-file res -o qubatron.html
 
 Todo :
 
@@ -86,58 +86,3 @@ Todo :
 - resuse outer ispts for next check
 - shotgun wall/figure deformation
 - ik skeleton/mass point engine
-
-	    float trs[6] = float[6](
-		(tlf.z - pos.z) / dir.z,  // front side
-		(brb.z - pos.z) / dir.z,  // back side
-		(tlf.x - pos.x) / dir.x,  // left side
-		(brb.x - pos.x) / dir.x,  // right side
-		(tlf.y - pos.y) / dir.y,  // top side
-		(brb.y - pos.y) / dir.y); // bottom side
-
-	    /* for (int i = 0; i < 6; i++) */
-	    /* { */
-	    /* 	float tr = trs[i]; */
-	    /* 	if (tr > 0.0) */
-	    /* 	{ */
-	    /* 	    vec4 isp = vec4(pos + tr * dir, tr); */
-
-	    /* 	    if (tlf.x - eps < isp.x && isp.x <= brb.x + eps && */
-	    /* 		tlf.y + eps > isp.y && isp.y >= brb.y - eps && */
-	    /* 		tlf.z + eps > isp.z && isp.z >= brb.z - eps) */
-	    /* 	    { */
-	    /* 		hitp[hitc++] = isp; */
-	    /* 		if (hitc == 2) break; */
-	    /* 	    } */
-	    /* 	} */
-	    /* } */
-
-	    // front side
-	    act = vec4(pos + trs[0] * dir, trs[0]);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		hitp[hitc++] = act;
-
-	    // back side
-	    act = vec4(pos + trs[1] * dir, trs[1]);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
-		hitp[hitc++] = act;
-
-	    // left side
-	    act = vec4(pos + trs[2] * dir, trs[2]);
-	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // right side
-	    act = vec4(pos + trs[3] * dir, trs[3]);
-	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // top side
-	    act = vec4(pos + trs[4] * dir, trs[4]);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;
-
-	    // bottom side
-	    act = vec4(pos + trs[5] * dir, trs[5]);
-	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
-		hitp[hitc++] = act;

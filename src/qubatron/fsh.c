@@ -24,13 +24,13 @@ int levels = 11;
 // 0 1
 // 2 3
 
+const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0); // x shift
+const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0); // y shift
+const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0); // z shift
+
 const int horpairs[] = int[8](1, 0, 3, 2, 5, 4, 7, 6);
 const int verpairs[] = int[8](2, 3, 0, 1, 6, 7, 4, 5);
 const int deppairs[] = int[8](4, 5, 6, 7, 0, 1, 2, 3);
-
-const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
-const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
-const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
@@ -58,17 +58,19 @@ struct ctlres
 
 struct stck_t
 {
-    vec4 tlf;    // cube dimensions for stack level              16
-    int  scubei; // static cube octets for stack level           36
-    int  dcubei; // static cube octets for stack level           36
+    bool checked; // stack level is checked for intersection       1
 
-    bool checked;  // stack level is checked for intersection      1
+    vec4 tlf; // cube dimensions for stack level                   16
+    vec4 isp; // closest intersection point from camera for cube   16
+
+    int scubei; // static cube octets for stack level              4
+    int dcubei; // static cube octets for stack level              4
+
     int  octs[4];  // octets for ispts                             16
     vec4 ispts[4]; // is point for stack level cube                64
     int  ispt_len; // ispt arr length                              4
     int  ispt_ind; // ispt arr index                               4
-    vec4 near_isp; // nearest intersection points from camera for cube of depth 16
-		   // sum 193 bytes
+		   // sum 129 bytes
 };
 
 // x - x coordinate of plane, lp - line pointm lv - line vector
@@ -165,14 +167,15 @@ cube_trace_line(vec3 pos, vec3 dir)
     res.col = vec4(0.0, 0.2, 0.0, 0.0);
     res.ind = 0;
 
+    // under 17 and over 20 shader becomes very slow, why?
     stck_t stck[20];
+    stck[0].checked  = false;
+    stck[0].tlf      = basecube;
+    stck[0].isp      = vec4(0.0, 0.0, 0.0, -100000.0);
     stck[0].scubei   = 0;
     stck[0].dcubei   = 0;
-    stck[0].checked  = false;
     stck[0].ispt_len = 0;
     stck[0].ispt_ind = 0;
-    stck[0].tlf      = basecube;
-    stck[0].near_isp = vec4(0.0, 0.0, 0.0, -100000.0);
 
     vec4 act;
     vec4 tlf = basecube;
@@ -211,6 +214,7 @@ cube_trace_line(vec3 pos, vec3 dir)
     if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
 	hitp[hitc++] = act;
 
+    // one hitp have to be in front of the camera
     if (hitp[0].w < 0.0 && hitp[1].w < 0.0) discard;
 
     // order side hitpoints, there are always two
@@ -220,31 +224,30 @@ cube_trace_line(vec3 pos, vec3 dir)
     if (hitp[0].w < 0.0) hitp[0] = vec4(pos, 0.0);
 
     // store it
-    stck[depth].near_isp = hitp[0];
-
-    // check basecube sides here, only check divison planes inside the loop
+    stck[depth].isp = hitp[0];
 
     while (true)
     {
 	int scube[9] = soctets_for_index(stck[depth].scubei);
 	int dcube[9] = doctets_for_index(stck[depth].dcubei);
+
 	if (depth > 0 && stck[depth].scubei == 0) scube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 	if (depth > 0 && stck[depth].dcubei == 0) dcube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-	vec4 tlf = stck[depth].tlf;
+	tlf = stck[depth].tlf;
 
 	if (!stck[depth].checked)
 	{
 	    stck[depth].checked = true;
 
 	    // check edge intersection
-	    if (stck[depth].near_isp.w != -100000.0)
+	    if (stck[depth].isp.w != -100000.0)
 	    {
 		vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
 		vec4 hlf = brb + (tlf - brb) * 0.5;
 
 		hitc    = 1;
-		hitp[0] = stck[depth].near_isp;
+		hitp[0] = stck[depth].isp;
 
 		// z div plane
 		act = is_cube_zplane(hlf.z, pos, dir);
@@ -258,8 +261,8 @@ cube_trace_line(vec3 pos, vec3 dir)
 		act = is_cube_yplane(hlf.y, pos, dir);
 		if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
 
-		int oct     = 0;
-		int prevoct = -1;
+		int oct = 0;
+		int pre = -1;
 
 		for (int i = 0; i < hitc; ++i)
 		{
@@ -286,7 +289,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    if (act.z < hlf.z) oct += 4;
 
 		    // from the second isp find octet pairs if needed
-		    if (oct == prevoct)
+		    if (oct == pre)
 		    {
 			if (act.x == hlf.x)
 			    oct = horpairs[oct];
@@ -296,7 +299,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 			    oct = deppairs[oct];
 		    }
 
-		    prevoct = oct;
+		    pre = oct;
 
 		    // add to ispts if there are subnodes in current cube
 		    if (scube[oct] > 0 || dcube[oct] > 0)
@@ -370,7 +373,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[depth].checked  = false;
 	    stck[depth].scubei   = scube[nearest_oct];
 	    stck[depth].dcubei   = dcube[nearest_oct];
-	    stck[depth].near_isp = nearest_isp;
+	    stck[depth].isp      = nearest_isp;
 	}
 	else
 	{
