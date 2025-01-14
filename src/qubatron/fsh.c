@@ -67,7 +67,6 @@ struct stck_t
 
     int  octs[4];  // octets for isps                             16
     vec4 isps[4];  // is point for stack level cube                64
-    int  isps_len; // isps arr length                              4
     int  isps_ind; // isps arr index                               4
 		   // sum 129 bytes
 };
@@ -173,7 +172,6 @@ cube_trace_line(vec3 pos, vec3 dir)
     stck[0].tlf      = basecube;
     stck[0].scubei   = 0;
     stck[0].dcubei   = 0;
-    stck[0].isps_len = 0;
     stck[0].isps_ind = 0;
 
     vec4 act;
@@ -300,23 +298,27 @@ cube_trace_line(vec3 pos, vec3 dir)
 		// add to isps if there are subnodes in current cube
 		if (scube[oct] > 0 || dcube[oct] > 0)
 		{
-		    int len               = stck[depth].isps_len;
+		    int ind               = stck[depth].isps_ind;
+		    int len               = ind & 0x0F;
 		    stck[depth].octs[len] = oct;
 		    stck[depth].isps[len] = act;
-		    stck[depth].isps_len += 1;
+		    stck[depth].isps_ind  = (ind & 0xF0) | ((len + 1) & 0x0F);
 		}
 	    }
 	}
 
 	// go inside closest subnode
 
-	if (stck[depth].isps_len > 0)
+	int ind = (stck[depth].isps_ind >> 4) & 0x0F;
+	int len = stck[depth].isps_ind & 0x0F;
+
+	if (len > 0)
 	{
 #ifdef OCTTEST
 	    res.col.a += 0.2;
 #endif
 
-	    int  nearest_ind = stck[depth].isps_ind++;
+	    int  nearest_ind = ind;
 	    vec4 nearest_isp = stck[depth].isps[nearest_ind];
 	    int  nearest_oct = stck[depth].octs[nearest_ind];
 
@@ -356,14 +358,16 @@ cube_trace_line(vec3 pos, vec3 dir)
 		return res;
 	    }
 
-	    stck[depth].isps_len -= 1;
+	    ind++;
+	    len--;
+
+	    stck[depth].isps_ind = ((ind << 4) & 0xF0) | (len & 0x0F);
 
 	    // increase stack depth
 	    depth += 1;
 
 	    // reset containers for the next depth
 	    stck[depth].tlf      = ntlf;
-	    stck[depth].isps_len = 0;
 	    stck[depth].isps_ind = 0;
 	    stck[depth].checked  = false;
 	    stck[depth].scubei   = scube[nearest_oct];
