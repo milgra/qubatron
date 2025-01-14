@@ -1,7 +1,7 @@
 #version 300 es
 // #define OCTTEST 1
 
-precision highp float;
+precision mediump float;
 
 in vec2  coord;
 out vec4 fragColor;
@@ -32,9 +32,6 @@ const int horpairs[] = int[8](1, 0, 3, 2, 5, 4, 7, 6);
 const int verpairs[] = int[8](2, 3, 0, 1, 6, 7, 4, 5);
 const int deppairs[] = int[8](4, 5, 6, 7, 0, 1, 2, 3);
 
-const float PI   = 3.1415926535897932384626433832795;
-const float PI_2 = 1.57079632679489661923;
-
 uniform sampler2D coltexbuf_s; // color data per point for static model
 uniform sampler2D coltexbuf_d; // color data per point for dynamic model
 
@@ -50,19 +47,16 @@ struct ctlres
     vec4 col;
     vec4 nrm;
     vec4 tlf;
-    int  ind;
 };
 
 struct stck_t
 {
-    vec4 tlf; // cube dimensions for stack level
-
-    int scubei; // static cube octets for stack level
-    int dcubei; // static cube octets for stack level
-    int index;  // isps arr index | checked | ind0 | ind1 | ind2 | | len0 | len1 | len2 |
-
-    int  octs[4]; // octets for isps
+    vec4 cube;    // cube dimensions for stack level
     vec4 isps[4]; // is point for stack level cube
+    int  ispsi;   // | 0 level checked | 1 isps ind0 | 2 isps ind1 | 3 isps ind2 | 4 | 5 ispsp len0 | 6 isps len1 | 7 isps len2 |
+    int  socti;   // static cube octets index for stack level
+    int  docti;   // dynamic cube octets index for stack level
+    int  octs[4]; // octet numbers for isps
 };
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
@@ -131,19 +125,18 @@ int[9] octets_for_index(int i, lowp isampler2D sampler)
 ctlres
 cube_trace_line(vec3 pos, vec3 dir)
 {
-    int depth = 0;
+    int level = 0;
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
     res.col = vec4(0.0, 0.2, 0.0, 0.0);
-    res.ind = 0;
 
     // under 17 and over 20 shader becomes very slow, why?
     stck_t stck[18];
-    stck[0].tlf    = basecube;
-    stck[0].scubei = 0;
-    stck[0].dcubei = 0;
-    stck[0].index  = 0;
+    stck[0].cube  = basecube;
+    stck[0].socti = 0;
+    stck[0].docti = 0;
+    stck[0].ispsi = 0;
 
     vec4 act;
     vec4 tlf = basecube;
@@ -188,31 +181,63 @@ cube_trace_line(vec3 pos, vec3 dir)
     // order side hitpoints, there are always two
     if (hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
 
-    // inside cube, start point will be pos
+    // inside cube, starting isp will be pos
     if (hitp[0].w < 0.0) hitp[0] = vec4(pos, 0.0);
 
-    // store it
-    stck[depth].isps[0] = hitp[0];
+    // store starting isp
+    stck[level].isps[0] = hitp[0];
 
     while (true)
     {
-	int scube[9] = octets_for_index(stck[depth].scubei, octtexbuf_s);
-	int dcube[9] = octets_for_index(stck[depth].dcubei, octtexbuf_d);
+	// static and dynamic cube octets for actual level
+	int scubeo[9] = octets_for_index(stck[level].socti, octtexbuf_s);
+	int dcubeo[9] = octets_for_index(stck[level].docti, octtexbuf_d);
 
-	if (depth > 0 && stck[depth].scubei == 0) scube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
-	if (depth > 0 && stck[depth].dcubei == 0) dcube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
+	if (level > 0 && stck[level].socti == 0) scubeo = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
+	if (level > 0 && stck[level].docti == 0) dcubeo = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 
-	tlf = stck[depth].tlf;
+	tlf = stck[level].cube;
 
-	if (stck[depth].index == 0)
+	// return if we reached bottom
+	if (level == levels)
 	{
-	    stck[depth].index = 128;
+	    res.isp = stck[level].isps[0];
+	    res.tlf = tlf;
+
+	    int   cy  = scubeo[8] / 8192;
+	    int   cx  = scubeo[8] - cy * 8192;
+	    ivec2 crd = ivec2(cx, cy);
+
+	    res.col = texelFetch(coltexbuf_s, crd, 0);
+	    res.nrm = texelFetch(nrmtexbuf_s, crd, 0);
+
+	    if (dcubeo[stck[level].docti] > 0)
+	    {
+		cy  = dcubeo[8] / 8192;
+		cx  = dcubeo[8] - cy * 8192;
+		crd = ivec2(cx, cy);
+
+		res.col = texelFetch(coltexbuf_d, crd, 0);
+		res.nrm = texelFetch(nrmtexbuf_d, crd, 0);
+	    }
+
+	    // add sub-detail fuzzyness SWITCHABLE
+	    if (res.isp.w < 1.0)
+		res.col.xyz += res.col.xyz * random(res.isp.xyz) * 0.4;
+
+	    return res;
+	}
+
+	// check subnode intersection if needed
+	if (stck[level].ispsi == 0)
+	{
+	    stck[level].ispsi = 128;
 
 	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
 	    vec4 hlf = brb + (tlf - brb) * 0.5;
 
 	    hitc    = 1;
-	    hitp[0] = stck[depth].isps[0];
+	    hitp[0] = stck[level].isps[0];
 
 	    // z div plane
 	    act = is_cube_zplane(hlf.z, pos, dir);
@@ -231,6 +256,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    for (int i = 0; i < hitc; ++i)
 	    {
+		// order hitpoints
 		if (i < hitc - 1)
 		{
 		    for (int j = i + 1; j < hitc; ++j)
@@ -244,11 +270,10 @@ cube_trace_line(vec3 pos, vec3 dir)
 		    }
 		}
 
-		// calculate octets for current smallest
-
 		act = hitp[i];
 		oct = 0;
 
+		// calculate octet number for current smallest
 		if (act.x > hlf.x) oct = 1;
 		if (act.y < hlf.y) oct += 2;
 		if (act.z < hlf.z) oct += 4;
@@ -267,91 +292,63 @@ cube_trace_line(vec3 pos, vec3 dir)
 		pre = oct;
 
 		// add to isps if there are subnodes in current cube
-		if (scube[oct] > 0 || dcube[oct] > 0)
+		if (scubeo[oct] > 0 || dcubeo[oct] > 0)
 		{
-		    int ind               = stck[depth].index;
+		    int ind               = stck[level].ispsi;
 		    int len               = ind & 0x0F;
-		    stck[depth].octs[len] = oct;
-		    stck[depth].isps[len] = act;
-		    stck[depth].index     = (ind & 0xF0) | ((len + 1) & 0x0F);
+		    stck[level].octs[len] = oct;
+		    stck[level].isps[len] = act;
+		    len++;
+		    stck[level].ispsi = (ind & 0xF0) | len;
 		}
 	    }
 	}
 
 	// go inside closest subnode
 
-	int len = stck[depth].index & 0x0F;
+	int cur_len = stck[level].ispsi & 0x0F;
 
-	if (len > 0)
+	if (cur_len > 0)
 	{
 #ifdef OCTTEST
 	    res.col.a += 0.2;
 #endif
-	    int  nearest_ind = (stck[depth].index >> 4) & 7;
-	    vec4 nearest_isp = stck[depth].isps[nearest_ind];
-	    int  nearest_oct = stck[depth].octs[nearest_ind];
 
-	    vec4 ntlf = vec4(
-		tlf.x += xsft[nearest_oct] * tlf.w / 2.0,
-		tlf.y -= ysft[nearest_oct] * tlf.w / 2.0,
-		tlf.z -= zsft[nearest_oct] * tlf.w / 2.0,
+	    int  nxt_ind = (stck[level].ispsi >> 4) & 7;
+	    vec4 nxt_isp = stck[level].isps[nxt_ind];
+	    int  nxt_oct = stck[level].octs[nxt_ind];
+
+	    vec4 ncube = vec4(
+		tlf.x += xsft[nxt_oct] * tlf.w / 2.0,
+		tlf.y -= ysft[nxt_oct] * tlf.w / 2.0,
+		tlf.z -= zsft[nxt_oct] * tlf.w / 2.0,
 		tlf.w / 2.0);
 
-	    if (depth == levels)
-	    {
-		res.isp = nearest_isp;
-		res.tlf = ntlf;
-		res.ind = scube[8]; // original index is in the 8th node
+	    nxt_ind++;
+	    cur_len--;
 
-		int cy = res.ind / 8192;
-		int cx = res.ind - cy * 8192;
+	    // increase index and decrease length at current level
+	    stck[level].ispsi = 128 | (nxt_ind << 4) | cur_len;
 
-		res.col = texelFetch(coltexbuf_s, ivec2(cx, cy), 0);
-		res.nrm = texelFetch(nrmtexbuf_s, ivec2(cx, cy), 0);
+	    // increase stack level
+	    level += 1;
 
-		if (dcube[nearest_oct] > 0)
-		{
-		    res.ind = dcube[8]; // original index is in the 8th node
-
-		    cy = res.ind / 8192;
-		    cx = res.ind - cy * 8192;
-
-		    res.col = texelFetch(coltexbuf_d, ivec2(cx, cy), 0);
-		    res.nrm = texelFetch(nrmtexbuf_d, ivec2(cx, cy), 0);
-		}
-
-		// add sub-detail fuzzyness SWITCHABLE
-		if (nearest_isp.w < 1.0)
-		    res.col.xyz += res.col.xyz * random(res.isp.xyz) * 0.4;
-
-		return res;
-	    }
-
-	    nearest_ind++;
-	    len--;
-
-	    stck[depth].index = 128 | (nearest_ind << 4) | (len & 0x0F);
-
-	    // increase stack depth
-	    depth += 1;
-
-	    // reset containers for the next depth
-	    stck[depth].tlf     = ntlf;
-	    stck[depth].index   = 0;
-	    stck[depth].scubei  = scube[nearest_oct];
-	    stck[depth].dcubei  = dcube[nearest_oct];
-	    stck[depth].isps[0] = nearest_isp;
+	    // reset containers for the next level
+	    stck[level].cube    = ncube;
+	    stck[level].ispsi   = 0;
+	    stck[level].socti   = scubeo[nxt_oct];
+	    stck[level].docti   = dcubeo[nxt_oct];
+	    stck[level].isps[0] = nxt_isp;
 	}
 	else
 	{
 	    // no intersection with subnodes
 	    // step back one for possible intersection with a neighbor node
-	    stck[depth].index = 0;
+	    stck[level].ispsi = 0;
 
-	    depth -= 1;
+	    level -= 1;
 
-	    if (depth < 0)
-		return res;
+	    if (level < 0) return res;
 	}
     }
 
@@ -397,10 +394,8 @@ void main()
     vec4   col = res.col;
 
 #ifndef OCTTEST
-    if (res.ind > 0)
+    if (res.isp.w > 0.0)
     {
-	col = res.col;
-
 	/* show normals for debug SWITCHABLE */
 	/* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
 
