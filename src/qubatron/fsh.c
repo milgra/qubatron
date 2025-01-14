@@ -103,23 +103,36 @@ float random(vec3 pos)
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 
-int[9] octets_for_index(int i, lowp isampler2D sampler)
+/* int[9] octets_for_index(int i, lowp isampler2D sampler) */
+/* { */
+/*     i *= 3; // octet is 12 byte long in octet texture */
+
+/*     int cy = i / 8192; */
+/*     int cx = i - cy * 8192; */
+
+/*     ivec4 p0, p1, p2; */
+
+/*     /\* ivec2 ts = textureSize(octtexbuf_s, 0); *\/ */
+/*     /\* if (cx <= ts.x && cy <= ts.y) *\/ */
+/*     /\* { *\/ */
+/*     p0 = texelFetch(sampler, ivec2(cx, cy), 0); */
+/*     p1 = texelFetch(sampler, ivec2(cx + 1, cy), 0); */
+/*     p2 = texelFetch(sampler, ivec2(cx + 2, cy), 0); */
+
+/*     return int[9](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x); */
+/* } */
+
+// !!! TODO octet texture and index texture buffer should be separate to save size and bandwidth
+
+int oct_from_octets_for_index(int octi, int i, lowp isampler2D sampler, int level)
 {
+    if (i == 0 && level > 0) return 0;
     i *= 3; // octet is 12 byte long in octet texture
 
     int cy = i / 8192;
-    int cx = i - cy * 8192;
+    int cx = i - cy * 8192 + octi / 4;
 
-    ivec4 p0, p1, p2;
-
-    /* ivec2 ts = textureSize(octtexbuf_s, 0); */
-    /* if (cx <= ts.x && cy <= ts.y) */
-    /* { */
-    p0 = texelFetch(sampler, ivec2(cx, cy), 0);
-    p1 = texelFetch(sampler, ivec2(cx + 1, cy), 0);
-    p2 = texelFetch(sampler, ivec2(cx + 2, cy), 0);
-
-    return int[9](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x);
+    return texelFetch(sampler, ivec2(cx, cy), 0)[octi - (octi / 4) * 4];
 }
 
 ctlres
@@ -189,13 +202,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 
     while (true)
     {
-	// static and dynamic cube octets for actual level
-	int scubeo[9] = octets_for_index(stck[level].socti, octtexbuf_s);
-	int dcubeo[9] = octets_for_index(stck[level].docti, octtexbuf_d);
-
-	if (level > 0 && stck[level].socti == 0) scubeo = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
-	if (level > 0 && stck[level].docti == 0) dcubeo = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
-
 	tlf = stck[level].cube;
 
 	// return if we reached bottom
@@ -204,17 +210,20 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    res.isp = stck[level].isps[0];
 	    res.tlf = tlf;
 
-	    int   cy  = scubeo[8] / 8192;
-	    int   cx  = scubeo[8] - cy * 8192;
+	    int socti = oct_from_octets_for_index(8, stck[level].socti, octtexbuf_s, level);
+	    int docti = oct_from_octets_for_index(8, stck[level].docti, octtexbuf_d, level);
+
+	    int   cy  = socti / 8192;
+	    int   cx  = socti - cy * 8192;
 	    ivec2 crd = ivec2(cx, cy);
 
 	    res.col = texelFetch(coltexbuf_s, crd, 0);
 	    res.nrm = texelFetch(nrmtexbuf_s, crd, 0);
 
-	    if (dcubeo[stck[level].docti] > 0)
+	    if (docti > 0)
 	    {
-		cy  = dcubeo[8] / 8192;
-		cx  = dcubeo[8] - cy * 8192;
+		cy  = docti / 8192;
+		cx  = docti - cy * 8192;
 		crd = ivec2(cx, cy);
 
 		res.col = texelFetch(coltexbuf_d, crd, 0);
@@ -291,8 +300,11 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 		pre = oct;
 
+		int socti = oct_from_octets_for_index(oct, stck[level].socti, octtexbuf_s, level);
+		int docti = oct_from_octets_for_index(oct, stck[level].docti, octtexbuf_d, level);
+
 		// add to isps if there are subnodes in current cube
-		if (scubeo[oct] > 0 || dcubeo[oct] > 0)
+		if (socti > 0 || docti > 0)
 		{
 		    int ind               = stck[level].ispsi;
 		    int len               = ind & 0x0F;
@@ -330,14 +342,19 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    // increase index and decrease length at current level
 	    stck[level].ispsi = 128 | (nxt_ind << 4) | cur_len;
 
+	    int socti = oct_from_octets_for_index(nxt_oct, stck[level].socti, octtexbuf_s, level);
+	    int docti = oct_from_octets_for_index(nxt_oct, stck[level].docti, octtexbuf_d, level);
+
 	    // increase stack level
 	    level += 1;
 
 	    // reset containers for the next level
-	    stck[level].cube    = ncube;
-	    stck[level].ispsi   = 0;
-	    stck[level].socti   = scubeo[nxt_oct];
-	    stck[level].docti   = dcubeo[nxt_oct];
+	    stck[level].cube  = ncube;
+	    stck[level].ispsi = 0;
+	    stck[level].socti = socti;
+	    stck[level].docti = docti;
+	    /* stck[level].socti   = scubeo[nxt_oct]; */
+	    /* stck[level].docti   = dcubeo[nxt_oct]; */
 	    stck[level].isps[0] = nxt_isp;
 	}
 	else
