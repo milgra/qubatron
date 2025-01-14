@@ -35,9 +35,6 @@ const int deppairs[] = int[8](4, 5, 6, 7, 0, 1, 2, 3);
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
 
-float       minc_size = 1.0;
-const float maxc_size = 3.0;
-
 uniform sampler2D coltexbuf_s; // color data per point for static model
 uniform sampler2D coltexbuf_d; // color data per point for dynamic model
 
@@ -70,8 +67,6 @@ struct stck_t
     int  isps_ind; // isps arr index                               4
 		   // sum 129 bytes
 };
-
-// x - x coordinate of plane, lp - line pointm lv - line vector
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
 {
@@ -117,8 +112,7 @@ float random(vec3 pos)
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 
-// TODO one function!!!
-int[9] soctets_for_index(int i)
+int[9] octets_for_index(int i, lowp isampler2D sampler)
 {
     i *= 3; // octet is 12 byte long in octet texture
 
@@ -130,28 +124,9 @@ int[9] soctets_for_index(int i)
     /* ivec2 ts = textureSize(octtexbuf_s, 0); */
     /* if (cx <= ts.x && cy <= ts.y) */
     /* { */
-    p0 = texelFetch(octtexbuf_s, ivec2(cx, cy), 0);
-    p1 = texelFetch(octtexbuf_s, ivec2(cx + 1, cy), 0);
-    p2 = texelFetch(octtexbuf_s, ivec2(cx + 2, cy), 0);
-
-    return int[9](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x);
-}
-
-int[9] doctets_for_index(int i)
-{
-    i *= 3; // octet is 12 byte long in octet texture
-
-    int cy = i / 8192;
-    int cx = i - cy * 8192;
-
-    ivec4 p0, p1, p2;
-
-    /* ivec2 ts = textureSize(octtexbuf_d, 0); */
-    /* if (cx <= ts.x && cy <= ts.y) */
-    /* { */
-    p0 = texelFetch(octtexbuf_d, ivec2(cx, cy), 0);
-    p1 = texelFetch(octtexbuf_d, ivec2(cx + 1, cy), 0);
-    p2 = texelFetch(octtexbuf_d, ivec2(cx + 2, cy), 0);
+    p0 = texelFetch(sampler, ivec2(cx, cy), 0);
+    p1 = texelFetch(sampler, ivec2(cx + 1, cy), 0);
+    p2 = texelFetch(sampler, ivec2(cx + 2, cy), 0);
 
     return int[9](p0.x, p0.y, p0.z, p0.w, p1.x, p1.y, p1.z, p1.w, p2.x);
 }
@@ -225,8 +200,8 @@ cube_trace_line(vec3 pos, vec3 dir)
 
     while (true)
     {
-	int scube[9] = soctets_for_index(stck[depth].scubei);
-	int dcube[9] = doctets_for_index(stck[depth].dcubei);
+	int scube[9] = octets_for_index(stck[depth].scubei, octtexbuf_s);
+	int dcube[9] = octets_for_index(stck[depth].dcubei, octtexbuf_d);
 
 	if (depth > 0 && stck[depth].scubei == 0) scube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
 	if (depth > 0 && stck[depth].dcubei == 0) dcube = int[9](0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -401,41 +376,10 @@ vec4 quat_from_axis_angle(vec3 axis, float angle)
     return qr;
 }
 
-// rotate vector
-vec3 qrot(vec4 q, vec3 v)
+vec3 quat_rotate(vec4 q, vec3 v)
 {
     return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 }
-// rotate vector (alternative)
-/* vec3 qrot_2(vec4 q, vec3 v) */
-/* { */
-/*     return v * (q.w * q.w - dot(q.xyz, q.xyz)) + 2.0 * q.xyz * dot(q.xyz, v) + 2.0 * q.w * cross(q.xyz, v); */
-/* } */
-// combine quaternions
-/* vec4 qmul(vec4 a, vec4 b) */
-/* { */
-/*     return vec4(cross(a.xyz, b.xyz) + a.xyz * b.w + b.xyz * a.w, a.w * b.w - dot(a.xyz, b.xyz)); */
-/* } */
-// inverse quaternion
-/* vec4 qinv(vec4 q) */
-/* { */
-/*     return vec4(-q.xyz, q.w); */
-/* } */
-// perspective project
-/* vec4 get_projection(vec3 v, vec4 pr) */
-/* { */
-/*     return vec4(v.xy * pr.xy, v.z * pr.z + pr.w, -v.z); */
-/* } */
-// transform by Spatial forward
-/* vec3 trans_for(vec3 v, Spatial s) */
-/* { */
-/*     return qrot(s.rot, v * s.pos.w) + s.pos.xyz; */
-/* } */
-// transform by Spatial inverse
-/* vec3 trans_inv(vec3 v, Spatial s) */
-/* { */
-/*     return qrot(vec4(-s.rot.xyz, s.rot.w), (v - s.pos.xyz) / s.pos.w); */
-/* } */
 
 void main()
 {
@@ -443,27 +387,26 @@ void main()
     vec3 csv = ctp - vec3(dimensions.x / 2.0, dimensions.y / 2.0, 500.0); // current screen vector
 
     vec4 qz = quat_from_axis_angle(vec3(0.0, 1.0, 0.0), -angle_in.x); // rotation quaternion
-    vec3 vx = qrot(qz, vec3(-1.0, 0.0, 0.0));
+    vec3 vx = quat_rotate(qz, vec3(-1.0, 0.0, 0.0));
     vec4 qx = quat_from_axis_angle(vx, -angle_in.y);
 
     // rotate and transform current screen vector based on camera vector
 
-    csv = qrot(qz, csv);
-    csv = qrot(qx, csv);
+    csv = quat_rotate(qz, csv);
+    csv = quat_rotate(qx, csv);
 
     // check angle between light-fp and cam vec, if small, check collosion
 
     vec3  camlight = light - camfp.xyz;
     float camangle = acos(dot(normalize(camlight), normalize(csv)));
 
-    ctlres res        = cube_trace_line(camfp, csv);
-    vec4   result_col = res.col;
+    ctlres res = cube_trace_line(camfp, csv);
+    vec4   col = res.col;
 
 #ifndef OCTTEST
     if (res.ind > 0)
     {
-	vec4 result_nrm = res.nrm;
-	result_col      = res.col;
+	col = res.col;
 
 	/* show normals for debug SWITCHABLE */
 	/* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
@@ -475,28 +418,26 @@ void main()
 	if (lcres.isp.w > 0.0)
 	{
 	    // checking isp is needed in case of bigger cube sizes where light can touch the top
-	    if (/* res.isp.x != lcres.isp.x && */
-		/* res.isp.y != lcres.isp.y && */
-		/* res.isp.z != lcres.isp.z && */
-		res.tlf.x != lcres.tlf.x &&
+	    if (res.tlf.x != lcres.tlf.x &&
 		res.tlf.y != lcres.tlf.y &&
 		res.tlf.z != lcres.tlf.z)
 	    {
-		result_col = vec4(result_col.xyz * 0.2, result_col.w);
+		col = vec4(col.xyz * 0.2, col.w);
 	    }
 	    else
 	    {
-		float angle = max(dot(normalize(-lvec), normalize(result_nrm.xyz)), 0.0);
-		result_col  = vec4(result_col.xyz * (0.2 + angle * 0.8), result_col.w);
+		float angle = max(dot(normalize(-lvec), normalize(res.nrm.xyz)), 0.0);
+		col         = vec4(col.xyz * (0.2 + angle * 0.8), col.w);
 	    }
 	}
 
-	result_col.xyz *= 0.8;
-	result_col.z *= 0.4;
+	/* yellowish color, SWITCHABLE */
+	col.xyz *= 0.8;
+	col.z *= 0.4;
 	if (camangle < 0.02)
-	    result_col = vec4(1.0, 1.0, 1.0, 1.0);
+	    col = vec4(1.0, 1.0, 1.0, 1.0);
     }
 #endif
 
-    fragColor = result_col;
+    fragColor = col;
 }
