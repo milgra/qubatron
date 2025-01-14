@@ -55,17 +55,14 @@ struct ctlres
 
 struct stck_t
 {
-    bool checked; // stack level is checked for intersection       1
+    vec4 tlf; // cube dimensions for stack level
 
-    vec4 tlf; // cube dimensions for stack level                   16
+    int scubei; // static cube octets for stack level
+    int dcubei; // static cube octets for stack level
+    int index;  // isps arr index | checked | ind0 | ind1 | ind2 | | len0 | len1 | len2 |
 
-    int scubei; // static cube octets for stack level              4
-    int dcubei; // static cube octets for stack level              4
-
-    int  octs[4];  // octets for isps                             16
-    vec4 isps[4];  // is point for stack level cube                64
-    int  isps_ind; // isps arr index                               4
-		   // sum 129 bytes
+    int  octs[4]; // octets for isps
+    vec4 isps[4]; // is point for stack level cube
 };
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
@@ -142,12 +139,11 @@ cube_trace_line(vec3 pos, vec3 dir)
     res.ind = 0;
 
     // under 17 and over 20 shader becomes very slow, why?
-    stck_t stck[20];
-    stck[0].checked  = false;
-    stck[0].tlf      = basecube;
-    stck[0].scubei   = 0;
-    stck[0].dcubei   = 0;
-    stck[0].isps_ind = 0;
+    stck_t stck[18];
+    stck[0].tlf    = basecube;
+    stck[0].scubei = 0;
+    stck[0].dcubei = 0;
+    stck[0].index  = 0;
 
     vec4 act;
     vec4 tlf = basecube;
@@ -208,9 +204,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	tlf = stck[depth].tlf;
 
-	if (!stck[depth].checked)
+	if (stck[depth].index == 0)
 	{
-	    stck[depth].checked = true;
+	    stck[depth].index = 128;
 
 	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
 	    vec4 hlf = brb + (tlf - brb) * 0.5;
@@ -273,27 +269,25 @@ cube_trace_line(vec3 pos, vec3 dir)
 		// add to isps if there are subnodes in current cube
 		if (scube[oct] > 0 || dcube[oct] > 0)
 		{
-		    int ind               = stck[depth].isps_ind;
+		    int ind               = stck[depth].index;
 		    int len               = ind & 0x0F;
 		    stck[depth].octs[len] = oct;
 		    stck[depth].isps[len] = act;
-		    stck[depth].isps_ind  = (ind & 0xF0) | ((len + 1) & 0x0F);
+		    stck[depth].index     = (ind & 0xF0) | ((len + 1) & 0x0F);
 		}
 	    }
 	}
 
 	// go inside closest subnode
 
-	int ind = (stck[depth].isps_ind >> 4) & 0x0F;
-	int len = stck[depth].isps_ind & 0x0F;
+	int len = stck[depth].index & 0x0F;
 
 	if (len > 0)
 	{
 #ifdef OCTTEST
 	    res.col.a += 0.2;
 #endif
-
-	    int  nearest_ind = ind;
+	    int  nearest_ind = (stck[depth].index >> 4) & 7;
 	    vec4 nearest_isp = stck[depth].isps[nearest_ind];
 	    int  nearest_oct = stck[depth].octs[nearest_ind];
 
@@ -333,27 +327,26 @@ cube_trace_line(vec3 pos, vec3 dir)
 		return res;
 	    }
 
-	    ind++;
+	    nearest_ind++;
 	    len--;
 
-	    stck[depth].isps_ind = ((ind << 4) & 0xF0) | (len & 0x0F);
+	    stck[depth].index = 128 | (nearest_ind << 4) | (len & 0x0F);
 
 	    // increase stack depth
 	    depth += 1;
 
 	    // reset containers for the next depth
-	    stck[depth].tlf      = ntlf;
-	    stck[depth].isps_ind = 0;
-	    stck[depth].checked  = false;
-	    stck[depth].scubei   = scube[nearest_oct];
-	    stck[depth].dcubei   = dcube[nearest_oct];
-	    stck[depth].isps[0]  = nearest_isp;
+	    stck[depth].tlf     = ntlf;
+	    stck[depth].index   = 0;
+	    stck[depth].scubei  = scube[nearest_oct];
+	    stck[depth].dcubei  = dcube[nearest_oct];
+	    stck[depth].isps[0] = nearest_isp;
 	}
 	else
 	{
 	    // no intersection with subnodes
 	    // step back one for possible intersection with a neighbor node
-	    stck[depth].checked = false;
+	    stck[depth].index = 0;
 
 	    depth -= 1;
 
