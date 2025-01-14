@@ -61,7 +61,6 @@ struct stck_t
     bool checked; // stack level is checked for intersection       1
 
     vec4 tlf; // cube dimensions for stack level                   16
-    vec4 isp; // closest intersection point from camera for cube   16
 
     int scubei; // static cube octets for stack level              4
     int dcubei; // static cube octets for stack level              4
@@ -172,7 +171,6 @@ cube_trace_line(vec3 pos, vec3 dir)
     stck_t stck[20];
     stck[0].checked  = false;
     stck[0].tlf      = basecube;
-    stck[0].isp      = vec4(0.0, 0.0, 0.0, -100000.0);
     stck[0].scubei   = 0;
     stck[0].dcubei   = 0;
     stck[0].isps_len = 0;
@@ -225,7 +223,7 @@ cube_trace_line(vec3 pos, vec3 dir)
     if (hitp[0].w < 0.0) hitp[0] = vec4(pos, 0.0);
 
     // store it
-    stck[depth].isp = hitp[0];
+    stck[depth].isps[0] = hitp[0];
 
     while (true)
     {
@@ -241,75 +239,71 @@ cube_trace_line(vec3 pos, vec3 dir)
 	{
 	    stck[depth].checked = true;
 
-	    // check edge intersection
-	    if (stck[depth].isp.w != -100000.0)
+	    vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
+	    vec4 hlf = brb + (tlf - brb) * 0.5;
+
+	    hitc    = 1;
+	    hitp[0] = stck[depth].isps[0];
+
+	    // z div plane
+	    act = is_cube_zplane(hlf.z, pos, dir);
+	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y) hitp[hitc++] = act;
+
+	    // x div plane
+	    act = is_cube_xplane(hlf.x, pos, dir);
+	    if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
+
+	    // y div plane
+	    act = is_cube_yplane(hlf.y, pos, dir);
+	    if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
+
+	    int oct = 0;
+	    int pre = -1;
+
+	    for (int i = 0; i < hitc; ++i)
 	    {
-		vec4 brb = vec4(tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0);
-		vec4 hlf = brb + (tlf - brb) * 0.5;
-
-		hitc    = 1;
-		hitp[0] = stck[depth].isp;
-
-		// z div plane
-		act = is_cube_zplane(hlf.z, pos, dir);
-		if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y) hitp[hitc++] = act;
-
-		// x div plane
-		act = is_cube_xplane(hlf.x, pos, dir);
-		if (act.w > 0.0 && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
-
-		// y div plane
-		act = is_cube_yplane(hlf.y, pos, dir);
-		if (act.w > 0.0 && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z) hitp[hitc++] = act;
-
-		int oct = 0;
-		int pre = -1;
-
-		for (int i = 0; i < hitc; ++i)
+		if (i < hitc - 1)
 		{
-		    if (i < hitc - 1)
+		    for (int j = i + 1; j < hitc; ++j)
 		    {
-			for (int j = i + 1; j < hitc; ++j)
+			if (hitp[j].w < hitp[i].w)
 			{
-			    if (hitp[j].w < hitp[i].w)
-			    {
-				act     = hitp[i];
-				hitp[i] = hitp[j];
-				hitp[j] = act;
-			    }
+			    act     = hitp[i];
+			    hitp[i] = hitp[j];
+			    hitp[j] = act;
 			}
 		    }
+		}
 
-		    // calculate octets for current smallest
+		// calculate octets for current smallest
 
-		    act = hitp[i];
-		    oct = 0;
+		act = hitp[i];
+		oct = 0;
 
-		    if (act.x > hlf.x) oct = 1;
-		    if (act.y < hlf.y) oct += 2;
-		    if (act.z < hlf.z) oct += 4;
+		if (act.x > hlf.x) oct = 1;
+		if (act.y < hlf.y) oct += 2;
+		if (act.z < hlf.z) oct += 4;
 
-		    // from the second isp find octet pairs if needed
-		    if (oct == pre)
-		    {
-			if (act.x == hlf.x)
-			    oct = horpairs[oct];
-			else if (act.y == hlf.y)
-			    oct = verpairs[oct];
-			else if (act.z == hlf.z)
-			    oct = deppairs[oct];
-		    }
+		// from the second isp find octet pairs if needed
+		if (oct == pre)
+		{
+		    if (act.x == hlf.x)
+			oct = horpairs[oct];
+		    else if (act.y == hlf.y)
+			oct = verpairs[oct];
+		    else if (act.z == hlf.z)
+			oct = deppairs[oct];
+		}
 
-		    pre = oct;
+		pre = oct;
 
-		    // add to isps if there are subnodes in current cube
-		    if (scube[oct] > 0 || dcube[oct] > 0)
-		    {
-			int len               = stck[depth].isps_len;
-			stck[depth].octs[len] = oct;
-			stck[depth].isps[len] = act;
-			stck[depth].isps_len += 1;
-		    }
+		// add to isps if there are subnodes in current cube
+		if (scube[oct] > 0 || dcube[oct] > 0)
+		{
+		    int len               = stck[depth].isps_len;
+		    stck[depth].octs[len] = oct;
+		    stck[depth].isps[len] = act;
+		    stck[depth].isps_len += 1;
 		}
 	    }
 	}
@@ -374,7 +368,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[depth].checked  = false;
 	    stck[depth].scubei   = scube[nearest_oct];
 	    stck[depth].dcubei   = dcube[nearest_oct];
-	    stck[depth].isp      = nearest_isp;
+	    stck[depth].isps[0]  = nearest_isp;
 	}
 	else
 	{
