@@ -197,6 +197,15 @@ void main_init()
     /* } */
 #endif
 
+    /* char pntpath[PATH_MAX]; */
+    /* char nrmpath[PATH_MAX]; */
+    /* char colpath[PATH_MAX]; */
+    /* char* scenepath = "abandoned1.ply"; */
+    /* snprintf(pntpath, PATH_MAX, "%s/%s.pnt", base_path, scenepath); */
+    /* snprintf(nrmpath, PATH_MAX, "%s/%s.nrm", base_path, scenepath); */
+    /* snprintf(colpath, PATH_MAX, "%s/%s.col", base_path, scenepath); */
+    /* model_load_flat(&static_model, pntpath, nrmpath, colpath); */
+
     char plypath[PATH_MAX];
     snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
     model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});

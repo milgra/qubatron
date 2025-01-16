@@ -28,7 +28,7 @@ model_t model_init();
 void    model_delete(model_t* model);
 
 void model_load_ply(model_t* model, char* path, v3_t offset);
-void model_load_flat(char* vertex_path, char* color_path, char* normal_path);
+void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path);
 void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color);
 void model_remove_unnecessary_vertexes();
 
@@ -170,6 +170,37 @@ void model_load_ply(model_t* model, char* path, v3_t offset)
 	minpy, maxpy,
 	minpz, maxpz,
 	mindx, mindy, mindz);
+}
+
+void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath)
+{
+    // build up range array also ( x,y,z ranges)
+
+    FILE* pntfile = fopen(pntpath, "rb");
+    FILE* nrmfile = fopen(nrmpath, "rb");
+    FILE* colfile = fopen(colpath, "rb");
+
+    fseek(pntfile, 0, SEEK_END);
+    long point_count = ftell(pntfile) / sizeof(float);
+    fseek(pntfile, 0, SEEK_SET);
+
+    model->vertexes = mt_memory_alloc(sizeof(GLfloat) * point_count, NULL, NULL);
+    model->normals  = mt_memory_alloc(sizeof(GLfloat) * point_count, NULL, NULL);
+    model->colors   = mt_memory_alloc(sizeof(GLfloat) * point_count, NULL, NULL);
+
+    if (!pntfile || !nrmfile || !colfile)
+    {
+	printf("Unable to open file!\n");
+	return 1;
+    }
+
+    fread(model->vertexes, sizeof(float), point_count, pntfile);
+    fread(model->normals, sizeof(float), point_count, nrmfile);
+    fread(model->colors, sizeof(float), point_count, colfile);
+
+    fclose(pntfile);
+    fclose(nrmfile);
+    fclose(colfile);
 }
 
 void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color)

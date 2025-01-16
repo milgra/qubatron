@@ -81,6 +81,7 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
+- round up octree, color and normal buffer sizes for texture width 
 - dx dy ratio square ispnel
 - sajat model konverter, qubatron model format, y0.0 vertical slice x012 row z012 point, flat structure
 - resuse outer ispts for next check
