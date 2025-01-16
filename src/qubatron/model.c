@@ -36,8 +36,7 @@ void model_remove_unnecessary_vertexes();
 
 #if __INCLUDE_LEVEL__ == 0
 
-    float minpx,
-    maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz, lx, ly, lz;
+float minpx, maxpx, minpy, maxpy, minpz, maxpz, mindx, mindy, mindz, lx, ly, lz;
 float px, py, pz, cx, cy, cz, nx, ny, nz;
 
 static int model_vertex_cb(p_ply_argument argument)

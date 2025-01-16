@@ -361,9 +361,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	{
 	    // no intersection with subnodes
 	    // step back one for possible intersection with a neighbor node
-	    stck[level].ispsi = 0;
-
-	    level -= 1;
+	    stck[level--].ispsi = 0;
 
 	    if (level < 0) return res;
 	}

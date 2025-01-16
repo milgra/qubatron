@@ -1,7 +1,7 @@
 project(
   'qubatron',
   'c',
-  version: '0.8',
+  version: '0.1',
   license: 'GPL',
   default_options: ['c_std=gnu99']
 )
@@ -20,6 +20,7 @@ qubatron_version = '"@0@"'.format(meson.project_version())
 pkg_datadir = join_paths(get_option('prefix'), get_option('datadir')) / 'qubatron'
 add_project_arguments('-DPKG_DATADIR="' + pkg_datadir + '"',
 		      '-DQUBATRON_VERSION=@0@'.format(qubatron_version),
+		      '-DQMC_VERSION=@0@'.format(qubatron_version),
 		      language: 'c')
 add_project_arguments('-Wno-unused-but-set-variable', language: 'c')
 
@@ -36,7 +37,7 @@ qubatron_inc = include_directories(
 	'src/mt_core',
 	'src/mt_math')
 
-com_sources = ['src/rply-1.1.4/rply.c',
+qubatron_sources = ['src/rply-1.1.4/rply.c',
 	       'src/qubatron/main.c',
 	       'src/qubatron/model.c',
 	       'src/qubatron/octree.c',
@@ -66,8 +67,39 @@ fs.copyfile('src/qubatron/fsh_texquad.c', 'fsh_texquad.c')
 
 executable(
   'qubatron',
-  com_sources,
+  qubatron_sources,
   include_directories: [qubatron_inc],
   dependencies: qubatron_dependencies,
+  install: true,
+)
+
+qmc_inc = include_directories(
+	'/usr/include',
+	'src/rply-1.1.4',
+	'src/qubatron',
+	'src/mt_core',
+	'src/mt_math')
+
+qmc_sources = ['src/rply-1.1.4/rply.c',
+	       'src/qubatron/qmc.c',
+	       'src/mt_core/mt_log.c',
+	       'src/mt_core/mt_time.c',
+	       'src/mt_core/mt_vector.c',
+	       'src/mt_core/mt_string.c',
+	       'src/mt_core/mt_memory.c',
+	       'src/mt_math/mt_vector_2d.c',
+	       'src/mt_math/mt_vector_3d.c',
+	       'src/mt_math/mt_vector_4d.c',
+	       'src/mt_math/mt_math_3d.c',
+	       'src/mt_math/mt_matrix_4d.c'
+	       ]
+
+qmc_dependencies = [math,gl,glew,sdl]
+
+executable(
+  'qmc',
+  qmc_sources,
+  include_directories: [qmc_inc],
+  dependencies: qmc_dependencies,
   install: true,
 )
