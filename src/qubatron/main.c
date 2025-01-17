@@ -119,15 +119,15 @@ void main_init()
 	1.0, 1.0, 1.0, 1.0};
 
     // !!! it works only with x 0 first
-    static_octree = octree_create(8192 * 12 * 4, (v4_t){0.0, 700.0, 0.0, 700.0});
+    static_octree = octree_create(8192 * 12 * 3, (v4_t){0.0, 700.0, 0.0, 700.0});
 
-    for (int index = 0; index < point_count * 4; index += 4)
+    for (int index = 0; index < point_count * 3; index += 3)
     {
 	bool leaf;
 	octree_insert_fast(
 	    &static_octree,
 	    0,
-	    index / 4,
+	    index / 3,
 	    (v3_t){points[index], points[index + 1], points[index + 2]},
 	    &leaf);
     }
@@ -148,13 +148,13 @@ void main_init()
 	    static_octree.octs[i].oct[8]);
     }
 
-    renderconn_alloc_normals(&rc, normals, point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, colors, point_count * 4 * sizeof(GLfloat), false);
+    renderconn_alloc_normals(&rc, normals, point_count * 3 * sizeof(GLfloat), false);
+    renderconn_alloc_colors(&rc, colors, point_count * 3 * sizeof(GLfloat), false);
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
     // init dynamic model
 
-    dynamic_octree = octree_create(8192 * 12 * 4, (v4_t){0.0, 1800.0, 0.0, 1800.0});
+    dynamic_octree = octree_create(8192 * 12 * 3, (v4_t){0.0, 1800.0, 0.0, 1800.0});
     renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
     // set rendering mode to octtest
@@ -210,46 +210,46 @@ void main_init()
     snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
     model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
     static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < static_model.point_count * 4; index += 4)
+    for (int index = 0; index < static_model.point_count * 3; index += 3)
     {
 	bool leaf;
 	octree_insert_fast(
 	    &static_octree,
 	    0,
-	    index / 4,
+	    index / 3,
 	    (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]},
 	    &leaf);
     }
 
     // upload static model
 
-    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 4 * sizeof(GLfloat), false);
-    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 4 * sizeof(GLfloat), false);
+    renderconn_alloc_normals(&rc, static_model.normals, static_model.point_count * 3 * sizeof(GLfloat), false);
+    renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 3 * sizeof(GLfloat), false);
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
     snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path);
     model_load_ply(&dynamic_model, plypath, (v3_t){0.0, 0.0, 100.0});
     dynamic_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
-    for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+    for (int index = 0; index < dynamic_model.point_count * 3; index += 3)
     {
 	bool leaf;
 	octree_insert_fast(
 	    &dynamic_octree,
 	    0,
-	    index / 4,
+	    index / 3,
 	    (v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
 	    &leaf);
     }
 
     // uplaod dynamic model
 
-    renderconn_alloc_normals(&rc, dynamic_model.normals, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
-    renderconn_alloc_colors(&rc, dynamic_model.colors, dynamic_model.point_count * 4 * sizeof(GLfloat), true);
+    renderconn_alloc_normals(&rc, dynamic_model.normals, dynamic_model.point_count * 3 * sizeof(GLfloat), true);
+    renderconn_alloc_colors(&rc, dynamic_model.colors, dynamic_model.point_count * 3 * sizeof(GLfloat), true);
     renderconn_alloc_octree(&rc, dynamic_octree.octs, dynamic_octree.len * sizeof(octets_t), true);
 
     // upload actor to skeleton modifier
 
-    skeleconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 4 * sizeof(GLfloat));
+    skeleconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 3 * sizeof(GLfloat));
     skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
     skeleconn_update(&cc, lighta, dynamic_model.point_count);
 
@@ -424,13 +424,13 @@ bool main_loop(double time, void* userdata)
 
 	octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 0.0, 1800.0});
 
-	for (int index = 0; index < dynamic_model.point_count * 4; index += 4)
+	for (int index = 0; index < dynamic_model.point_count * 3; index += 3)
 	{
 	    bool leaf = false;
 	    octree_insert_fast_octs(
 		&dynamic_octree,
 		0,
-		index / 4,
+		index / 3,
 		&cc.octqueue[index * 3], // 48 bytes stride 12 int
 		&leaf);
 	}

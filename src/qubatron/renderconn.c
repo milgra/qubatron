@@ -339,7 +339,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
 void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    int points = size / 16;
+    int points = size / 12;
     int height = floor(points / 8192);
 
     if (height == 8192) mt_log_error("reached maximum texture size");
@@ -352,7 +352,7 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
 	glBindTexture(GL_TEXTURE_2D, rc->nrm2_tex);
 
 	glUniform1i(rc->sha.uni_loc[9], 10);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
     else
     {
@@ -360,18 +360,18 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
 	glBindTexture(GL_TEXTURE_2D, rc->nrm1_tex);
 
 	glUniform1i(rc->sha.uni_loc[8], 9);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
 
     mt_log_debug("uploaded normals dyn %i", dynamic);
     GLfloat* arr = data;
-    for (int i = 0; i < 12; i += 4)
+    for (int i = 0; i < 12; i += 3)
 	mt_log_debug("%f %f %f %f", arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
 }
 
 void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
 {
-    int points = size / 16;
+    int points = size / 12;
     int height = floor(points / 8192);
 
     if (height == 8192) mt_log_error("reached maximum texture size");
@@ -384,7 +384,7 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
 	glBindTexture(GL_TEXTURE_2D, rc->col2_tex);
 
 	glUniform1i(rc->sha.uni_loc[7], 8);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
     else
     {
@@ -392,12 +392,12 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
 	glBindTexture(GL_TEXTURE_2D, rc->col1_tex);
 
 	glUniform1i(rc->sha.uni_loc[6], 7);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGBA, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
 
     mt_log_debug("uploaded colors dyn %i", dynamic);
     GLfloat* arr = data;
-    for (int i = 0; i < 12; i += 4)
+    for (int i = 0; i < 12; i += 3)
 	mt_log_debug("%f %f %f %f", arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
 }
 

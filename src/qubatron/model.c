@@ -67,14 +67,12 @@ static int model_vertex_cb(p_ply_argument argument)
 	model->normals[model->index]     = nx;
 	model->normals[model->index + 1] = nz;
 	model->normals[model->index + 2] = ny;
-	model->normals[model->index + 3] = 0.0;
 
 	model->colors[model->index]     = cx / 255.0;
 	model->colors[model->index + 1] = cy / 255.0;
 	model->colors[model->index + 2] = cz / 255.0;
-	model->colors[model->index + 3] = 1.0;
 
-	model->index += 4;
+	model->index += 3;
 
 	model->ind = -1;
 
@@ -157,9 +155,9 @@ void model_load_ply(model_t* model, char* path, v3_t offset)
 
     mt_log_debug("cloud point count : %lu", model->point_count);
 
-    model->vertexes = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
-    model->normals  = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
-    model->colors   = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+    model->vertexes = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 3, NULL, NULL);
+    model->normals  = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 3, NULL, NULL);
+    model->colors   = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 3, NULL, NULL);
 
     if (!ply_read(ply)) mt_log_debug("PLY read error");
     ply_close(ply);
@@ -208,16 +206,16 @@ void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color)
     if (model->point_count == 0)
     {
 	model->point_count = 1000;
-	model->vertexes    = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
-	model->normals     = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
-	model->colors      = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 4, NULL, NULL);
+	model->vertexes    = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 3, NULL, NULL);
+	model->normals     = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 3, NULL, NULL);
+	model->colors      = mt_memory_alloc(sizeof(GLfloat) * model->point_count * 3, NULL, NULL);
     }
-    else if (model->index + 4 > model->point_count - 1)
+    else if (model->index + 3 > model->point_count - 1)
     {
 	model->point_count *= 2;
-	model->vertexes = mt_memory_realloc(model->vertexes, sizeof(GLfloat) * model->point_count * 4);
-	model->normals  = mt_memory_realloc(model->normals, sizeof(GLfloat) * model->point_count * 4);
-	model->colors   = mt_memory_realloc(model->colors, sizeof(GLfloat) * model->point_count * 4);
+	model->vertexes = mt_memory_realloc(model->vertexes, sizeof(GLfloat) * model->point_count * 3);
+	model->normals  = mt_memory_realloc(model->normals, sizeof(GLfloat) * model->point_count * 3);
+	model->colors   = mt_memory_realloc(model->colors, sizeof(GLfloat) * model->point_count * 3);
     }
 
     model->vertexes[model->index]     = vertex.x;
@@ -227,14 +225,12 @@ void model_add_point(model_t* model, v3_t vertex, v3_t normal, v4_t color)
     model->normals[model->index]     = normal.x;
     model->normals[model->index + 1] = normal.y;
     model->normals[model->index + 2] = normal.z;
-    model->normals[model->index + 3] = 0.0;
 
     model->colors[model->index]     = color.x;
     model->colors[model->index + 1] = color.y;
     model->colors[model->index + 2] = color.z;
-    model->colors[model->index + 3] = color.w;
 
-    model->index += 4;
+    model->index += 3;
 }
 
 void model_delete(model_t* model)
