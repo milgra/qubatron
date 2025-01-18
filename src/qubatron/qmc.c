@@ -45,13 +45,13 @@ model_vertex_cb(p_ply_argument argument)
 
     ply_get_argument_user_data(argument, NULL, &eol);
 
-    if (ind == 0) px = (ply_get_argument_value(argument) - offx);
-    if (ind == 1) pz = (ply_get_argument_value(argument) - offy);
-    if (ind == 2) py = (ply_get_argument_value(argument) - offz);
+    if (ind == 0) px = (ply_get_argument_value(argument));
+    if (ind == 1) pz = (ply_get_argument_value(argument));
+    if (ind == 2) py = (ply_get_argument_value(argument));
 
-    if (ind == 3) cx = ply_get_argument_value(argument);
-    if (ind == 4) cy = ply_get_argument_value(argument);
-    if (ind == 5) cz = ply_get_argument_value(argument);
+    if (ind == 3) cx = ply_get_argument_value(argument) / 255.0;
+    if (ind == 4) cy = ply_get_argument_value(argument) / 255.0;
+    if (ind == 5) cz = ply_get_argument_value(argument) / 255.0;
 
     if (ind == 6) nx = ply_get_argument_value(argument);
     if (ind == 7) ny = ply_get_argument_value(argument);
@@ -67,10 +67,20 @@ model_vertex_cb(p_ply_argument argument)
 	    yi > 0 && yi < division &&
 	    zi > 0 && zi < division)
 	{
+	    px -= offx;
+	    py -= offy;
+	    pz -= offz;
+
+	    // TODO remove this, use positive Z instead
+
+	    xi = floor(px / precision);
+	    yi = floor(py / precision);
+	    zi = floor(pz / precision);
+
 	    point_t point = {
 		.point  = (v3_t){px, py, pz},
 		.color  = (v3_t){cx, cy, cz},
-		.normal = (v3_t){nx, ny, nz},
+		.normal = (v3_t){nx, nz, ny},
 		.index  = (v3_t){xi, yi, zi}};
 
 	    /* printf("cx %f cy %f cz %f xi %f yi %f zi %f\n", cx, cy, cz, point.index.x, point.index.y, point.index.z); */
@@ -216,7 +226,7 @@ int main(int argc, char* argv[])
     char plypath[PATH_MAX];
     snprintf(plypath, PATH_MAX, "%s/%s", cwd, input);
 
-    printf("size %i\nlevels %i\ndivisions %i\nprecision %f\ninput path %s\n", size, levels, division, precision, plypath);
+    printf("size %i\nlevels %i\ndivisions %i\nprecision %f\ninput path %s\noffx %i\noffy %i\noffz %i\n", size, levels, division, precision, plypath, offx, offy, offz);
 
     p_ply ply = ply_open(plypath, NULL, 0, NULL);
 
@@ -239,6 +249,12 @@ int main(int argc, char* argv[])
 
     if (!ply_read(ply)) printf("PLY read error\n");
     ply_close(ply);
+
+    printf(
+	"minpx %f\nmaxpx %f\nminpy %f\nmaxpy %f\nminpz %f\nmaxpz %f\n",
+	minpx, maxpx,
+	minpy, maxpy,
+	minpz, maxpz);
 
     printf("points count %li out of bounds point dropped %i\n", pointi, dropped_count);
 
@@ -270,12 +286,6 @@ int main(int argc, char* argv[])
     }
 
     printf("compacted point count %li dropped count %li ratio %f\n", npi, pointi - npi, (float) npi / (float) pointi);
-
-    printf(
-	"minpx %f\nmaxpx %f\nminpy %f\nmaxpy %f\nminpz %f\nmaxpz %f\n",
-	minpx, maxpx,
-	minpy, maxpy,
-	minpz, maxpz);
 
     printf("writing data\n");
 

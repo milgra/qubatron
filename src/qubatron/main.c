@@ -197,18 +197,19 @@ void main_init()
     /* } */
 #endif
 
-    /* char pntpath[PATH_MAX]; */
-    /* char nrmpath[PATH_MAX]; */
-    /* char colpath[PATH_MAX]; */
-    /* char* scenepath = "abandoned1.ply"; */
-    /* snprintf(pntpath, PATH_MAX, "%s/%s.pnt", base_path, scenepath); */
-    /* snprintf(nrmpath, PATH_MAX, "%s/%s.nrm", base_path, scenepath); */
-    /* snprintf(colpath, PATH_MAX, "%s/%s.col", base_path, scenepath); */
-    /* model_load_flat(&static_model, pntpath, nrmpath, colpath); */
+    char  pntpath[PATH_MAX];
+    char  nrmpath[PATH_MAX];
+    char  colpath[PATH_MAX];
+    char* scenepath = "abandoned.ply";
+    snprintf(pntpath, PATH_MAX, "%s/res/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%s/res/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%s/res/%s.col", base_path, scenepath);
+    model_load_flat(&static_model, pntpath, colpath, nrmpath);
 
     char plypath[PATH_MAX];
-    snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path);
-    model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0});
+    /* snprintf(plypath, PATH_MAX, "%sres/abandoned1.ply", base_path); */
+    /* model_load_ply(&static_model, plypath, (v3_t){0.0, 0.0, 1620.0}); */
+
     static_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
     for (int index = 0; index < static_model.point_count * 3; index += 3)
     {
@@ -227,8 +228,15 @@ void main_init()
     renderconn_alloc_colors(&rc, static_model.colors, static_model.point_count * 3 * sizeof(GLfloat), false);
     renderconn_alloc_octree(&rc, static_octree.octs, static_octree.len * sizeof(octets_t), false);
 
-    snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path);
-    model_load_ply(&dynamic_model, plypath, (v3_t){0.0, 0.0, 100.0});
+    scenepath = "zombie.ply";
+    snprintf(pntpath, PATH_MAX, "%s/res/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%s/res/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%s/res/%s.col", base_path, scenepath);
+    model_load_flat(&dynamic_model, pntpath, colpath, nrmpath);
+
+    /* snprintf(plypath, PATH_MAX, "%sres/zombie.ply", base_path); */
+    /* model_load_ply(&dynamic_model, plypath, (v3_t){0.0, 0.0, 100.0}); */
+
     dynamic_octree = octree_create(10000, (v4_t){0.0, 1800.0, 0.0, 1800.0});
     for (int index = 0; index < dynamic_model.point_count * 3; index += 3)
     {

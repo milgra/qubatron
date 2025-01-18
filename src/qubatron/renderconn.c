@@ -364,9 +364,9 @@ void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dy
     }
 
     mt_log_debug("uploaded normals dyn %i", dynamic);
-    GLfloat* arr = data;
-    for (int i = 0; i < 12; i += 3)
-	mt_log_debug("%f %f %f %f", arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
+    /* GLfloat* arr = data; */
+    /* for (int i = 0; i < 12; i += 3) */
+    /* 	mt_log_debug("%f %f %f", arr[i], arr[i + 1], arr[i + 2]); */
 }
 
 void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
@@ -396,9 +396,9 @@ void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dyn
     }
 
     mt_log_debug("uploaded colors dyn %i", dynamic);
-    GLfloat* arr = data;
-    for (int i = 0; i < 12; i += 3)
-	mt_log_debug("%f %f %f %f", arr[i], arr[i + 1], arr[i + 2], arr[i + 3]);
+    /* GLfloat* arr = data; */
+    /* for (int i = 0; i < 12; i += 3) */
+    /* 	mt_log_debug("%f %f %f", arr[i], arr[i + 1], arr[i + 2]); */
 }
 
 void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dynamic)

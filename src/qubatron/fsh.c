@@ -14,7 +14,7 @@ uniform vec2 dimensions;
 
 // uniform lowp int levels;
 // from uniform!
-int levels = 11;
+int levels = 12;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
