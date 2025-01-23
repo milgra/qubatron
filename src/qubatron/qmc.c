@@ -46,8 +46,8 @@ model_vertex_cb(p_ply_argument argument)
     ply_get_argument_user_data(argument, NULL, &eol);
 
     if (ind == 0) px = (ply_get_argument_value(argument)) - (float) offx;
-    if (ind == 1) pz = (ply_get_argument_value(argument)) - (float) offz;
-    if (ind == 2) py = (ply_get_argument_value(argument)) - (float) offy;
+    if (ind == 1) py = (ply_get_argument_value(argument)) - (float) offy;
+    if (ind == 2) pz = (ply_get_argument_value(argument)) - (float) offz;
 
     if (ind == 3) cx = ply_get_argument_value(argument) / 255.0;
     if (ind == 4) cy = ply_get_argument_value(argument) / 255.0;
@@ -67,8 +67,6 @@ model_vertex_cb(p_ply_argument argument)
 	    yi >= 0.0 && yi < (float) division &&
 	    zi >= 0.0 && zi < (float) division)
 	{
-	    // TODO remove this, use positive Z instead
-
 	    xi = floor(px / precision);
 	    yi = floor(py / precision);
 	    zi = floor(pz / precision);

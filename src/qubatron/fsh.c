@@ -198,7 +198,7 @@ cube_trace_line(vec3 pos, vec3 dir)
     res.col.a += 0.2;
 #endif
 
-    // order side hitpoints, there are always two
+    // order side hitpoints
     if (hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
 
     // inside cube, starting isp will be pos

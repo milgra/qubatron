@@ -65,6 +65,13 @@ fs.copyfile('src/qubatron/dsh.c', 'dsh.c')
 fs.copyfile('src/qubatron/vsh_texquad.c', 'vsh_texquad.c')
 fs.copyfile('src/qubatron/fsh_texquad.c', 'fsh_texquad.c')
 
+fs.copyfile('res/abandoned.ply.col', 'abandoned.ply.col')
+fs.copyfile('res/abandoned.ply.nrm', 'abandoned.ply.nrm')
+fs.copyfile('res/abandoned.ply.pnt', 'abandoned.ply.pnt')
+fs.copyfile('res/zombie.ply.col', 'zombie.ply.col')
+fs.copyfile('res/zombie.ply.nrm', 'zombie.ply.nrm')
+fs.copyfile('res/zombie.ply.pnt', 'zombie.ply.pnt')
+
 executable(
   'qubatron',
   qubatron_sources,

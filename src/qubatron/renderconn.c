@@ -48,7 +48,7 @@ void         renderconn_upload_octree_quadruplets(renderconn_t* cc, void* data, 
 
 #if __INCLUDE_LEVEL__ == 0
 
-v3_t lightc = {420.0, 210.0, 380.0};
+v3_t lightc = {420.0, 200.0, 680.0};
 
 renderconn_t renderconn_init()
 {
