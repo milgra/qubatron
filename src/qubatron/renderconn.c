@@ -364,7 +364,7 @@ void renderconn_upload_normals(renderconn_t* rc, void* data, int width, int heig
     }
 
     if (components == 3)
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
 
     mt_log_debug("uploaded normals dyn %i width %i height %i components %i", dynamic, width, height, components);
     /* GLfloat* arr = data; */
@@ -390,7 +390,7 @@ void renderconn_upload_colors(renderconn_t* rc, void* data, int width, int heigh
     }
 
     if (components == 3)
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
 
     mt_log_debug("uploaded colors dyn %i width %i height %i components %i", dynamic, width, height, components);
     /* GLfloat* arr = data; */

@@ -197,13 +197,20 @@ void main_init()
 
     char* base_path = SDL_GetBasePath();
 
-    char  pntpath[PATH_MAX];
-    char  nrmpath[PATH_MAX];
-    char  colpath[PATH_MAX];
+    char pntpath[PATH_MAX];
+    char nrmpath[PATH_MAX];
+    char colpath[PATH_MAX];
+
     char* scenepath = "abandoned.ply";
     snprintf(pntpath, PATH_MAX, "%s/%s.pnt", base_path, scenepath);
     snprintf(nrmpath, PATH_MAX, "%s/%s.nrm", base_path, scenepath);
     snprintf(colpath, PATH_MAX, "%s/%s.col", base_path, scenepath);
+    #ifdef EMSCRIPTEN
+    snprintf(pntpath, PATH_MAX, "%s/res/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%s/res/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%s/res/%s.col", base_path, scenepath);
+    #endif
+
     model_load_flat(&static_model, pntpath, colpath, nrmpath);
 
     static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0});
@@ -243,6 +250,11 @@ void main_init()
     snprintf(pntpath, PATH_MAX, "%s/%s.pnt", base_path, scenepath);
     snprintf(nrmpath, PATH_MAX, "%s/%s.nrm", base_path, scenepath);
     snprintf(colpath, PATH_MAX, "%s/%s.col", base_path, scenepath);
+    #ifdef EMSCRIPTEN
+    snprintf(pntpath, PATH_MAX, "%s/res/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%s/res/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%s/res/%s.col", base_path, scenepath);
+    #endif
     model_load_flat(&dynamic_model, pntpath, colpath, nrmpath);
 
     dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0});
