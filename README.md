@@ -83,7 +83,6 @@ Todo :
 
 - webgl fencing
 - shotgun wall/figure deformation
-- eger/kamera egyszerre mozogjon
 - ik skeleton/mass point engine
 - head flickering
 - x/y/z plane shadow error

@@ -32,9 +32,9 @@ float   scale  = 1.0;
 int32_t width  = 1200;
 int32_t height = 800;
 
-uint32_t frames     = 0;
-uint32_t timestamp  = 0;
-uint32_t start_time = 0;
+uint32_t frames    = 0;
+uint32_t timestamp = 0;
+uint32_t prevticks = 0;
 
 SDL_Window*   window;
 SDL_GLContext context;
@@ -84,8 +84,8 @@ void main_init()
     // opengl init
 
 #ifndef EMSCRIPTEN
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
+    /* glEnable(GL_DEBUG_OUTPUT); */
+    /* glDebugMessageCallback(MessageCallback, 0); */
 #endif
 
     cc = skeleconn_init();
@@ -367,8 +367,8 @@ bool main_loop(double time, void* userdata)
 
 	    if (event.type == SDL_MOUSEMOTION)
 	    {
-		angle.x += event.motion.xrel / 100.0;
-		angle.y -= event.motion.yrel / 100.0;
+		angle.x += event.motion.xrel / 300.0;
+		angle.y -= event.motion.yrel / 300.0;
 
 		direction  = v3_rotatearoundy((v3_t){0.0, 0.0, -1.0}, angle.x);
 		directionX = v3_rotatearoundy((v3_t){1.0, 0.0, 0.0}, angle.x);
@@ -385,12 +385,12 @@ bool main_loop(double time, void* userdata)
 	{
 	    if (event.window.event == SDL_WINDOWEVENT_RESIZED)
 	    {
-		/* width  = event.window.data1; */
-		/* height = event.window.data2; */
+		width  = event.window.data1;
+		height = event.window.data2;
 
-		/* v2_t dimensions = {.x = width * scale, .y = height * scale}; */
+		v2_t dimensions = {.x = event.window.data1 * scale, .y = event.window.data2 * scale};
 
-		/* mt_log_debug("new dimension %f %f scale %f", dimensions.x, dimensions.y, scale); */
+		mt_log_debug("new dimension %f %f scale %f", dimensions.x, dimensions.y, scale);
 	    }
 	}
 	else if (event.type == SDL_KEYUP)
@@ -444,79 +444,81 @@ bool main_loop(double time, void* userdata)
 
     // update simulation
 
-    if (SDL_GetTicks() > start_time + 1000)
+    uint32_t ticks = SDL_GetTicks();
+    uint32_t delta = ticks - prevticks;
+
+    if (delta > 16)
     {
-	mt_log_debug("fps : %u", frames);
-	frames     = 0;
-	start_time = SDL_GetTicks();
-    }
+	prevticks = ticks;
 
-    if (strafe != 0)
-    {
-	strafespeed += 0.1 * strafe;
+	if (delta > 1000) delta = 1000;
+	if (delta < 16) delta = 16;
+	float whole_step = 10.0;
+	float curr_step  = whole_step / (1000.0 / (float) delta);
 
-	if (strafespeed > 10.0) strafespeed = 10.0;
-	if (strafespeed < -10.0) strafespeed = -10.0;
-    }
-    else
-	strafespeed *= 0.9;
-
-    if (forward != 0)
-    {
-	speed += 0.1 * forward;
-
-	if (speed > 10.0) speed = 10.0;
-	if (speed < -10.0) speed = -10.0;
-    }
-    else
-	speed *= 0.9;
-
-    if (strafespeed > 0.0001 || strafespeed < -0.0001)
-    {
-	v3_t curr_speed = v3_scale(directionX, -strafespeed);
-	position        = v3_add(position, curr_speed);
-    }
-
-    if (speed > 0.0001 || speed < -0.0001)
-    {
-	v3_t curr_speed = v3_scale(direction, speed);
-	position        = v3_add(position, curr_speed);
-    }
-
-    if (strafespeed > 0.0001 || strafespeed < -0.0001 || speed > 0.0001 || speed < 0.0001)
-    {
-    }
-
-    lighta += 0.05;
-    if (lighta > 6.28) lighta = 0.0;
-
-    if (octtest == 0)
-    {
-	skeleconn_update(&cc, lighta, dynamic_model.point_count);
-
-	// add modified point coords by compute shader
-
-	octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0});
-
-	for (int index = 0; index < dynamic_model.point_count; index++)
+	if (strafe != 0)
 	{
-	    octree_insert_fast_octs(
-		&dynamic_octree,
-		0,
-		index,
-		&cc.octqueue[index * 12]); // 48 bytes stride 12 int
+	    strafespeed += curr_step * strafe;
+
+	    if (strafespeed > 10.0) strafespeed = 10.0;
+	    if (strafespeed < -10.0) strafespeed = -10.0;
+	}
+	else
+	    strafespeed *= 0.9;
+
+	if (forward != 0)
+	{
+	    speed += curr_step * forward;
+
+	    if (speed > 10.0) speed = 10.0;
+	    if (speed < -10.0) speed = -10.0;
+	}
+	else
+	    speed *= 0.9;
+
+	if (strafespeed > 0.0001 || strafespeed < -0.0001)
+	{
+	    v3_t curr_speed = v3_scale(directionX, -strafespeed);
+	    position        = v3_add(position, curr_speed);
 	}
 
-	renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
+	if (speed > 0.0001 || speed < -0.0001)
+	{
+	    v3_t curr_speed = v3_scale(direction, speed);
+	    position        = v3_add(position, curr_speed);
+	}
+
+	lighta += curr_step / 10.0;
+	if (lighta > 6.28) lighta = 0.0;
+
+	if (octtest == 0)
+	{
+	    skeleconn_update(&cc, lighta, dynamic_model.point_count);
+
+	    // add modified point coords by compute shader
+
+	    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0});
+
+	    for (int index = 0; index < dynamic_model.point_count; index++)
+	    {
+		octree_insert_fast_octs(
+		    &dynamic_octree,
+		    0,
+		    index,
+		    &cc.octqueue[index * 12]); // 48 bytes stride 12 int
+	    }
+
+	    renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
+	}
+
+	/* mt_time(NULL); */
+	renderconn_update(&rc, width, height, position, angle, lighta, quality);
+
+	SDL_GL_SwapWindow(window);
+	/* mt_time("Render"); */
+
+	frames++;
     }
-
-    /* mt_time(NULL); */
-    renderconn_update(&rc, width, height, position, angle, lighta, quality);
-
-    SDL_GL_SwapWindow(window);
-    /* mt_time("Render"); */
-
-    frames++;
 
     return 1;
 }
