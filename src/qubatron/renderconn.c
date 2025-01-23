@@ -40,15 +40,15 @@ typedef struct renderconn_t
 renderconn_t renderconn_init();
 
 void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality);
-void         renderconn_alloc_normals(renderconn_t* cc, void* data, size_t size, bool dynamic);
-void         renderconn_alloc_colors(renderconn_t* cc, void* data, size_t size, bool dynamic);
-void         renderconn_alloc_octree(renderconn_t* cc, void* data, size_t size, bool dynamic);
+void         renderconn_upload_normals(renderconn_t* cc, void* data, int width, int height, int components, bool dynamic);
+void         renderconn_upload_colors(renderconn_t* cc, void* data, int width, int height, int components, bool dynamic);
+void         renderconn_upload_octree_quadruplets(renderconn_t* cc, void* data, int width, int height, bool dynamic);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-v3_t lightc = {420.0, 210.0, -1100.0};
+v3_t lightc = {420.0, 210.0, 380.0};
 
 renderconn_t renderconn_init()
 {
@@ -67,7 +67,7 @@ renderconn_t renderconn_init()
     snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
 #endif
 
-    mt_log_debug("loading shaders %s %s", vshpath, fshpath);
+    mt_log_debug("loading shaders \n%s\n%s", vshpath, fshpath);
 
     char* vsh = readfile(vshpath);
     char* fsh = readfile(fshpath);
@@ -133,6 +133,7 @@ renderconn_t renderconn_init()
     inputAttrib = glGetAttribLocation(rc.sha_texquad.name, "position");
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
+
     inputAttrib = glGetAttribLocation(rc.sha_texquad.name, "texcoord");
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (const GLvoid*) 12);
@@ -232,7 +233,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glUniform3fv(rc->sha.uni_loc[1], 1, posarr);
 
-    GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
+    GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
 
     glUniform4fv(rc->sha.uni_loc[4], 1, basecubearr);
 
@@ -271,7 +272,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glClearColor(
 	0.0,
-	0.1,
+	0.05,
 	0.0,
 	1.0);
 
@@ -308,18 +309,24 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     pers              = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
+
     glUniformMatrix4fv(rc->sha_texquad.uni_loc[0], 1, 0, projection.array);
 
     glBindVertexArray(rc->vao_texquad);
 
-    /* glActiveTexture(GL_TEXTURE0 + 0); */
+    glActiveTexture(GL_TEXTURE0 + 0);
 
     glUniform1i(rc->sha_texquad.uni_loc[1], 0);
 
     glBindTexture(GL_TEXTURE_2D, rc->texture);
 
     GLfloat vertexes_uni[] = {
-	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, 0.0f, 0.0f, 1.0f, (float) 2048, 0.0f, 0.0f, 1.0f, 0.0f, (float) 2048, (float) 2048, 0.0f, 1.0f, 1.0f};
+	0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+	(float) 2048, 0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, (float) 2048, 0.0f, 0.0f, 1.0f,
+	0.0f, (float) 2048, 0.0f, 0.0f, 1.0f,
+	(float) 2048, 0.0f, 0.0f, 1.0f, 0.0f,
+	(float) 2048, (float) 2048, 0.0f, 1.0f, 1.0f};
 
     glBindBuffer(
 	GL_ARRAY_BUFFER,
@@ -335,101 +342,84 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 	GL_TRIANGLES,
 	0,
 	6);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void renderconn_alloc_normals(renderconn_t* rc, void* data, size_t size, bool dynamic)
+void renderconn_upload_normals(renderconn_t* rc, void* data, int width, int height, int components, bool dynamic)
 {
-    int points = size / 12;
-    int height = floor(points / 8192);
-
-    if (height == 8192) mt_log_error("reached maximum texture size");
-
     glUseProgram(rc->sha.name);
 
     if (dynamic)
     {
 	glActiveTexture(GL_TEXTURE0 + 10);
 	glBindTexture(GL_TEXTURE_2D, rc->nrm2_tex);
-
 	glUniform1i(rc->sha.uni_loc[9], 10);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
     else
     {
 	glActiveTexture(GL_TEXTURE0 + 9);
 	glBindTexture(GL_TEXTURE_2D, rc->nrm1_tex);
-
 	glUniform1i(rc->sha.uni_loc[8], 9);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
 
-    mt_log_debug("uploaded normals dyn %i", dynamic);
+    if (components == 3)
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, data);
+
+    mt_log_debug("uploaded normals dyn %i width %i height %i components %i", dynamic, width, height, components);
     /* GLfloat* arr = data; */
     /* for (int i = 0; i < 12; i += 3) */
     /* 	mt_log_debug("%f %f %f", arr[i], arr[i + 1], arr[i + 2]); */
 }
 
-void renderconn_alloc_colors(renderconn_t* rc, void* data, size_t size, bool dynamic)
+void renderconn_upload_colors(renderconn_t* rc, void* data, int width, int height, int components, bool dynamic)
 {
-    int points = size / 12;
-    int height = floor(points / 8192);
-
-    if (height == 8192) mt_log_error("reached maximum texture size");
-
     glUseProgram(rc->sha.name);
 
     if (dynamic)
     {
 	glActiveTexture(GL_TEXTURE0 + 8);
 	glBindTexture(GL_TEXTURE_2D, rc->col2_tex);
-
 	glUniform1i(rc->sha.uni_loc[7], 8);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
     else
     {
 	glActiveTexture(GL_TEXTURE0 + 7);
 	glBindTexture(GL_TEXTURE_2D, rc->col1_tex);
-
 	glUniform1i(rc->sha.uni_loc[6], 7);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 8192, height, 0, GL_RGB, GL_FLOAT, data);
     }
 
-    mt_log_debug("uploaded colors dyn %i", dynamic);
+    if (components == 3)
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, data);
+
+    mt_log_debug("uploaded colors dyn %i width %i height %i components %i", dynamic, width, height, components);
     /* GLfloat* arr = data; */
     /* for (int i = 0; i < 12; i += 3) */
     /* 	mt_log_debug("%f %f %f", arr[i], arr[i + 1], arr[i + 2]); */
 }
 
-void renderconn_alloc_octree(renderconn_t* rc, void* data, size_t size, bool dynamic)
+void renderconn_upload_octree_quadruplets(renderconn_t* rc, void* data, int width, int height, bool dynamic)
 {
-    int points = size / (4 * sizeof(GLint));
-    int height = floor(points / 8192);
-
-    if (height == 8192) mt_log_error("reached maximum texture size");
-
     glUseProgram(rc->sha.name);
 
     if (dynamic)
     {
 	glActiveTexture(GL_TEXTURE0 + 12);
 	glBindTexture(GL_TEXTURE_2D, rc->oct2_tex);
-
 	glUniform1i(rc->sha.uni_loc[11], 12);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, height, 0, GL_RGBA_INTEGER, GL_INT, data);
     }
     else
     {
 	glActiveTexture(GL_TEXTURE0 + 11);
 	glBindTexture(GL_TEXTURE_2D, rc->oct1_tex);
-
 	glUniform1i(rc->sha.uni_loc[10], 11);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, height, 0, GL_RGBA_INTEGER, GL_INT, data);
     }
 
-    /* mt_log_debug("uploaded octree dyn %i, size %lu points %i width %i height %i", size, points, dynamic, 8192, height); */
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, width, height, 0, GL_RGBA_INTEGER, GL_INT, data);
+
+    /* mt_log_debug("uploaded octree dyn %i width %i height %i", dynamic, width, height); */
     /* GLint* arr = data; */
-    /* for (int i = 0; i < 12; i += 12) */
+    /* for (int i = 0; i < 48; i += 12) */
     /* { */
     /* 	printf( */
     /* 	    "nodes : %i | %i | %i | %i | %i | %i | %i | %i index %i\n", */

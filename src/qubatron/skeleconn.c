@@ -99,7 +99,7 @@ skeleconn_t skeleconn_init()
     // create attribute for compute shader
     GLint inputAttrib = glGetAttribLocation(cc.cmp_sp, "inValue");
     glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4, 0);
+    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     // create and bind result buffer object
     glGenBuffers(1, &cc.cmp_vbo_out);
@@ -111,7 +111,6 @@ skeleconn_t skeleconn_init()
 
 void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
 {
-
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
 
@@ -122,50 +121,53 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
     GLfloat pivot_old[48] =
 	{
 	    // head
-	    54.0, 205.0, -90.0, 15.0,
-	    54.0, 170.0, -90.0, 15.0,
+	    54.0, 205.0, 20.0, 15.0,
+	    54.0, 170.0, 20.0, 15.0,
 	    // torso
-	    54.0, 170.0, -90.0, 22.0,
-	    52.0, 120.0, -90.0, 22.0,
+	    54.0, 170.0, 20.0, 22.0,
+	    52.0, 120.0, 20.0, 22.0,
 	    // right arm
-	    105.0, 170.0, -90.0, 3.0,
-	    120.0, 70.0, -90.0, 3.0,
+	    105.0, 170.0, 20.0, 3.0,
+	    120.0, 70.0, 20.0, 3.0,
 	    // left arm
-	    5.0, 170.0, -90.0, 3.0,
-	    -10.0, 70.0, -90.0, 3.0,
+	    5.0, 170.0, 20.0, 3.0,
+	    -10.0, 70.0, 20.0, 3.0,
 	    // right leg
-	    70.0, 120.0, -70.0, 6.0,
-	    100.0, -10.0, -70.0, 8.0,
+	    70.0, 120.0, 20.0, 6.0,
+	    100.0, -10.0, 20.0, 8.0,
 	    // left leg
-	    38.0, 120.0, -70.0, 6.0,
-	    8.0, -10.0, -70.0, 8.0};
+	    38.0, 120.0, 20.0, 6.0,
+	    8.0, -10.0, 20.0, 8.0};
 
     glUniform4fv(cc->oril, 12, pivot_old);
+
+    float dx = 250.0;
+    float dz = 400.0;
 
     GLfloat pivot_new[36] =
 	// head
 	{
-	    54.0 + 340.0, 205.0, -190.0 - 950.0 + sinf(lighta) * 10.0,
-	    54.0 + 340.0, 170.0, -190.0 - 950.0,
+	    54.0 + dx, 205.0, 20.0 + dz + sinf(lighta) * 10.0,
+	    54.0 + dx, 170.0, 20.0 + dz,
 	    // torso
-	    54.0 + 340.0, 170.0, -190.0 - 950.0,
-	    55.0 + 340.0, 120.0, -190.0 - 950.0 + sinf(lighta) * 2.0,
+	    54.0 + dx, 170.0, 20.0 + dz,
+	    55.0 + dx, 120.0, 20.0 + dz + sinf(lighta) * 2.0,
 	    // right arm
-	    105.0 + 340.0, 170.0, -190.0 - 950.0,
-	    120.0 + 340.0 + sinf(lighta) * 15.0, 70.0, -190.0 - 950.0 + cosf(lighta) * 15.0,
+	    105.0 + dx, 170.0, 20.0 + dz,
+	    120.0 + dx + sinf(lighta) * 15.0, 70.0, 20.0 + dz + cosf(lighta) * 15.0,
 	    // left arm
-	    5.0 + 340.0, 170.0, -190.0 - 950.0,
-	    -10.0 + 340.0 + sinf(lighta) * 15.0, 70.0, -190.0 - 950.0 + cosf(lighta) * 15.0,
+	    5.0 + dx, 170.0, 20.0 + dz,
+	    -10.0 + dx + sinf(lighta) * 15.0, 70.0, 20.0 + dz + cosf(lighta) * 15.0,
 	    // right leg
-	    70.0 + 340.0, 120.0, -170.0 - 950.0,
-	    90.0 + 340.0, -10.0, -170 - 950.0 + cosf(lighta) * 15.0,
+	    70.0 + dx, 120.0, 20.0 + dz,
+	    90.0 + dx, -10.0, 20 + dz + cosf(lighta) * 15.0,
 	    // left leg
-	    38.0 + 340.0, 120.0, -170.0 - 950.0,
-	    8.0 + 340.0, -10.0, -170.0 - 950.0 + cosf(lighta) * 15.0};
+	    38.0 + dx, 120.0, 20.0 + dz,
+	    8.0 + dx, -10.0, 20.0 + dz + cosf(lighta) * 15.0};
 
     glUniform3fv(cc->newl, 12, pivot_new);
 
-    GLfloat basecubearr[4] = {0.0, 1800.0, 0.0, 1800.0};
+    GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
     glUniform4fv(cc->cubl, 1, basecubearr);
 
     /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */

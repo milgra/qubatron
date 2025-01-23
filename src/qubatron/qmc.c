@@ -45,9 +45,9 @@ model_vertex_cb(p_ply_argument argument)
 
     ply_get_argument_user_data(argument, NULL, &eol);
 
-    if (ind == 0) px = (ply_get_argument_value(argument));
-    if (ind == 1) pz = (ply_get_argument_value(argument));
-    if (ind == 2) py = (ply_get_argument_value(argument));
+    if (ind == 0) px = (ply_get_argument_value(argument)) - (float) offx;
+    if (ind == 1) pz = (ply_get_argument_value(argument)) - (float) offz;
+    if (ind == 2) py = (ply_get_argument_value(argument)) - (float) offy;
 
     if (ind == 3) cx = ply_get_argument_value(argument) / 255.0;
     if (ind == 4) cy = ply_get_argument_value(argument) / 255.0;
@@ -63,14 +63,10 @@ model_vertex_cb(p_ply_argument argument)
 	float yi = floor(py / precision);
 	float zi = floor(pz / precision);
 
-	if (xi > 0 && xi < division &&
-	    yi > 0 && yi < division &&
-	    zi > 0 && zi < division)
+	if (xi >= 0.0 && xi < (float) division &&
+	    yi >= 0.0 && yi < (float) division &&
+	    zi >= 0.0 && zi < (float) division)
 	{
-	    px -= offx;
-	    py -= offy;
-	    pz -= offz;
-
 	    // TODO remove this, use positive Z instead
 
 	    xi = floor(px / precision);
@@ -80,7 +76,7 @@ model_vertex_cb(p_ply_argument argument)
 	    point_t point = {
 		.point  = (v3_t){px, py, pz},
 		.color  = (v3_t){cx, cy, cz},
-		.normal = (v3_t){nx, nz, ny},
+		.normal = (v3_t){nx, ny, nz},
 		.index  = (v3_t){xi, yi, zi}};
 
 	    /* printf("cx %f cy %f cz %f xi %f yi %f zi %f\n", cx, cy, cz, point.index.x, point.index.y, point.index.z); */
@@ -88,7 +84,10 @@ model_vertex_cb(p_ply_argument argument)
 	    points[pointi++] = point;
 	}
 	else
+	{
+	    printf("dropping xi %f yi %f zi %f division %f\n", xi, yi, zi, (float) division);
 	    dropped_count++;
+	}
 
 	if (cnt == 0)
 	{

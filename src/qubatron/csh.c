@@ -2,7 +2,7 @@
 
 precision highp float;
 
-in vec4        inValue;
+in vec3        inValue;
 flat out ivec4 oct14;
 flat out ivec4 oct54;
 flat out ivec4 oct94;
@@ -18,6 +18,9 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
+
+// !!! uniform!!!
+int levels = 11;
 
 // A line point 0
 // B line point 1
@@ -66,8 +69,8 @@ void main()
 
     vec3  corner_points[12];
     float corner_ratios[12];
-    int   corner_count = 0;
-    vec3  corner_center;
+    int   corner_count  = 0;
+    vec3  corner_center = inValue;
 
     // go through skeleton point pairs
 
@@ -75,8 +78,8 @@ void main()
     {
 	// TODO convert cover shape to capsule, ellipse is too wide
 
-	vec3 fpd1 = inValue.xyz - fpori[i].xyz;      // ellipse focus point dir vector 1
-	vec3 fpd2 = inValue.xyz - fpori[i + 1].xyz;  // ellips efocus point dir vector 2
+	vec3 fpd1 = inValue - fpori[i].xyz;          // ellipse focus point dir vector 1
+	vec3 fpd2 = inValue - fpori[i + 1].xyz;      // ellips efocus point dir vector 2
 	vec3 bone = fpori[i + 1].xyz - fpori[i].xyz; // bone vector
 
 	float orad = length(bone) + fpori[i].w;
@@ -91,7 +94,7 @@ void main()
 	    rat = max(1.0, rat) - 1.0;
 	    rat = mix(1.0, 0.0, rat / 0.3);
 
-	    vec3 oldd0 = inValue.xyz - fpori[i].xyz;
+	    vec3 oldd0 = inValue - fpori[i].xyz;
 	    vec3 oldb0 = normalize(fpori[i + 1].xyz - fpori[i].xyz);
 	    vec3 newb0 = normalize(fpnew[i + 1] - fpnew[i]);
 
@@ -114,6 +117,8 @@ void main()
 	}
     }
 
+    // calculate finel position of vertex
+
     vec3 pnt = corner_center;
 
     for (int i = 0; i < corner_count; i++)
@@ -124,7 +129,6 @@ void main()
 
     //  calculate out octets
 
-    int  levels = 12;
     int  octets[12];
     vec4 cube = basecube;
 
@@ -136,10 +140,10 @@ void main()
 
 	int octet = int(floor(pnt.x / size)) % 2;
 	int yi    = int(floor(pnt.y / size)) % 2;
-	int zi    = int(floor(-1.0 * pnt.z / size)) % 2;
+	int zi    = int(floor(pnt.z / size)) % 2;
 
 	if (yi == 0) octet += 2;
-	if (zi == 1) octet += 4;
+	if (zi == 0) octet += 4;
 
 	cube = vec4(
 	    cube.x + xsft[octet] * size,

@@ -1,5 +1,5 @@
 #version 300 es
-// #define OCTTEST 1
+/* #define OCTTEST 1 */
 
 precision mediump float;
 
@@ -14,7 +14,7 @@ uniform vec2 dimensions;
 
 // uniform lowp int levels;
 // from uniform!
-int levels = 12;
+int levels = 11;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
@@ -188,8 +188,15 @@ cube_trace_line(vec3 pos, vec3 dir)
     if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
 	hitp[hitc++] = act;
 
+    // we don't deal with the outside world
+    if (hitc < 2) discard;
+
     // one hitp have to be in front of the camera
     if (hitp[0].w < 0.0 && hitp[1].w < 0.0) discard;
+
+#ifdef OCTTEST
+    res.col.a += 0.2;
+#endif
 
     // order side hitpoints, there are always two
     if (hitp[1].w < hitp[0].w) hitp[0] = hitp[1];
@@ -306,6 +313,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 		// add to isps if there are subnodes in current cube
 		if (socti > 0 || docti > 0)
 		{
+#ifdef OCTTEST
+		    res.col.a += 0.2;
+#endif
 		    int ind               = stck[level].ispsi;
 		    int len               = ind & 0x0F;
 		    stck[level].octs[len] = oct;
@@ -322,10 +332,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	if (cur_len > 0)
 	{
-#ifdef OCTTEST
-	    res.col.a += 0.2;
-#endif
-
 	    int  nxt_ind = (stck[level].ispsi >> 4) & 7;
 	    vec4 nxt_isp = stck[level].isps[nxt_ind];
 	    int  nxt_oct = stck[level].octs[nxt_ind];
@@ -367,6 +373,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	}
     }
 
+    res.col = vec4(0.0, 0.0, 1.0, 1.0);
     return res;
 }
 
@@ -412,7 +419,7 @@ void main()
     if (res.isp.w > 0.0)
     {
 	/* show normals for debug SWITCHABLE */
-	/* fragColor = vec4(abs(result_nrm.x), abs(result_nrm.y), abs(result_nrm.z), 1.0); */
+	/* col = vec4(abs(res.nrm.x), abs(res.nrm.y), abs(res.nrm.z), 1.0); */
 
 	/* shadows, test against light SWITCHABLE */
 	vec3 lvec = res.isp.xyz - light;
@@ -437,9 +444,11 @@ void main()
 	/* yellowish color, SWITCHABLE */
 	col.xyz *= 0.8;
 	col.z *= 0.4;
-	if (camangle < 0.02)
-	    col = vec4(1.0, 1.0, 1.0, 1.0);
     }
+
+    if (camangle < 0.02)
+	col = vec4(1.0, 1.0, 1.0, 1.0);
+
 #endif
 
     fragColor = col;
