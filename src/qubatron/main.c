@@ -604,7 +604,11 @@ int main(int argc, char* argv[])
 	    SDL_WINDOWPOS_CENTERED,
 	    width,
 	    height,
-	    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+	    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN |
+#ifndef EMSCRIPTEN
+		SDL_WINDOW_ALLOW_HIGHDPI |
+#endif
+		SDL_WINDOW_RESIZABLE);
 
 	if (window != NULL)
 	{

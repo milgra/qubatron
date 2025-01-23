@@ -14,10 +14,8 @@
 div.emscripten { text-align: center; }
 div.emscripten_border { border: 1px solid black; }
 /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-#canvas { border: 0px none;
-	  height: 600px;
-	  width: 800px;
-	  background-color: black; }
+canvas.emscripten { width: 1200px; height: 800px; border: 0px none; background-color: black; }
+
 #emscripten_logo {
   display: inline-block;
   margin: 0;
@@ -125,7 +123,7 @@ div.emscripten_border { border: 1px solid black; }
     <div class="emscripten_border">
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
-    <textarea id="output" rows="8"></textarea>
+    <!-- <textarea id="output" rows="8"></textarea> -->
 
     <script type='text/javascript'>
       var statusElement = document.getElementById('status');
@@ -157,7 +155,7 @@ div.emscripten_border { border: 1px solid black; }
           // application robust, you may want to override this behavior before shipping!
           // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
           canvas.addEventListener("webglcontextlost", (e) => { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-	    
+
           return canvas;
         })(),
         setStatus: (text) => {
@@ -197,7 +195,6 @@ div.emscripten_border { border: 1px solid black; }
           if (text) console.error('[post-exception status] ' + text);
         };
       };
-
     </script>
     <script async type="text/javascript" src="qubatron.js"></script>
   </body>
