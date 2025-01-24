@@ -11,10 +11,7 @@ uniform vec3 angle_in;
 uniform vec3 light;
 uniform vec4 basecube;
 uniform vec2 dimensions;
-
-// uniform lowp int levels;
-// from uniform!
-int levels = 11;
+uniform int  maxlevel;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
@@ -212,7 +209,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	tlf = stck[level].cube;
 
 	// return if we reached bottom
-	if (level == levels)
+	if (level == maxlevel)
 	{
 	    res.isp = stck[level].isps[0];
 	    res.tlf = tlf;
@@ -336,11 +333,12 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    vec4 nxt_isp = stck[level].isps[nxt_ind];
 	    int  nxt_oct = stck[level].octs[nxt_ind];
 
-	    vec4 ncube = vec4(
-		tlf.x += xsft[nxt_oct] * tlf.w / 2.0,
-		tlf.y -= ysft[nxt_oct] * tlf.w / 2.0,
-		tlf.z -= zsft[nxt_oct] * tlf.w / 2.0,
-		tlf.w / 2.0);
+	    float halfs = tlf.w / 2.0;
+	    vec4  ncube = vec4(
+                tlf.x += xsft[nxt_oct] * halfs,
+                tlf.y -= ysft[nxt_oct] * halfs,
+                tlf.z -= zsft[nxt_oct] * halfs,
+                halfs);
 
 	    nxt_ind++;
 	    cur_len--;
@@ -355,12 +353,10 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    level += 1;
 
 	    // reset containers for the next level
-	    stck[level].cube  = ncube;
-	    stck[level].ispsi = 0;
-	    stck[level].socti = socti;
-	    stck[level].docti = docti;
-	    /* stck[level].socti   = scubeo[nxt_oct]; */
-	    /* stck[level].docti   = dcubeo[nxt_oct]; */
+	    stck[level].cube    = ncube;
+	    stck[level].ispsi   = 0;
+	    stck[level].socti   = socti;
+	    stck[level].docti   = docti;
 	    stck[level].isps[0] = nxt_isp;
 	}
 	else
@@ -373,7 +369,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 	}
     }
 
-    res.col = vec4(0.0, 0.0, 1.0, 1.0);
     return res;
 }
 

@@ -39,7 +39,7 @@ typedef struct renderconn_t
 
 renderconn_t renderconn_init();
 
-void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality);
+void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
 void         renderconn_upload_normals(renderconn_t* cc, void* data, int width, int height, int components, bool dynamic);
 void         renderconn_upload_colors(renderconn_t* cc, void* data, int width, int height, int components, bool dynamic);
 void         renderconn_upload_octree_quadruplets(renderconn_t* cc, void* data, int width, int height, bool dynamic);
@@ -78,7 +78,7 @@ renderconn_t renderconn_init()
 	1,
 	((const char*[]){"position"}),
 	13,
-	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d", "octtest"}));
+	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d", "maxlevel"}));
 
     free(vsh);
     free(fsh);
@@ -201,7 +201,7 @@ renderconn_t renderconn_init()
     return rc;
 }
 
-void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality)
+void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel)
 {
 
     // first render scene to texture
@@ -211,6 +211,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glBindFramebuffer(
 	GL_FRAMEBUFFER,
 	rc->framebuffer);
+
+    glUniform1i(rc->sha.uni_loc[12], maxlevel);
 
     matrix4array_t projection = {0};
 

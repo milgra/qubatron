@@ -38,8 +38,9 @@ uint32_t prevticks = 0;
 SDL_Window*   window;
 SDL_GLContext context;
 
-int strafe  = 0;
-int forward = 0;
+int strafe   = 0;
+int forward  = 0;
+int maxlevel = 11;
 
 float anglex      = 0.0;
 float speed       = 0.0;
@@ -83,8 +84,8 @@ void main_init()
     // opengl init
 
 #ifndef EMSCRIPTEN
-    /* glEnable(GL_DEBUG_OUTPUT); */
-    /* glDebugMessageCallback(MessageCallback, 0); */
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(MessageCallback, 0);
 #endif
 
     cc = skeleconn_init();
@@ -118,7 +119,7 @@ void main_init()
 	1.0, 1.0, 1.0};
 
     // !!! it works only with x 0 first
-    static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0});
+    static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
 
     for (int index = 0; index < point_count * 3; index += 3)
     {
@@ -151,7 +152,7 @@ void main_init()
 
     // init dynamic model
 
-    dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0});
+    dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
     renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
 
     // set rendering mode to octtest
@@ -212,7 +213,7 @@ void main_init()
 
     model_load_flat(&static_model, pntpath, colpath, nrmpath);
 
-    static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0});
+    static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
     octets_t pathf;
     octets_t pathl;
     for (int index = 0; index < static_model.point_count * 3; index += 3)
@@ -256,7 +257,7 @@ void main_init()
     #endif
     model_load_flat(&dynamic_model, pntpath, colpath, nrmpath);
 
-    dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0});
+    dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
     for (int index = 0; index < dynamic_model.point_count * 3; index += 3)
     {
 	octets_t path =
@@ -511,7 +512,7 @@ bool main_loop(double time, void* userdata)
 	}
 
 	/* mt_time(NULL); */
-	renderconn_update(&rc, width, height, position, angle, lighta, quality);
+	renderconn_update(&rc, width, height, position, angle, lighta, quality, maxlevel);
 
 	SDL_GL_SwapWindow(window);
 	/* mt_time("Render"); */

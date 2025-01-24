@@ -19,13 +19,13 @@ typedef struct octree_t
     octets_t* octs;
     size_t    size;
     size_t    len;
-    size_t    leaves;
 
     int txwth;
     int txhth;
+    int levels;
 } octree_t;
 
-octree_t    octree_create(v4_t base);
+octree_t    octree_create(v4_t base, int maxlevel);
 void        octree_delete(octree_t* octr);
 void        octree_reset(octree_t* octr, v4_t base);
 octets_t    octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pnt);
@@ -46,22 +46,18 @@ static const float xsizes[8] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
 static const float ysizes[8] = {0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0};
 static const float zsizes[8] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0};
 
-int octree_levels = 11;
-
-octree_t octree_create(v4_t base)
+octree_t octree_create(v4_t base, int maxlevel)
 {
     octree_t octr;
+    octr.basecube = base;
+    octr.levels   = maxlevel;
     octr.txwth    = 8192;
     octr.txhth    = 1;
     octr.size     = 8192 / 3;
     octr.octs     = mt_memory_calloc(sizeof(octets_t) * octr.size, NULL, NULL);
-    octr.len      = 0;
-    octr.leaves   = 0;
-    octr.basecube = base;
 
     octr.octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
-
-    octr.len = 1;
+    octr.len     = 1;
 
     return octr;
 }
@@ -74,23 +70,18 @@ void octree_delete(octree_t* octr)
 void octree_reset(octree_t* octr, v4_t base)
 {
     octr->len     = 0;
-    octr->leaves  = 0;
     octr->octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
     octr->len = 1;
 }
 
-/* inserts new cube for a point creating the intermediate octree */
-
-octets_t octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pnt)
+octets_t octree_insert_fast(octree_t* octr, size_t index, size_t orind, v3_t pnt)
 {
     v4_t     cube   = octr->basecube;
     octets_t result = {0};
 
-    for (int level = 0; level < octree_levels; level++)
+    for (int level = 0; level < octr->levels; level++)
     {
-	// get octet index
-
 	float size = cube.w / 2.0;
 
 	int octet = (int) floor(pnt.x / size) % 2;
@@ -100,14 +91,12 @@ octets_t octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pn
 	if (yi == 0) octet += 2;
 	if (zi == 0) octet += 4;
 
-	/* printf("pnt %f %f %f level %i size %f octet %i\n", pnt.x, pnt.y, pnt.z, level, size, octet); */
-
-	if (octr->octs[arrind].oct[octet] == 0)
+	if (octr->octs[index].oct[octet] == 0)
 	{
 	    // store subnode in array
 
-	    octr->octs[arrind].oct[octet] = octr->len;
-	    octr->octs[octr->len++]       = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
+	    octr->octs[index].oct[octet] = octr->len;
+	    octr->octs[octr->len++]      = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
 
 	    // resize array if needed
 
@@ -119,11 +108,6 @@ octets_t octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pn
 		if (octr->octs == NULL) mt_log_debug("not enough memory");
 		mt_log_debug("octree array size %lu ", octr->size * sizeof(octets_t));
 	    }
-
-	    // zero out dirt if we octree was reset before
-	    /* octr->octs[octr->len + 1] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}}; */
-
-	    if (level == octree_levels - 1) octr->leaves++;
 	}
 
 	cube = (v4_t){
@@ -134,7 +118,7 @@ octets_t octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pn
 
 	// increase index and length
 
-	arrind = octr->octs[arrind].oct[octet];
+	index = octr->octs[index].oct[octet];
 
 	// store debug info
 
@@ -144,22 +128,18 @@ octets_t octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pn
     return result;
 }
 
-void octree_insert_fast_octs(octree_t* octr, size_t arrind, size_t orind, int* octs)
+void octree_insert_fast_octs(octree_t* octr, size_t index, size_t orind, int* octs)
 {
-    /* printf("adding %i %i %i\n", octs[0], octs[1], octs[2]); */
-
-    for (int level = 0; level < octree_levels; level++)
+    for (int level = 0; level < octr->levels; level++)
     {
 	int octet = octs[level];
 
-	/* printf("level %i arrind %i octet %i length %i size %i\n", level, arrind, octet, octr->len, octr->size); */
-
-	if (octr->octs[arrind].oct[octet] == 0)
+	if (octr->octs[index].oct[octet] == 0)
 	{
 	    // store subnode in array
 
-	    octr->octs[arrind].oct[octet] = octr->len;
-	    octr->octs[octr->len++]       = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
+	    octr->octs[index].oct[octet] = octr->len;
+	    octr->octs[octr->len++]      = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
 
 	    // resize array if needed
 
@@ -171,16 +151,11 @@ void octree_insert_fast_octs(octree_t* octr, size_t arrind, size_t orind, int* o
 		if (octr->octs == NULL)
 		    mt_log_debug("not enough memory");
 	    }
-
-	    // zero out dirt if we octree was reset before
-	    /* octr->octs[octr->len + 1] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}}; */
-
-	    if (level == octree_levels - 1) octr->leaves++;
 	}
 
 	// increase index and length
 
-	arrind = octr->octs[arrind].oct[octet];
+	index = octr->octs[index].oct[octet];
     }
 }
 
