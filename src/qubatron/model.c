@@ -9,7 +9,6 @@
 #include "mt_memory.c"
 #include "mt_vector_3d.c"
 #include "mt_vector_4d.c"
-#include "rply.h"
 #include <stdbool.h>
 
 typedef struct model_t

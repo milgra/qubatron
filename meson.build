@@ -32,20 +32,18 @@ qubatron_inc = include_directories(
 	'/usr/include',
 	'/usr/include/GL',
 	'/usr/include/SDL2',
-	'src/rply-1.1.4',
 	'src/qubatron',
 	'src/mt_core',
 	'src/mt_math')
 
-qubatron_sources = ['src/rply-1.1.4/rply.c',
-	       'src/qubatron/main.c',
+qubatron_sources = [
+	       'src/qubatron/qubatron.c',
 	       'src/qubatron/model.c',
 	       'src/qubatron/octree.c',
 	       'src/qubatron/readfile.c',
 	       'src/qubatron/skeleconn.c',
 	       'src/qubatron/renderconn.c',
-	       'src/qubatron/ku_gl_shader.c',
-	       'src/qubatron/ku_gl_floatbuffer.c',
+	       'src/qubatron/shader.c',
 	       'src/mt_core/mt_log.c',
 	       'src/mt_core/mt_time.c',
 	       'src/mt_core/mt_memory.c',
@@ -58,12 +56,12 @@ qubatron_sources = ['src/rply-1.1.4/rply.c',
 
 fs = import('fs')
 
-fs.copyfile('src/qubatron/vsh.c', 'vsh.c')
-fs.copyfile('src/qubatron/fsh.c', 'fsh.c')
-fs.copyfile('src/qubatron/csh.c', 'csh.c')
-fs.copyfile('src/qubatron/dsh.c', 'dsh.c')
-fs.copyfile('src/qubatron/vsh_texquad.c', 'vsh_texquad.c')
-fs.copyfile('src/qubatron/fsh_texquad.c', 'fsh_texquad.c')
+fs.copyfile('src/qubatron/shaders/vsh_render.c', 'vsh_render.c')
+fs.copyfile('src/qubatron/shaders/fsh_render.c', 'fsh_render.c')
+fs.copyfile('src/qubatron/shaders/vsh_skeleton.c', 'vsh_skeleton.c')
+fs.copyfile('src/qubatron/shaders/fsh_skeleton.c', 'fsh_skeleton.c')
+fs.copyfile('src/qubatron/shaders/vsh_texquad.c', 'vsh_texquad.c')
+fs.copyfile('src/qubatron/shaders/fsh_texquad.c', 'fsh_texquad.c')
 
 fs.copyfile('res/abandoned.ply.col', 'abandoned.ply.col')
 fs.copyfile('res/abandoned.ply.nrm', 'abandoned.ply.nrm')

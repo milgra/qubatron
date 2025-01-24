@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ku_gl_shader.c"
 #include "mt_memory.c"
+#include "shader.c"
 #include <GL/gl.h>
 #include <GL/glu.h>
 
@@ -53,11 +53,11 @@ skeleconn_t skeleconn_init()
     char  dshpath[PATH_MAX];
 
 #ifdef EMSCRIPTEN
-    snprintf(cshpath, PATH_MAX, "%s/src/qubatron/csh.c", base_path);
-    snprintf(dshpath, PATH_MAX, "%s/src/qubatron/dsh.c", base_path);
+    snprintf(cshpath, PATH_MAX, "%s/src/qubatron/shaders/vsh_skeleton.c", base_path);
+    snprintf(dshpath, PATH_MAX, "%s/src/qubatron/shaders/fsh_skeleton.c", base_path);
 #else
-    snprintf(cshpath, PATH_MAX, "%scsh.c", base_path);
-    snprintf(dshpath, PATH_MAX, "%sdsh.c", base_path);
+    snprintf(cshpath, PATH_MAX, "%svsh_skeleton.c", base_path);
+    snprintf(dshpath, PATH_MAX, "%sfsh_skeleton.c", base_path);
 #endif
 
     mt_log_debug("loading shaders %s %s", cshpath, dshpath);
@@ -65,8 +65,8 @@ skeleconn_t skeleconn_init()
     char* csh = readfile(cshpath);
     char* dsh = readfile(dshpath);
 
-    GLuint cmp_vsh = ku_gl_shader_compile(GL_VERTEX_SHADER, csh);
-    GLuint cmp_fsh = ku_gl_shader_compile(GL_FRAGMENT_SHADER, dsh);
+    GLuint cmp_vsh = shader_compile(GL_VERTEX_SHADER, csh);
+    GLuint cmp_fsh = shader_compile(GL_FRAGMENT_SHADER, dsh);
 
     free(csh);
     free(dsh);
@@ -82,7 +82,7 @@ skeleconn_t skeleconn_init()
     glTransformFeedbackVaryings(cc.cmp_sp, 3, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
 
     // link
-    ku_gl_shader_link(cc.cmp_sp);
+    shader_link(cc.cmp_sp);
 
     cc.oril = glGetUniformLocation(cc.cmp_sp, "fpori");
     cc.newl = glGetUniformLocation(cc.cmp_sp, "fpnew");

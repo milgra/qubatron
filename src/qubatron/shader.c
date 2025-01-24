@@ -1,5 +1,5 @@
-#ifndef ku_gl_shader_h
-#define ku_gl_shader_h
+#ifndef shader_h
+#define shader_h
 
 // #include <GLES2/gl2.h>
 #include <GL/glew.h>
@@ -10,10 +10,10 @@ typedef struct _glsha_t
     GLint  uni_loc[13];
 } glsha_t;
 
-GLuint ku_gl_shader_compile(GLenum type, const GLchar* source);
-int    ku_gl_shader_link(GLuint program);
+GLuint shader_compile(GLenum type, const GLchar* source);
+int    shader_link(GLuint program);
 
-glsha_t ku_gl_shader_create(
+glsha_t shader_create(
     const char*  vertex_source,
     const char*  fragment_source,
     int          attribute_locations_length,
@@ -27,7 +27,7 @@ glsha_t ku_gl_shader_create(
 
 #include <stdio.h>
 
-GLuint ku_gl_shader_compile(GLenum type, const GLchar* source)
+GLuint shader_compile(GLenum type, const GLchar* source)
 {
     GLint  status, logLength, realLength;
     GLuint shader = 0;
@@ -61,7 +61,7 @@ GLuint ku_gl_shader_compile(GLenum type, const GLchar* source)
     return shader;
 }
 
-int ku_gl_shader_link(GLuint program)
+int shader_link(GLuint program)
 {
     GLint status, logLength, realLength;
 
@@ -81,7 +81,7 @@ int ku_gl_shader_link(GLuint program)
     return 0;
 }
 
-glsha_t ku_gl_shader_create(
+glsha_t shader_create(
     const char*  vertex_source,
     const char*  fragment_source,
     int          attribute_locations_length,
@@ -93,10 +93,10 @@ glsha_t ku_gl_shader_create(
 
     sh.name = glCreateProgram();
 
-    GLuint vertex_shader = ku_gl_shader_compile(GL_VERTEX_SHADER, vertex_source);
+    GLuint vertex_shader = shader_compile(GL_VERTEX_SHADER, vertex_source);
     if (vertex_shader == 0) printf("Failed to compile vertex shader : %s\n", vertex_source);
 
-    GLuint fragment_shader = ku_gl_shader_compile(GL_FRAGMENT_SHADER, fragment_source);
+    GLuint fragment_shader = shader_compile(GL_FRAGMENT_SHADER, fragment_source);
     if (fragment_shader == 0) printf("Failed to compile fragment shader : %s\n", fragment_source);
 
     glAttachShader(sh.name, vertex_shader);
@@ -108,7 +108,7 @@ glsha_t ku_gl_shader_create(
 	glBindAttribLocation(sh.name, index, name);
     }
 
-    int success = ku_gl_shader_link(sh.name);
+    int success = shader_link(sh.name);
 
     if (success == 1)
     {

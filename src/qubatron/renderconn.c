@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ku_gl_shader.c"
+#include "shader.c"
 #include <GL/gl.h>
 #include <GL/glu.h>
 
@@ -60,11 +60,11 @@ renderconn_t renderconn_init()
     char  fshpath[PATH_MAX];
 
 #ifdef EMSCRIPTEN
-    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/vsh.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/fsh.c", base_path);
+    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/shaders/vsh_render.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/shaders/fsh_render.c", base_path);
 #else
-    snprintf(vshpath, PATH_MAX, "%svsh.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%sfsh.c", base_path);
+    snprintf(vshpath, PATH_MAX, "%svsh_render.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%sfsh_render.c", base_path);
 #endif
 
     mt_log_debug("loading shaders \n%s\n%s", vshpath, fshpath);
@@ -72,7 +72,7 @@ renderconn_t renderconn_init()
     char* vsh = readfile(vshpath);
     char* fsh = readfile(fshpath);
 
-    rc.sha = ku_gl_shader_create(
+    rc.sha = shader_create(
 	vsh,
 	fsh,
 	1,
@@ -84,8 +84,8 @@ renderconn_t renderconn_init()
     free(fsh);
 
 #ifdef EMSCRIPTEN
-    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/vsh_texquad.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/fsh_texquad.c", base_path);
+    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/shaders/vsh_texquad.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/shaders/fsh_texquad.c", base_path);
 #else
     snprintf(vshpath, PATH_MAX, "%svsh_texquad.c", base_path);
     snprintf(fshpath, PATH_MAX, "%sfsh_texquad.c", base_path);
@@ -93,7 +93,7 @@ renderconn_t renderconn_init()
     char* vsh_texquad = readfile(vshpath);
     char* fsh_texquad = readfile(fshpath);
 
-    rc.sha_texquad = ku_gl_shader_create(
+    rc.sha_texquad = shader_create(
 	vsh_texquad,
 	fsh_texquad,
 	2,

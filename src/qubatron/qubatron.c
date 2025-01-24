@@ -7,7 +7,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "ku_gl_shader.c"
 #include "model.c"
 #include "mt_log.c"
 #include "mt_time.c"
