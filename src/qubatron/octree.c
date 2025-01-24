@@ -301,7 +301,7 @@ int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
     {
 	tlf = stck[level].cube;
 
-	// bingo, we reached bottom, return index of poin
+	// bingo, we reached bottom, return index of point
 	if (level == octr->levels) return octr->octs[stck[level].octi].oct[8];
 
 	// check subnode intersection if needed

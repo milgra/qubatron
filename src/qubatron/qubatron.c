@@ -344,7 +344,25 @@ void main_shoot()
 
     int index = octree_trace_line(&static_octree, position, direction);
 
-    mt_log_debug("SHOOT, static index %i", index);
+    v3_t pt = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
+
+    octree_reset(&static_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0});
+
+    for (int index = 0; index < static_model.point_count * 3; index += 3)
+    {
+	v3_t cp = (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]};
+
+	if (abs(cp.x - pt.x) + abs(cp.y - pt.y) + abs(cp.z - pt.z) > 20.0)
+	{
+	    octree_insert_fast(
+		&static_octree,
+		0,
+		index / 3,
+		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]});
+	}
+    }
+
+    renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
 }
 
 v4_t quat_from_axis_angle(v3_t axis, float angle)
