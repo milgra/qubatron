@@ -50,8 +50,6 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
 {
     // build up range array also ( x,y,z ranges)
 
-    mt_log_debug("loading flat model data\n%s\n%s\n%s", pntpath, colpath, nrmpath);
-
     FILE* pntfile = fopen(pntpath, "rb");
     FILE* nrmfile = fopen(nrmpath, "rb");
     FILE* colfile = fopen(colpath, "rb");
@@ -59,6 +57,8 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     fseek(pntfile, 0, SEEK_END);
     long point_count = ftell(pntfile) / sizeof(float);
     fseek(pntfile, 0, SEEK_SET);
+
+    mt_log_debug("loading flat model data\n%s\n%s\n%s, point count %lu", pntpath, colpath, nrmpath, point_count);
 
     model->point_count = point_count / 3;
     model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth);

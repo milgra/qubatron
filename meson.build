@@ -66,9 +66,11 @@ fs.copyfile('src/qubatron/shaders/fsh_texquad.c', 'fsh_texquad.c')
 fs.copyfile('res/abandoned.ply.col', 'abandoned.ply.col')
 fs.copyfile('res/abandoned.ply.nrm', 'abandoned.ply.nrm')
 fs.copyfile('res/abandoned.ply.pnt', 'abandoned.ply.pnt')
+fs.copyfile('res/abandoned.ply.rng', 'abandoned.ply.rng')
 fs.copyfile('res/zombie.ply.col', 'zombie.ply.col')
 fs.copyfile('res/zombie.ply.nrm', 'zombie.ply.nrm')
 fs.copyfile('res/zombie.ply.pnt', 'zombie.ply.pnt')
+fs.copyfile('res/zombie.ply.rng', 'zombie.ply.rng')
 
 executable(
   'qubatron',

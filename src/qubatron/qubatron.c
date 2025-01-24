@@ -47,7 +47,6 @@ float speed       = 0.0;
 float strafespeed = 0.0;
 
 v3_t angle = {0.0};
-/* v3_t position    = {50.0, 200.0, -200.0}; // zombie initial position */
 v3_t position    = {440.0, 200.0, 700.0};
 v3_t direction   = {0.0, 0.0, -1.0};
 v3_t directionX  = {-1.0, 0.0, 0.0};

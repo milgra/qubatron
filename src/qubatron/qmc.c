@@ -260,68 +260,78 @@ int main(int argc, char* argv[])
 
     printf("dropping same position points\n");
 
-    point_t* npoints = mt_memory_alloc(sizeof(point_t) * point_count, NULL, NULL);
-    size_t   npi     = 0;
-    point_t  prep;
+    size_t  npi  = 0;
+    point_t prep = {0};
 
-    for (int i = 0; i < pointi; i++)
-    {
-	if (i % 1000 == 0) printf("dropping %f\n\033[1A", (float) i / (float) pointi);
-	point_t actp = points[i];
-	if (i > 0)
-	{
-	    if (prep.index.x == actp.index.x && prep.index.y == actp.index.y && prep.index.z == actp.index.z)
-	    {
-	    }
-	    else
-		npoints[npi++] = actp;
-	}
-	else
-	    npoints[npi++] = actp;
-
-	prep = actp;
-    }
-
-    printf("compacted point count %li dropped count %li ratio %f\n", npi, pointi - npi, (float) npi / (float) pointi);
-
-    printf("writing data\n");
-
-    int   counter;
     FILE* pntfile;
     FILE* nrmfile;
     FILE* colfile;
+    FILE* rngfile;
 
     char pntpath[PATH_MAX];
     char nrmpath[PATH_MAX];
     char colpath[PATH_MAX];
+    char rngpath[PATH_MAX];
     snprintf(pntpath, PATH_MAX, "%s/%s.pnt", cwd, input);
     snprintf(nrmpath, PATH_MAX, "%s/%s.nrm", cwd, input);
     snprintf(colpath, PATH_MAX, "%s/%s.col", cwd, input);
+    snprintf(rngpath, PATH_MAX, "%s/%s.rng", cwd, input);
 
     pntfile = fopen(pntpath, "wb");
     nrmfile = fopen(nrmpath, "wb");
     colfile = fopen(colpath, "wb");
-    if (!pntfile || !nrmfile || !colfile)
+    rngfile = fopen(rngpath, "wb");
+
+    if (!pntfile || !nrmfile || !colfile || !rngfile)
     {
 	printf("Unable to open file!\n");
 	return 1;
     }
-    for (counter = 0; counter < npi; counter++)
+
+    for (int i = 0; i < pointi; i++)
     {
-	point_t actp = npoints[counter];
-	fwrite(&actp.point.x, sizeof(float), 1, pntfile);
-	fwrite(&actp.point.y, sizeof(float), 1, pntfile);
-	fwrite(&actp.point.z, sizeof(float), 1, pntfile);
-	fwrite(&actp.normal.x, sizeof(float), 1, nrmfile);
-	fwrite(&actp.normal.y, sizeof(float), 1, nrmfile);
-	fwrite(&actp.normal.z, sizeof(float), 1, nrmfile);
-	fwrite(&actp.color.x, sizeof(float), 1, colfile);
-	fwrite(&actp.color.y, sizeof(float), 1, colfile);
-	fwrite(&actp.color.z, sizeof(float), 1, colfile);
+	if (i % 1000 == 0) printf("dropping %f\n\033[1A", (float) i / (float) pointi);
+
+	point_t actp = points[i];
+
+	if (!(i > 0 && prep.index.x == actp.index.x && prep.index.y == actp.index.y && prep.index.z == actp.index.z))
+	{
+	    if (prep.index.x != actp.index.x || prep.index.y != actp.index.y)
+	    {
+		int ix = (int) actp.index.x;
+		int iy = (int) actp.index.y;
+
+		// write x y range
+
+		fwrite(&npi, sizeof(int), 1, rngfile);
+		fwrite(&ix, sizeof(int), 1, rngfile);
+		fwrite(&iy, sizeof(int), 1, rngfile);
+	    }
+
+	    // write position normal and color
+
+	    fwrite(&actp.point.x, sizeof(float), 1, pntfile);
+	    fwrite(&actp.point.y, sizeof(float), 1, pntfile);
+	    fwrite(&actp.point.z, sizeof(float), 1, pntfile);
+	    fwrite(&actp.normal.x, sizeof(float), 1, nrmfile);
+	    fwrite(&actp.normal.y, sizeof(float), 1, nrmfile);
+	    fwrite(&actp.normal.z, sizeof(float), 1, nrmfile);
+	    fwrite(&actp.color.x, sizeof(float), 1, colfile);
+	    fwrite(&actp.color.y, sizeof(float), 1, colfile);
+	    fwrite(&actp.color.z, sizeof(float), 1, colfile);
+
+	    npi++;
+	}
+
+	prep = actp;
     }
+
     fclose(pntfile);
     fclose(nrmfile);
     fclose(colfile);
+    fclose(rngfile);
+
+    printf("compacted point count %li dropped count %li ratio %f\n", npi, pointi - npi, (float) npi / (float) pointi);
 
     return 0;
 }

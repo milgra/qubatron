@@ -345,6 +345,12 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 	0,
 	6);
 
+    glEnable(GL_SCISSOR_TEST);
+    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glScissor(width / 2 - 1, height / 2 - 1, 2, 2);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
