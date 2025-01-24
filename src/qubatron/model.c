@@ -16,6 +16,7 @@ typedef struct model_t
     GLfloat* vertexes;
     GLfloat* colors;
     GLfloat* normals;
+    int*     ranges;
     long     point_count;
     long     index;
     long     ind;
@@ -31,7 +32,7 @@ typedef struct model_t
 model_t model_init();
 void    model_delete(model_t* model);
 
-void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path);
+void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path, char* range_path);
 void model_log_vertex_info(model_t* model, size_t index);
 
 #endif
@@ -46,7 +47,7 @@ model_t model_init()
     return model;
 }
 
-void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath)
+void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath, char* rngpath)
 {
     // build up range array also ( x,y,z ranges)
 
@@ -57,8 +58,6 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     fseek(pntfile, 0, SEEK_END);
     long point_count = ftell(pntfile) / sizeof(float);
     fseek(pntfile, 0, SEEK_SET);
-
-    mt_log_debug("loading flat model data\n%s\n%s\n%s, point count %lu", pntpath, colpath, nrmpath, point_count);
 
     model->point_count = point_count / 3;
     model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth);
@@ -81,6 +80,25 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     fclose(pntfile);
     fclose(nrmfile);
     fclose(colfile);
+
+    FILE* rngfile = fopen(rngpath, "rb");
+
+    if (!rngfile)
+    {
+	printf("Unable to open file!\n");
+	return;
+    }
+
+    fseek(rngfile, 0, SEEK_END);
+    long range_size = ftell(rngfile);
+    fseek(rngfile, 0, SEEK_SET);
+
+    model->ranges = mt_memory_alloc(range_size, NULL, NULL);
+    fread(model->ranges, sizeof(int), range_size / sizeof(int), rngfile);
+
+    fclose(rngfile);
+
+    mt_log_debug("loading flat model data\n%s\n%s\n%s, point count %lu range count %lu", pntpath, colpath, nrmpath, point_count, range_size / sizeof(int));
 
     /* for (int i = 0; i < 300; i += 3) */
     /* 	mt_log_debug("pt %f %f %f", model->vertexes[i], model->vertexes[i + 1], model->vertexes[i + 2]); */
