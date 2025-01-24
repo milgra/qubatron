@@ -83,8 +83,8 @@ void main_init()
     // opengl init
 
 #ifndef EMSCRIPTEN
-    glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
+    /* glEnable(GL_DEBUG_OUTPUT); */
+    /* glDebugMessageCallback(MessageCallback, 0); */
 #endif
 
     cc = skeleconn_init();
@@ -338,6 +338,15 @@ void main_free()
 {
 }
 
+void main_shoot()
+{
+    // check collosion between direction vector and static and dynamic voxels
+
+    int index = octree_trace_line(&static_octree, position, direction);
+
+    mt_log_debug("SHOOT, static index %i", index);
+}
+
 v4_t quat_from_axis_angle(v3_t axis, float angle)
 {
     v4_t  qr;
@@ -379,6 +388,11 @@ bool main_loop(double time, void* userdata)
 
 		v4_t axisquat = quat_from_axis_angle(directionX, angle.y);
 		direction     = qrot(axisquat, direction);
+	    }
+
+	    if (event.type == SDL_MOUSEBUTTONDOWN)
+	    {
+		main_shoot();
 	    }
 	}
 	else if (event.type == SDL_QUIT)

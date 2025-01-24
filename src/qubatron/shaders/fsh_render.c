@@ -49,11 +49,11 @@ struct ctlres
 struct stck_t
 {
     vec4 cube;    // cube dimensions for stack level
-    vec4 isps[4]; // is point for stack level cube
+    vec4 isps[4]; // is points for stack level cube
+    int  octs[4]; // octet numbers for isps
     int  ispsi;   // | 0 level checked | 1 isps ind0 | 2 isps ind1 | 3 isps ind2 | 4 | 5 ispsp len0 | 6 isps len1 | 7 isps len2 |
     int  socti;   // static cube octets index for stack level
     int  docti;   // dynamic cube octets index for stack level
-    int  octs[4]; // octet numbers for isps
 };
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
@@ -334,11 +334,11 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    int  nxt_oct = stck[level].octs[nxt_ind];
 
 	    float halfs = tlf.w / 2.0;
-	    vec4  ncube = vec4(
-                tlf.x += xsft[nxt_oct] * halfs,
-                tlf.y -= ysft[nxt_oct] * halfs,
-                tlf.z -= zsft[nxt_oct] * halfs,
-                halfs);
+
+	    tlf.x += xsft[nxt_oct] * halfs;
+	    tlf.y -= ysft[nxt_oct] * halfs;
+	    tlf.z -= zsft[nxt_oct] * halfs;
+	    tlf.w = halfs;
 
 	    nxt_ind++;
 	    cur_len--;
@@ -353,7 +353,7 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    level += 1;
 
 	    // reset containers for the next level
-	    stck[level].cube    = ncube;
+	    stck[level].cube    = tlf;
 	    stck[level].ispsi   = 0;
 	    stck[level].socti   = socti;
 	    stck[level].docti   = docti;
