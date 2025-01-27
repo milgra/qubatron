@@ -117,6 +117,17 @@ void main_init()
 	1.0, 1.0, 1.0,
 	1.0, 1.0, 1.0};
 
+    static_model.vertexes    = mt_memory_alloc(3 * 8192, NULL, NULL);
+    static_model.normals     = mt_memory_alloc(3 * 8192, NULL, NULL);
+    static_model.colors      = mt_memory_alloc(3 * 8192, NULL, NULL);
+    static_model.point_count = 5;
+    static_model.txwth       = 8192;
+    static_model.txhth       = (int) ceilf((float) static_model.point_count / (float) static_model.txwth);
+
+    memcpy(static_model.vertexes, points, 3 * 8192);
+    memcpy(static_model.normals, normals, 3 * 8192);
+    memcpy(static_model.colors, colors, 3 * 8192);
+
     // !!! it works only with x 0 first
     static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
 
@@ -146,7 +157,7 @@ void main_init()
     }
 
     renderconn_upload_normals(&rc, normals, 8192, 1, 3, false);
-    renderconn_upload_colors(&rc, normals, 8192, 1, 3, false);
+    renderconn_upload_colors(&rc, colors, 8192, 1, 3, false);
     renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
 
     // init dynamic model
@@ -344,6 +355,8 @@ void main_shoot()
 
     int index = octree_trace_line(&static_octree, position, direction);
 
+    mt_log_debug("shoot, index %i", index);
+
     // remove all possible points in a sphere from the octree, collect all points and modified index range
     // from the collected points create new points pushed into the wall in anti-normal direction
     // add the new points to the octree, collect modified index range
@@ -351,44 +364,31 @@ void main_shoot()
 
     v3_t pt = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
 
+    mt_log_debug("pt %f %f %f", pt.x, pt.y, pt.z);
+
     int orind  = 0;
     int octind = 0;
 
     octree_remove_point(&static_octree, pt, &orind, &octind);
 
-    int y = (octind * 3) / 8192;
-    int x = (octind * 3) - y * 8192;
+    mt_log_debug("orind %i octind %i", orind, octind);
 
-    mt_log_debug("orind %i octind %i x %i y %i", orind, octind, x, y);
+    if (octind > 0)
+    {
+	int y = (octind * 3) / 8192;
+	int x = (octind * 3) - y * 8192;
 
-    GLint octs[36] = {0};
+	mt_log_debug("orind %i octind %i x %i y %i", orind, octind, x, y);
 
-    renderconn_upload_octree_quadruplets_partial(
-	&rc,
-	octs,
-	x,
-	y,
-	3,
-	1,
-	false);
-
-    /* octree_reset(&static_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0}); */
-
-    /* for (int index = 0; index < static_model.point_count * 3; index += 3) */
-    /* { */
-    /* 	v3_t cp = (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]}; */
-
-    /* 	if (abs(cp.x - pt.x) + abs(cp.y - pt.y) + abs(cp.z - pt.z) > 20.0) */
-    /* 	{ */
-    /* 	    octree_insert_point( */
-    /* 		&static_octree, */
-    /* 		0, */
-    /* 		index / 3, */
-    /* 		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]}); */
-    /* 	} */
-    /* } */
-
-    /* renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false); */
+	renderconn_upload_octree_quadruplets_partial(
+	    &rc,
+	    static_octree.octs + octind,
+	    x,
+	    y,
+	    3,
+	    1,
+	    false);
+    }
 }
 
 v4_t quat_from_axis_angle(v3_t axis, float angle)

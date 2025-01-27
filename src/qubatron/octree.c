@@ -189,10 +189,9 @@ void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
 
 	if (level == octr->levels - 1)
 	{
-	    *orind  = octr->octs[index].oct[8];
-	    *octind = index;
-
-	    octr->octs[index] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
+	    *orind                       = octr->octs[index].oct[8];
+	    *octind                      = index;
+	    octr->octs[index].oct[octet] = 0;
 	}
 
 	index = octr->octs[index].oct[octet];
@@ -338,6 +337,7 @@ int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
     {
 	tlf = stck[level].cube;
 
+	mt_log_debug("tlf %f %f %f level %i", tlf.x, tlf.y, tlf.z, level);
 	// bingo, we reached bottom, return index of point
 	if (level == octr->levels) return octr->octs[stck[level].octi].oct[8];
 
