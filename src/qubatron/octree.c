@@ -187,22 +187,17 @@ void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
 	    cube.z - zsft[octet] * size,
 	    size};
 
+	if (level == octr->levels - 1)
+	{
+	    *orind  = octr->octs[index].oct[8];
+	    *octind = index;
+
+	    octr->octs[index] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
+	}
+
 	index = octr->octs[index].oct[octet];
 
-	if (index > 0)
-	{
-	    if (level == octr->levels - 2)
-	    {
-		*orind  = octr->octs[index].oct[8];
-		*octind = index;
-
-		// remove
-
-		octr->octs[index].oct[octet] = 0;
-	    }
-	}
-	else
-	    return;
+	if (index == 0) return;
     }
 }
 

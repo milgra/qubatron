@@ -361,9 +361,11 @@ void main_shoot()
 
     mt_log_debug("orind %i octind %i x %i y %i", orind, octind, x, y);
 
+    GLint octs[36] = {0};
+
     renderconn_upload_octree_quadruplets_partial(
 	&rc,
-	static_octree.octs,
+	octs,
 	x,
 	y,
 	3,
