@@ -28,8 +28,9 @@ typedef struct octree_t
 octree_t    octree_create(v4_t base, int maxlevel);
 void        octree_delete(octree_t* octr);
 void        octree_reset(octree_t* octr, v4_t base);
-octets_t    octree_insert_fast(octree_t* octr, size_t arrind, size_t orind, v3_t pnt);
-void        octree_insert_fast_octs(octree_t* octr, size_t arrind, size_t orind, int* octs);
+octets_t    octree_insert_point(octree_t* octr, size_t arrind, size_t orind, v3_t pnt);
+void        octree_insert_path(octree_t* octr, size_t arrind, size_t orind, int* octs);
+void        octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind);
 void        octree_log_path(octets_t o, size_t index);
 int         octree_trace_line(octree_t* octr, v3_t pos, v3_t dir);
 
@@ -80,7 +81,7 @@ void octree_reset(octree_t* octr, v4_t base)
     octr->len = 1;
 }
 
-octets_t octree_insert_fast(octree_t* octr, size_t index, size_t orind, v3_t pnt)
+octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pnt)
 {
     v4_t     cube   = octr->basecube;
     octets_t result = {0};
@@ -133,7 +134,7 @@ octets_t octree_insert_fast(octree_t* octr, size_t index, size_t orind, v3_t pnt
     return result;
 }
 
-void octree_insert_fast_octs(octree_t* octr, size_t index, size_t orind, int* octs)
+void octree_insert_path(octree_t* octr, size_t index, size_t orind, int* octs)
 {
     for (int level = 0; level < octr->levels; level++)
     {
@@ -161,6 +162,47 @@ void octree_insert_fast_octs(octree_t* octr, size_t index, size_t orind, int* oc
 	// increase index and length
 
 	index = octr->octs[index].oct[octet];
+    }
+}
+
+void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
+{
+    v4_t cube  = octr->basecube;
+    int  index = 0;
+
+    for (int level = 0; level < octr->levels; level++)
+    {
+	float size = cube.w / 2.0;
+
+	int octet = (int) floor(pnt.x / size) % 2;
+	int yi    = (int) floor(pnt.y / size) % 2;
+	int zi    = (int) floor(pnt.z / size) % 2;
+
+	if (yi == 0) octet += 2;
+	if (zi == 0) octet += 4;
+
+	cube = (v4_t){
+	    cube.x + xsft[octet] * size,
+	    cube.y - ysft[octet] * size,
+	    cube.z - zsft[octet] * size,
+	    size};
+
+	index = octr->octs[index].oct[octet];
+
+	if (index > 0)
+	{
+	    if (level == octr->levels - 2)
+	    {
+		*orind  = octr->octs[index].oct[8];
+		*octind = index;
+
+		// remove
+
+		octr->octs[index].oct[octet] = 0;
+	    }
+	}
+	else
+	    return;
     }
 }
 

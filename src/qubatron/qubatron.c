@@ -122,7 +122,7 @@ void main_init()
 
     for (int index = 0; index < point_count * 3; index += 3)
     {
-	octree_insert_fast(
+	octree_insert_point(
 	    &static_octree,
 	    0,
 	    index / 3,
@@ -221,7 +221,7 @@ void main_init()
     for (int index = 0; index < static_model.point_count * 3; index += 3)
     {
 	octets_t path =
-	    octree_insert_fast(
+	    octree_insert_point(
 		&static_octree,
 		0,
 		index / 3,
@@ -265,7 +265,7 @@ void main_init()
     for (int index = 0; index < dynamic_model.point_count * 3; index += 3)
     {
 	octets_t path =
-	    octree_insert_fast(
+	    octree_insert_point(
 		&dynamic_octree,
 		0,
 		index / 3,
@@ -320,7 +320,7 @@ void main_init()
 
     for (int index = 0; index < dynamic_model.point_count; index++)
     {
-	octree_insert_fast_octs(
+	octree_insert_path(
 	    &dynamic_octree,
 	    0,
 	    index,
@@ -351,23 +351,42 @@ void main_shoot()
 
     v3_t pt = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
 
-    octree_reset(&static_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0});
+    int orind  = 0;
+    int octind = 0;
 
-    for (int index = 0; index < static_model.point_count * 3; index += 3)
-    {
-	v3_t cp = (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]};
+    octree_remove_point(&static_octree, pt, &orind, &octind);
 
-	if (abs(cp.x - pt.x) + abs(cp.y - pt.y) + abs(cp.z - pt.z) > 20.0)
-	{
-	    octree_insert_fast(
-		&static_octree,
-		0,
-		index / 3,
-		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]});
-	}
-    }
+    int y = (octind * 3) / 8192;
+    int x = (octind * 3) - y * 8192;
 
-    renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
+    mt_log_debug("orind %i octind %i x %i y %i", orind, octind, x, y);
+
+    renderconn_upload_octree_quadruplets_partial(
+	&rc,
+	static_octree.octs,
+	x,
+	y,
+	3,
+	1,
+	false);
+
+    /* octree_reset(&static_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0}); */
+
+    /* for (int index = 0; index < static_model.point_count * 3; index += 3) */
+    /* { */
+    /* 	v3_t cp = (v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]}; */
+
+    /* 	if (abs(cp.x - pt.x) + abs(cp.y - pt.y) + abs(cp.z - pt.z) > 20.0) */
+    /* 	{ */
+    /* 	    octree_insert_point( */
+    /* 		&static_octree, */
+    /* 		0, */
+    /* 		index / 3, */
+    /* 		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]}); */
+    /* 	} */
+    /* } */
+
+    /* renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false); */
 }
 
 v4_t quat_from_axis_angle(v3_t axis, float angle)
@@ -542,7 +561,7 @@ bool main_loop(double time, void* userdata)
 
 	    for (int index = 0; index < dynamic_model.point_count; index++)
 	    {
-		octree_insert_fast_octs(
+		octree_insert_path(
 		    &dynamic_octree,
 		    0,
 		    index,
