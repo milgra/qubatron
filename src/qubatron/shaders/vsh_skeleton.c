@@ -11,6 +11,7 @@ uniform vec4 fpori[12];
 uniform vec3 fpnew[12];
 
 uniform vec4 basecube;
+uniform int  maxlevel;
 
 const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
@@ -18,9 +19,6 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
-
-// !!! uniform!!!
-int levels = 11;
 
 // A line point 0
 // B line point 1
@@ -132,7 +130,7 @@ void main()
     int  octets[12];
     vec4 cube = basecube;
 
-    for (int level = 0; level < levels; level++)
+    for (int level = 0; level < maxlevel; level++)
     {
 	// get octet index
 

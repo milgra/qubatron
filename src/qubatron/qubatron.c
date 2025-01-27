@@ -40,13 +40,13 @@ SDL_GLContext context;
 
 int strafe   = 0;
 int forward  = 0;
-int maxlevel = 11;
+int maxlevel = 12;
 
 float anglex      = 0.0;
 float speed       = 0.0;
 float strafespeed = 0.0;
 
-v3_t angle = {0.0};
+v3_t angle       = {0.0};
 v3_t position    = {440.0, 200.0, 700.0};
 v3_t direction   = {0.0, 0.0, -1.0};
 v3_t directionX  = {-1.0, 0.0, 0.0};
@@ -292,8 +292,8 @@ void main_init()
 
     skeleconn_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 3 * sizeof(GLfloat));
     skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
-    skeleconn_update(&cc, lighta, dynamic_model.point_count);
-    skeleconn_update(&cc, lighta, dynamic_model.point_count); // double run to step over double buffer
+    skeleconn_update(&cc, lighta, dynamic_model.point_count, maxlevel);
+    skeleconn_update(&cc, lighta, dynamic_model.point_count, maxlevel); // double run to step over double buffer
 
     GLint* arr = cc.octqueue;
     for (int i = 0; i < 48; i += 12)
@@ -343,6 +343,11 @@ void main_shoot()
     // check collosion between direction vector and static and dynamic voxels
 
     int index = octree_trace_line(&static_octree, position, direction);
+
+    // remove all possible points in a sphere from the octree, collect all points and modified index range
+    // from the collected points create new points pushed into the wall in anti-normal direction
+    // add the new points to the octree, collect modified index range
+    // update modified index ranges on the gpu with the new data
 
     v3_t pt = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
 
@@ -529,7 +534,7 @@ bool main_loop(double time, void* userdata)
 
 	if (octtest == 0)
 	{
-	    skeleconn_update(&cc, lighta, dynamic_model.point_count);
+	    skeleconn_update(&cc, lighta, dynamic_model.point_count, maxlevel);
 
 	    // add modified point coords by compute shader
 
@@ -573,6 +578,7 @@ int main(int argc, char* argv[])
 	"  -h, --help                          Show help message and quit.\n"
 	"  -v                                  Increase verbosity of messages, defaults to errors and warnings only.\n"
 	"  -t, --octtest                       Start with octree test scene\n"
+	"  -l, --levels                        Maximum ocree depth\n"
 	"\n";
 
     const struct option long_options[] = {
@@ -589,6 +595,7 @@ int main(int argc, char* argv[])
 	    case '?': printf("parsing option %c value: %s\n", option, optarg); break;
 	    case 'v': mt_log_inc_verbosity(); break;
 	    case 't': octtest = 1; break;
+	    case 'l': maxlevel = atoi(optarg); break;
 	    default: fprintf(stderr, "%s", usage); return EXIT_FAILURE;
 	}
     }

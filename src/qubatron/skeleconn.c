@@ -26,6 +26,7 @@ typedef struct skeleconn_t
     GLint oril;
     GLint newl;
     GLint cubl;
+    GLint maxl;
 
     GLint* octqueue;
 
@@ -33,7 +34,7 @@ typedef struct skeleconn_t
 } skeleconn_t;
 
 skeleconn_t   skeleconn_init();
-void          skeleconn_update(skeleconn_t* cc, float lighta, int model_count);
+void          skeleconn_update(skeleconn_t* cc, float lighta, int model_count, int maxlevel);
 void          skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size);
 void          skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size);
 
@@ -87,6 +88,7 @@ skeleconn_t skeleconn_init()
     cc.oril = glGetUniformLocation(cc.cmp_sp, "fpori");
     cc.newl = glGetUniformLocation(cc.cmp_sp, "fpnew");
     cc.cubl = glGetUniformLocation(cc.cmp_sp, "basecube");
+    cc.maxl = glGetUniformLocation(cc.cmp_sp, "maxlevel");
 
     // create vertex array object for vertex buffer
     glGenVertexArrays(1, &cc.cmp_vao);
@@ -109,7 +111,7 @@ skeleconn_t skeleconn_init()
     return cc;
 }
 
-void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
+void skeleconn_update(skeleconn_t* cc, float lighta, int model_count, int maxlevel)
 {
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
@@ -169,6 +171,8 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count)
 
     GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
     glUniform4fv(cc->cubl, 1, basecubearr);
+
+    glUniform1i(cc->maxl, maxlevel);
 
     /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
     /* glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in); */
