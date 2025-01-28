@@ -349,6 +349,20 @@ void main_free()
 {
 }
 
+// A line point 0
+// B line point 1
+// C point to project
+
+v3_t project_point(v3_t A, v3_t B, v3_t C)
+{
+    v3_t  AC      = v3_sub(C, A);
+    v3_t  AB      = v3_sub(B, A);
+    float dotACAB = v3_dot(AC, AB);
+    float dotABAB = v3_dot(AB, AB);
+    float dotDiv  = dotACAB / dotABAB;
+    return v3_add(A, v3_scale(AB, dotDiv));
+}
+
 void main_shoot()
 {
     // check collosion between direction vector and static and dynamic voxels
@@ -362,32 +376,141 @@ void main_shoot()
     // add the new points to the octree, collect modified index range
     // update modified index ranges on the gpu with the new data
 
-    v3_t pt = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
+    v3_t pt  = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
+    v3_t nrm = (v3_t){static_model.normals[index * 3], static_model.normals[index * 3 + 1], static_model.normals[index * 3 + 2]};
+    v3_t col = (v3_t){static_model.colors[index * 3], static_model.colors[index * 3 + 1], static_model.colors[index * 3 + 2]};
 
     mt_log_debug("pt %f %f %f", pt.x, pt.y, pt.z);
 
-    int orind  = 0;
-    int octind = 0;
+    int minind = 0;
+    int maxind = 0;
 
-    octree_remove_point(&static_octree, pt, &orind, &octind);
+    // cover all grid points inside a sphere, starting with box
 
-    mt_log_debug("orind %i octind %i", orind, octind);
+    int division = 2;
+    for (int i = 0; i < static_octree.levels; i++) division *= 2;
 
-    if (octind > 0)
+    float step = static_octree.basecube.w / (float) division;
+
+    int size = 20;
+
+    for (int cx = -size; cx < size; cx++)
     {
-	int y = (octind * 3) / 8192;
-	int x = (octind * 3) - y * 8192;
+	for (int cy = -size; cy < size; cy++)
+	{
+	    for (int cz = -size; cz < size; cz++)
+	    {
+		float dx = cx * step;
+		float dy = cy * step;
+		float dz = cz * step;
 
-	mt_log_debug("orind %i octind %i x %i y %i", orind, octind, x, y);
+		if (dx * dx + dy * dy + dz * dz < (size * step) * (size * step))
+		{
+		    int orind  = 0;
+		    int octind = 0;
+
+		    octree_remove_point(&static_octree, (v3_t){pt.x + dx, pt.y + dy, pt.z + dz}, &orind, &octind);
+
+		    if (octind > 0)
+		    {
+			if (minind == 0) minind = octind;
+			if (maxind == 0) maxind = octind;
+
+			if (octind < minind) minind = octind;
+			if (octind > maxind) maxind = octind;
+		    }
+		}
+	    }
+	}
+    }
+
+    mt_log_debug("minind %i maxind %i", minind, maxind);
+
+    if (minind > 0)
+    {
+	int sy = (minind * 3) / 8192;
+	int ey = (maxind * 3) / 8192;
+
+	int noi = minind * 3 - (minind * 3) % 8192;
+
+	GLint* data = (GLint*) static_octree.octs;
+
+	mt_log_debug("noi %i", noi);
+	mt_log_debug("sy %i ey %i", sy, ey);
 
 	renderconn_upload_octree_quadruplets_partial(
 	    &rc,
-	    static_octree.octs + octind,
-	    x,
-	    y,
-	    3,
-	    1,
+	    data + noi * 4,
+	    0,
+	    sy,
+	    8192,
+	    ey - sy + 1,
 	    false);
+
+	// hole is created, create cone
+
+	size_t len = static_octree.len;
+	size_t siz = static_octree.size;
+
+	mt_log_debug("Creating conex");
+
+	for (int cx = -size; cx < size; cx++)
+	{
+	    for (int cy = -size; cy < size; cy++)
+	    {
+		for (int cz = -size; cz < size; cz++)
+		{
+		    float dx = cx * step;
+		    float dy = cy * step;
+		    float dz = cz * step;
+
+		    v3_t ori  = v3_add(pt, v3_scale(nrm, -1.0 * size * step));
+		    v3_t cp   = (v3_t){pt.x + dx, pt.y + dy, pt.z + dz};
+		    v3_t proj = project_point(ori, v3_add(ori, nrm), cp);
+
+		    v3_t oriproj = v3_sub(proj, ori);
+		    v3_t cpproj  = v3_sub(proj, cp);
+
+		    float oriprojlen = v3_length(oriproj);
+		    float cpprojlen  = v3_length(cpproj);
+		    float enabledd   = oriprojlen;
+
+		    mt_log_debug("orilen %f cplen %f enabledd %f", oriprojlen, cpprojlen, enabledd);
+
+		    if (cpprojlen < enabledd && cpprojlen > enabledd - step && enabledd < size * step)
+		    {
+			model_add_point(&static_model, cp, nrm, (v3_t){1.0, 1.0, 1.0});
+
+			octree_insert_point(
+			    &static_octree,
+			    0,
+			    static_model.point_count - 1,
+			    cp);
+		    }
+		}
+	    }
+	}
+
+	/* sy = (len * 3) / 8192; */
+	/* ey = (siz * 3) / 8192; */
+
+	/* noi = len * 3 - (len * 3) % 8192; */
+
+	/* mt_log_debug("noi %i", noi); */
+	/* mt_log_debug("sy %i ey %i", sy, ey); */
+
+	renderconn_upload_normals(&rc, static_model.normals, static_model.txwth, static_model.txhth, static_model.comps, false);
+	renderconn_upload_colors(&rc, static_model.colors, static_model.txwth, static_model.txhth, static_model.comps, false);
+	renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
+
+	/* renderconn_upload_octree_quadruplets_partial( */
+	/*     &rc, */
+	/*     data + noi * 4, */
+	/*     0, */
+	/*     sy, */
+	/*     8192, */
+	/*     ey - sy + 1, */
+	/*     false); */
     }
 }
 

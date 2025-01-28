@@ -18,7 +18,6 @@ typedef struct model_t
     GLfloat* normals;
     int*     ranges;
     long     point_count;
-    long     index;
     long     ind;
     long     cnt;
     v3_t     offset;
@@ -31,6 +30,7 @@ typedef struct model_t
 
 model_t model_init();
 void    model_delete(model_t* model);
+void    model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color);
 
 void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path, char* range_path);
 void model_log_vertex_info(model_t* model, size_t index);
@@ -135,6 +135,40 @@ void model_log_vertex_info(model_t* model, size_t index)
 	vertex.x, vertex.y, vertex.z,
 	normal.x, normal.y, normal.z,
 	color.x, color.y, color.z);
+}
+
+void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
+{
+    /* if (model->index + 3 > model->point_count - 1) */
+    /* { */
+    /* 	model->point_count *= 2; */
+    /* 	model->vertexes = mt_memory_realloc(model->vertexes, sizeof(GLfloat) * model->point_count * 3); */
+    /* 	model->normals  = mt_memory_realloc(model->normals, sizeof(GLfloat) * model->point_count * 3); */
+    /* 	model->colors   = mt_memory_realloc(model->colors, sizeof(GLfloat) * model->point_count * 3); */
+    /* } */
+
+    model->point_count += 1;
+
+    model->txhth = (int) ceilf((float) model->point_count / (float) model->txwth);
+    model->buffs = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
+
+    model->vertexes = mt_memory_realloc(model->vertexes, model->buffs);
+    model->normals  = mt_memory_realloc(model->normals, model->buffs);
+    model->colors   = mt_memory_realloc(model->colors, model->buffs);
+
+    int index = model->point_count - 1;
+
+    model->vertexes[index]     = vertex.x;
+    model->vertexes[index + 1] = vertex.y;
+    model->vertexes[index + 2] = vertex.z;
+
+    model->normals[index]     = normal.x;
+    model->normals[index + 1] = normal.y;
+    model->normals[index + 2] = normal.z;
+
+    model->colors[index]     = color.x;
+    model->colors[index + 1] = color.y;
+    model->colors[index + 2] = color.z;
 }
 
 #endif

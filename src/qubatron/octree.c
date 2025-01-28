@@ -271,8 +271,6 @@ v4_t is_cube_zplane(float z, v3_t lp, v3_t lv)
 
 int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
 {
-    mt_log_debug("trace line pos %f %f %f dir %f %f %f", pos.x, pos.y, pos.z, dir.x, dir.y, dir.z);
-
     int level = 0;
 
     // under 17 and over 20 shader becomes very slow, why?
@@ -337,7 +335,6 @@ int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
     {
 	tlf = stck[level].cube;
 
-	mt_log_debug("tlf %f %f %f level %i", tlf.x, tlf.y, tlf.z, level);
 	// bingo, we reached bottom, return index of point
 	if (level == octr->levels) return octr->octs[stck[level].octi].oct[8];
 
