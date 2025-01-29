@@ -1,9 +1,12 @@
-# qubatron
-Photorealistic path-traced micro-voxel fps engine prototype
+## Qubatron - Photorealistic path-traced micro-voxel fps engine prototype
 
 [![Qubatron](https://img.youtube.com/vi/LqytIbcjX18/0.jpg)](https://www.youtube.com/watch?v=LqytIbcjX18)
 
-Is 2024 the year of voxel-based rendering and the end of polygons? Let's find out!
+- Try it online [here](https://milgra.com/qubatron/)! ( low detail version, 17 million voxels, 300Mbyte download, WASD + mouse + numbers for resolution )  
+- Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version, 33 million voxels, Intel Arc GPU )
+- Build and run for yourself ( instructions below )
+
+### Is 2024 the year of voxel-based rendering and the end of polygons? Let's find out!
 
 The main idea is :
 - point cloud based levels
@@ -25,19 +28,15 @@ The method :
  - calculate final color for screen point using octet normal
 
 Octet intersection check :
-- check line intersection with all sides of octet using x = x0 + dirX * t -> t = ( x - x0 ) / dirX
+- check line intersection with all sides of base cube using x = x0 + dirX * t -> t = ( x - x0 ) / dirX
 - check coordinate intervals for sides with intersection
 - then go into subnodes
  - first I used brute force and checked all sides of all octets, it was slow
- - now I just check the 6 sides of the parent octet and the two bisecting planes
- - and figure out the touched octets and their order from the intersection points
-
-Next steps :
-- animated actor
-- shotgun that blows holes in walls and in actor
+ - now I just check the two bisecting planes and bring side intersections from previous step
+ - figure out the touched octets and their order from the intersection points
 
 Things learned :
-- if statements and loops kill shader performance badly
+- if statements, loops, arrays and variables kill shader performance badly
 
 Performance :
 Measured on my ASUS Zenbook UX3405 14 OLED / Intel(R) Core(TM) Ultra 5 125H / Intel Arc Graphics / 1200x800 points resolution
@@ -52,15 +51,12 @@ ninja -C build
 build/qubatron -v
 ```
 
-How to create point cloud :
+How to create model files
 
-- Download mesh : [https://sketchfab.com/3d-models/abandoned-house-interior-c2130293962244d0b8e325919b4cf99d]
-- Use CloudCompare
-- Generate normals
-- Convert mesh to sample ( 40 million points )
-- Edit - Octree - Compute
-- Subdivison level : 10
+- Use CloudCompare, open abandoned_cc.bin then zombie_cc.bin
+- Convert mesh to sample ( 90 million points for abandoned, 10 million for zombie )
 - Export as ply with color and normal data
+- Use build/qmc to convert result .ply-s to flat vertex, normal and color files
 - Problem : CloudCompare doesn't cover mesh perfectly since it uses random points
 - Alternative solution : Convert [obj2voxel](https`://github.com/Eisenwave/obj2voxel) to export surface normals
 
