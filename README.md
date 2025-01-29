@@ -24,7 +24,7 @@ The method :
  - create vector from camera focus point to screen coordinate
  - check intersection with octree
  - in case of intersection with leaf use it's color
- - in case of intersection with leaf check if intersection point 'sees' the light source
+ - in case of intersection with leaf check if light ray 'sees' the intersection point
  - calculate final color for screen point using octet normal
 
 Octet intersection check :
@@ -34,6 +34,16 @@ Octet intersection check :
  - first I used brute force and checked all sides of all octets, it was slow
  - now I just check the two bisecting planes and bring side intersections from previous step
  - figure out the touched octets and their order from the intersection points
+
+Static octree modification :  
+- zero out wanted octets in current octree structure
+- octets will be added to the end of the octree array
+- update zeroed out and added ranges on the gpu
+
+Dynamic octree modifictaion :
+- modify all points in a compute shader based on bones
+- recreate octree structure
+- upload as dynamic octree
 
 Things learned :
 - if statements, loops, arrays and variables kill shader performance badly
