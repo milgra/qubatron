@@ -140,22 +140,6 @@ void main_init()
 	    (v3_t){points[index], points[index + 1], points[index + 2]});
     }
 
-    for (int i = 0; i < static_octree.len; i++)
-    {
-	printf(
-	    "AFTER nodes ind %i : %i | %i | %i | %i | %i | %i | %i | %i orind %i\n",
-	    i,
-	    static_octree.octs[i].oct[0],
-	    static_octree.octs[i].oct[1],
-	    static_octree.octs[i].oct[2],
-	    static_octree.octs[i].oct[3],
-	    static_octree.octs[i].oct[4],
-	    static_octree.octs[i].oct[5],
-	    static_octree.octs[i].oct[6],
-	    static_octree.octs[i].oct[7],
-	    static_octree.octs[i].oct[8]);
-    }
-
     renderconn_upload_normals(&rc, normals, 8192, 1, 3, false);
     renderconn_upload_colors(&rc, colors, 8192, 1, 3, false);
     renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
@@ -246,9 +230,9 @@ void main_init()
 
     mt_log_debug("STATIC MODEL");
     model_log_vertex_info(&static_model, 0);
-    model_log_vertex_info(&static_model, static_model.point_count - 1);
     octree_log_path(pathf, 0);
-    octree_log_path(pathl, static_model.point_count - 3);
+    model_log_vertex_info(&static_model, static_model.point_count - 1);
+    octree_log_path(pathl, static_model.point_count - 1);
 
     // upload static model
 
@@ -305,25 +289,6 @@ void main_init()
     skeleconn_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
     skeleconn_update(&cc, lighta, dynamic_model.point_count, maxlevel);
     skeleconn_update(&cc, lighta, dynamic_model.point_count, maxlevel); // double run to step over double buffer
-
-    GLint* arr = cc.octqueue;
-    for (int i = 0; i < 48; i += 12)
-    {
-	printf(
-	    "nodes : %i | %i | %i | %i | %i | %i | %i | %i | %i | %i | %i | %i\n",
-	    arr[i + 0],
-	    arr[i + 1],
-	    arr[i + 2],
-	    arr[i + 3],
-	    arr[i + 4],
-	    arr[i + 5],
-	    arr[i + 6],
-	    arr[i + 7],
-	    arr[i + 8],
-	    arr[i + 9],
-	    arr[i + 10],
-	    arr[i + 11]);
-    }
 
     // add modified point coords by compute shader
 
@@ -386,7 +351,7 @@ void touch_neighbours(tempcubes_t* cubes, int x, int y, int z, int size)
 		    if (cubes->arr[cx][cy][cz] == 1)
 		    {
 			cubes->arr[cx][cy][cz] = 3;
-			touch_neighbours(cubes, cx, cy, cz);
+			touch_neighbours(cubes, cx, cy, cz, size);
 		    }
 		}
 	    }
@@ -449,8 +414,6 @@ void main_shoot()
 		    {
 			cubes.arr[cx + size][cy + size][cz + size] = 2;
 
-			mt_log_debug("setting %i %i %i to 2", cx + size, cy + size, cz + size);
-
 			if (minind == 0) minind = octind;
 			if (maxind == 0) maxind = octind;
 
@@ -464,17 +427,17 @@ void main_shoot()
 
     // remove closest side of tempcubes divided by removed voxels
 
-    int ax = size;
-    int ay = size;
-    int az = size;
-    if (nrm.x > 0.0) ax += 4;
-    if (nrm.x <= 0.0) ax -= 4;
-    if (nrm.y > 0.0) ay += 4;
-    if (nrm.y <= 0.0) ay -= 4;
-    if (nrm.z > 0.0) az += 4;
-    if (nrm.z <= 0.0) az -= 4;
+    /* int ax = size; */
+    /* int ay = size; */
+    /* int az = size; */
+    /* if (nrm.x > 0.0) ax += 4; */
+    /* if (nrm.x <= 0.0) ax -= 4; */
+    /* if (nrm.y > 0.0) ay += 4; */
+    /* if (nrm.y <= 0.0) ay -= 4; */
+    /* if (nrm.z > 0.0) az += 4; */
+    /* if (nrm.z <= 0.0) az -= 4; */
 
-    touch_neighbours(&cubes, ax, ay, az, size * 2);
+    /* touch_neighbours(&cubes, ax, ay, az, size * 2); */
 
     /* for (int x = 0; x < 20; x++) */
     /* { */
@@ -517,7 +480,7 @@ void main_shoot()
 	size_t len = static_octree.len;
 	size_t siz = static_octree.size;
 
-	mt_log_debug("Creating conex");
+	char first = 0;
 
 	for (int cx = -size; cx < size; cx++)
 	{
@@ -529,19 +492,22 @@ void main_shoot()
 		    float dy = cy * step;
 		    float dz = cz * step;
 
-		    v3_t cp = (v3_t){pt.x + dx, pt.y + dy, pt.z + dz};
+		    v3_t cp = (v3_t){pt.x + dx + nrm.x * -4.0, pt.y + dy + nrm.y * -4.0, pt.z + dz + nrm.z * -4.0};
 
-		    if (dx * dx + dy * dy + dz * dz > size * step - 3.0)
+		    if (cubes.arr[cx + size][cy + size][cz + size] == 2)
 		    {
-			if (cubes.arr[cx + size][cy + size][cz + size] == 3 || cubes.arr[cx + size][cy + size][cz + size] == 2)
-			{
-			    model_add_point(&static_model, cp, nrm, (v3_t){1.0, 1.0, 1.0});
+			model_add_point(&static_model, cp, nrm, (v3_t){1.0, 1.0, 1.0});
 
-			    octree_insert_point(
-				&static_octree,
-				0,
-				static_model.point_count - 1,
-				cp);
+			octree_insert_point(
+			    &static_octree,
+			    0,
+			    static_model.point_count - 1,
+			    cp);
+
+			if (first == 0)
+			{
+			    first = 1;
+			    model_log_vertex_info(&static_model, static_model.point_count - 1);
 			}
 		    }
 		}

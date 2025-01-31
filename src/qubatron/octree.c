@@ -112,7 +112,7 @@ octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pn
 		octr->txhth = (octr->size * 3) / octr->txwth;
 		octr->octs  = mt_memory_realloc(octr->octs, octr->size * sizeof(octets_t));
 		if (octr->octs == NULL) mt_log_debug("not enough memory");
-		mt_log_debug("octree array size %lu ", octr->size * sizeof(octets_t));
+		mt_log_debug("              octree array size %lu\033[1A", octr->size * sizeof(octets_t));
 	    }
 	}
 
@@ -203,7 +203,7 @@ void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
 void octree_log_path(octets_t o, size_t index)
 {
     mt_log_debug(
-	"octet path for index %li : %i %i %i %i %i %i %i %i %i %i %i %i",
+	"ind %li path %i %i %i %i %i %i %i %i %i %i %i %i",
 	index,
 	o.oct[0],
 	o.oct[1],

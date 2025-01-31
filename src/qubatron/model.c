@@ -56,10 +56,10 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     FILE* colfile = fopen(colpath, "rb");
 
     fseek(pntfile, 0, SEEK_END);
-    long point_count = ftell(pntfile) / sizeof(float);
+    long float_count = ftell(pntfile) / sizeof(float);
     fseek(pntfile, 0, SEEK_SET);
 
-    model->point_count = point_count / 3;
+    model->point_count = float_count / 3;
     model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth);
     model->buffs       = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
 
@@ -73,9 +73,9 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
 	return;
     }
 
-    fread(model->vertexes, sizeof(float), point_count, pntfile);
-    fread(model->normals, sizeof(float), point_count, nrmfile);
-    fread(model->colors, sizeof(float), point_count, colfile);
+    fread(model->vertexes, sizeof(float), float_count, pntfile);
+    fread(model->normals, sizeof(float), float_count, nrmfile);
+    fread(model->colors, sizeof(float), float_count, colfile);
 
     fclose(pntfile);
     fclose(nrmfile);
@@ -98,7 +98,9 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
 
     fclose(rngfile);
 
-    mt_log_debug("loading flat model data\n%s\n%s\n%s, point count %lu range count %lu", pntpath, colpath, nrmpath, point_count, range_size / sizeof(int));
+    mt_log_debug("loading flat model data\n%s\n%s\n%s", pntpath, colpath, nrmpath);
+    mt_log_debug("point count %lu available point count %lu ", model->point_count, model->txwth * model->txhth);
+    mt_log_debug("buffer size %lu bytes, tex width %i tex height %i ", model->buffs, model->txwth, model->txhth);
 
     /* for (int i = 0; i < 300; i += 3) */
     /* 	mt_log_debug("pt %f %f %f", model->vertexes[i], model->vertexes[i + 1], model->vertexes[i + 2]); */
@@ -130,7 +132,7 @@ void model_log_vertex_info(model_t* model, size_t index)
     color.z = model->colors[index + 2];
 
     mt_log_debug(
-	"\npoint %lu\nvertex %f %f %f\nnormal %f %f %f\ncolor %f %f %f",
+	"ind %lu pnt %.3f %.3f %.3f nrm %.3f %.3f %.3f col %.3f %.3f %.3f",
 	index,
 	vertex.x, vertex.y, vertex.z,
 	normal.x, normal.y, normal.z,
@@ -139,24 +141,23 @@ void model_log_vertex_info(model_t* model, size_t index)
 
 void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
 {
-    /* if (model->index + 3 > model->point_count - 1) */
-    /* { */
-    /* 	model->point_count *= 2; */
-    /* 	model->vertexes = mt_memory_realloc(model->vertexes, sizeof(GLfloat) * model->point_count * 3); */
-    /* 	model->normals  = mt_memory_realloc(model->normals, sizeof(GLfloat) * model->point_count * 3); */
-    /* 	model->colors   = mt_memory_realloc(model->colors, sizeof(GLfloat) * model->point_count * 3); */
-    /* } */
+    int max_count = model->txwth * model->txhth;
 
-    model->point_count += 1;
+    if (model->point_count == max_count)
+    {
+	mt_log_debug("increasing model buffer size");
 
-    model->txhth = (int) ceilf((float) model->point_count / (float) model->txwth);
-    model->buffs = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
+	model->txhth += 1;
+	model->buffs    = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
+	model->vertexes = mt_memory_realloc(model->vertexes, model->buffs);
+	model->normals  = mt_memory_realloc(model->normals, model->buffs);
+	model->colors   = mt_memory_realloc(model->colors, model->buffs);
 
-    model->vertexes = mt_memory_realloc(model->vertexes, model->buffs);
-    model->normals  = mt_memory_realloc(model->normals, model->buffs);
-    model->colors   = mt_memory_realloc(model->colors, model->buffs);
+	mt_log_debug("point count %lu available point count %lu ", model->point_count, model->txwth * model->txhth);
+	mt_log_debug("buffer size %lu bytes, tex width %i tex height %i ", model->buffs, model->txwth, model->txhth);
+    }
 
-    int index = model->point_count - 1;
+    int index = model->point_count * 3;
 
     model->vertexes[index]     = vertex.x;
     model->vertexes[index + 1] = vertex.y;
@@ -169,6 +170,8 @@ void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
     model->colors[index]     = color.x;
     model->colors[index + 1] = color.y;
     model->colors[index + 2] = color.z;
+
+    model->point_count += 1;
 }
 
 #endif
