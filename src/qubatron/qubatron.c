@@ -363,6 +363,37 @@ v3_t project_point(v3_t A, v3_t B, v3_t C)
     return v3_add(A, v3_scale(AB, dotDiv));
 }
 
+typedef struct _tempcubes_t
+{
+    char arr[30][30][30];
+} tempcubes_t;
+
+// 0 - non-voxel
+// 1 - sphere voxel
+// 2 - wall voxel
+// 3 - final voxel
+
+void touch_neighbours(tempcubes_t* cubes, int x, int y, int z, int size)
+{
+    for (int cx = x - 1; cx < x + 2; cx++)
+    {
+	for (int cy = y - 1; cy < y + 2; cy++)
+	{
+	    for (int cz = z - 1; cz < z + 2; cz++)
+	    {
+		if (cx > 0 && cx < size && cy > 0 && cy < size && cz > 0 && cz < size)
+		{
+		    if (cubes->arr[cx][cy][cz] == 1)
+		    {
+			cubes->arr[cx][cy][cz] = 3;
+			touch_neighbours(cubes, cx, cy, cz);
+		    }
+		}
+	    }
+	}
+    }
+}
+
 void main_shoot()
 {
     // check collosion between direction vector and static and dynamic voxels
@@ -392,7 +423,8 @@ void main_shoot()
 
     float step = static_octree.basecube.w / (float) division;
 
-    int size = 20;
+    int         size  = 15;
+    tempcubes_t cubes = {0};
 
     for (int cx = -size; cx < size; cx++)
     {
@@ -406,6 +438,8 @@ void main_shoot()
 
 		if (dx * dx + dy * dy + dz * dz < (size * step) * (size * step))
 		{
+		    cubes.arr[cx + size][cy + size][cz + size] = 1;
+
 		    int orind  = 0;
 		    int octind = 0;
 
@@ -413,6 +447,10 @@ void main_shoot()
 
 		    if (octind > 0)
 		    {
+			cubes.arr[cx + size][cy + size][cz + size] = 2;
+
+			mt_log_debug("setting %i %i %i to 2", cx + size, cy + size, cz + size);
+
 			if (minind == 0) minind = octind;
 			if (maxind == 0) maxind = octind;
 
@@ -423,6 +461,33 @@ void main_shoot()
 	    }
 	}
     }
+
+    // remove closest side of tempcubes divided by removed voxels
+
+    int ax = size;
+    int ay = size;
+    int az = size;
+    if (nrm.x > 0.0) ax += 4;
+    if (nrm.x <= 0.0) ax -= 4;
+    if (nrm.y > 0.0) ay += 4;
+    if (nrm.y <= 0.0) ay -= 4;
+    if (nrm.z > 0.0) az += 4;
+    if (nrm.z <= 0.0) az -= 4;
+
+    touch_neighbours(&cubes, ax, ay, az, size * 2);
+
+    /* for (int x = 0; x < 20; x++) */
+    /* { */
+    /* 	for (int y = 0; y < 20; y++) */
+    /* 	{ */
+    /* 	    for (int z = 0; z < 20; z++) */
+    /* 	    { */
+    /* 		if (cubes.arr[x][y][z] == 3) */
+    /* 		    mt_log_debug("%i %i %i", x, y, z); */
+
+    /* 	    } */
+    /* 	} */
+    /* } */
 
     mt_log_debug("minind %i maxind %i", minind, maxind);
 
@@ -464,28 +529,20 @@ void main_shoot()
 		    float dy = cy * step;
 		    float dz = cz * step;
 
-		    v3_t ori  = v3_add(pt, v3_scale(nrm, -1.0 * size * step));
-		    v3_t cp   = (v3_t){pt.x + dx, pt.y + dy, pt.z + dz};
-		    v3_t proj = project_point(ori, v3_add(ori, nrm), cp);
+		    v3_t cp = (v3_t){pt.x + dx, pt.y + dy, pt.z + dz};
 
-		    v3_t oriproj = v3_sub(proj, ori);
-		    v3_t cpproj  = v3_sub(proj, cp);
-
-		    float oriprojlen = v3_length(oriproj);
-		    float cpprojlen  = v3_length(cpproj);
-		    float enabledd   = oriprojlen;
-
-		    mt_log_debug("orilen %f cplen %f enabledd %f", oriprojlen, cpprojlen, enabledd);
-
-		    if (cpprojlen < enabledd && cpprojlen > enabledd - step && enabledd < size * step)
+		    if (dx * dx + dy * dy + dz * dz > size * step - 3.0)
 		    {
-			model_add_point(&static_model, cp, nrm, (v3_t){1.0, 1.0, 1.0});
+			if (cubes.arr[cx + size][cy + size][cz + size] == 3 || cubes.arr[cx + size][cy + size][cz + size] == 2)
+			{
+			    model_add_point(&static_model, cp, nrm, (v3_t){1.0, 1.0, 1.0});
 
-			octree_insert_point(
-			    &static_octree,
-			    0,
-			    static_model.point_count - 1,
-			    cp);
+			    octree_insert_point(
+				&static_octree,
+				0,
+				static_model.point_count - 1,
+				cp);
+			}
 		    }
 		}
 	    }
