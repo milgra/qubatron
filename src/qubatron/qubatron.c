@@ -104,11 +104,11 @@ void main_init()
 	690.0, 10.0, 690.0};
 
     GLfloat normals[3 * 8192] = {
-	1.0, 1.0, 1.0,
-	1.0, 1.0, 1.0,
-	1.0, 1.0, 1.0,
-	1.0, 1.0, 1.0,
-	1.0, 1.0, 1.0};
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0};
 
     GLfloat colors[3 * 8192] = {
 	1.0, 1.0, 1.0,
@@ -137,7 +137,8 @@ void main_init()
 	    &static_octree,
 	    0,
 	    index / 3,
-	    (v3_t){points[index], points[index + 1], points[index + 2]});
+	    (v3_t){points[index], points[index + 1], points[index + 2]},
+	    NULL);
     }
 
     renderconn_upload_normals(&rc, normals, 8192, 1, 3, false);
@@ -220,7 +221,8 @@ void main_init()
 		&static_octree,
 		0,
 		index / 3,
-		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]});
+		(v3_t){static_model.vertexes[index], static_model.vertexes[index + 1], static_model.vertexes[index + 2]},
+		NULL);
 
 	if (index == 0)
 	    pathf = path;
@@ -264,7 +266,8 @@ void main_init()
 		&dynamic_octree,
 		0,
 		index / 3,
-		(v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]});
+		(v3_t){dynamic_model.vertexes[index], dynamic_model.vertexes[index + 1], dynamic_model.vertexes[index + 2]},
+		NULL);
 	if (index == 0)
 	    pathf = path;
 	else if (index == (dynamic_model.point_count - 3))
@@ -365,18 +368,12 @@ void main_shoot()
 
     int index = octree_trace_line(&static_octree, position, direction);
 
-    mt_log_debug("shoot, index %i", index);
-
-    // remove all possible points in a sphere from the octree, collect all points and modified index range
-    // from the collected points create new points pushed into the wall in anti-normal direction
-    // add the new points to the octree, collect modified index range
-    // update modified index ranges on the gpu with the new data
+    mt_log_debug("***SHOOT***");
+    mt_log_debug("voxel index %i", index);
 
     v3_t pt  = (v3_t){static_model.vertexes[index * 3], static_model.vertexes[index * 3 + 1], static_model.vertexes[index * 3 + 2]};
     v3_t nrm = (v3_t){static_model.normals[index * 3], static_model.normals[index * 3 + 1], static_model.normals[index * 3 + 2]};
     v3_t col = (v3_t){static_model.colors[index * 3], static_model.colors[index * 3 + 1], static_model.colors[index * 3 + 2]};
-
-    mt_log_debug("pt %f %f %f", pt.x, pt.y, pt.z);
 
     int minind = 0;
     int maxind = 0;
@@ -452,35 +449,32 @@ void main_shoot()
     /* 	} */
     /* } */
 
-    mt_log_debug("minind %i maxind %i", minind, maxind);
-
     if (minind > 0)
     {
-	int sy = (minind * 3) / 8192;
-	int ey = (maxind * 3) / 8192;
-
-	int noi = minind * 3 - (minind * 3) % 8192;
+	int sy  = (minind * 3) / 8192;
+	int ey  = (maxind * 3) / 8192 + 1;
+	int noi = sy * 8192 * 4;
 
 	GLint* data = (GLint*) static_octree.octs;
 
-	mt_log_debug("noi %i", noi);
+	mt_log_debug("UPDATING HOLE");
+	mt_log_debug("minind %i maxind %i", minind, maxind);
 	mt_log_debug("sy %i ey %i", sy, ey);
+	mt_log_debug("noi %i", noi);
 
 	renderconn_upload_octree_quadruplets_partial(
 	    &rc,
-	    data + noi * 4,
+	    data + noi,
 	    0,
 	    sy,
 	    8192,
-	    ey - sy + 1,
+	    ey - sy,
 	    false);
 
-	// hole is created, create cone
+	// hole is created, push touched circle inside wall
 
-	size_t len = static_octree.len;
-	size_t siz = static_octree.size;
-
-	char first = 0;
+	int minind = 0;
+	int maxind = 0;
 
 	for (int cx = -size; cx < size; cx++)
 	{
@@ -498,42 +492,56 @@ void main_shoot()
 		    {
 			model_add_point(&static_model, cp, nrm, (v3_t){1.0, 1.0, 1.0});
 
+			int modind = -1;
 			octree_insert_point(
 			    &static_octree,
 			    0,
 			    static_model.point_count - 1,
-			    cp);
+			    cp,
+			    &modind);
 
-			if (first == 0)
+			if (modind > -1)
 			{
-			    first = 1;
-			    model_log_vertex_info(&static_model, static_model.point_count - 1);
+			    if (minind == 0) minind = modind;
+			    if (maxind == 0) maxind = modind;
+
+			    if (modind < minind) minind = modind;
+			    if (modind > maxind) maxind = modind;
 			}
 		    }
 		}
 	    }
 	}
 
-	/* sy = (len * 3) / 8192; */
-	/* ey = (siz * 3) / 8192; */
+	sy  = (minind * 3) / 8192;
+	ey  = (static_octree.len * 3) / 8192 + 1;
+	noi = sy * 8192 * 4;
 
-	/* noi = len * 3 - (len * 3) % 8192; */
-
-	/* mt_log_debug("noi %i", noi); */
-	/* mt_log_debug("sy %i ey %i", sy, ey); */
+	mt_log_debug("MOVING VOXELS");
+	mt_log_debug("minind %i size %i", minind, static_octree.size);
+	mt_log_debug("sy %i ey %i", sy, ey);
+	mt_log_debug("noi %i", noi);
 
 	renderconn_upload_normals(&rc, static_model.normals, static_model.txwth, static_model.txhth, static_model.comps, false);
 	renderconn_upload_colors(&rc, static_model.colors, static_model.txwth, static_model.txhth, static_model.comps, false);
-	renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
+	/* renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false); */
 
-	/* renderconn_upload_octree_quadruplets_partial( */
-	/*     &rc, */
-	/*     data + noi * 4, */
-	/*     0, */
-	/*     sy, */
-	/*     8192, */
-	/*     ey - sy + 1, */
-	/*     false); */
+	if (data != (GLint*) static_octree.octs)
+	{
+	    mt_log_debug("OCTREE BACKING BUFFER RESIZED!!!");
+	}
+
+	data = (GLint*) static_octree.octs;
+
+	// check if full reupload needed
+	renderconn_upload_octree_quadruplets_partial(
+	    &rc,
+	    data + noi,
+	    0,
+	    sy,
+	    static_octree.txwth,
+	    ey - sy,
+	    false);
     }
 }
 

@@ -446,6 +446,7 @@ void renderconn_upload_octree_quadruplets(renderconn_t* rc, void* data, int widt
 
 void renderconn_upload_octree_quadruplets_partial(renderconn_t* rc, void* data, int x, int y, int width, int height, bool dynamic)
 {
+    if (width > 8192 || height > 8192) mt_log_debug("INVALID TEXTURE SIZE FOR OCTREE UPLOAD");
     glUseProgram(rc->sha.name);
 
     if (dynamic)

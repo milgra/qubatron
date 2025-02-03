@@ -26,12 +26,14 @@ typedef struct octree_t
 } octree_t;
 
 octree_t    octree_create(v4_t base, int maxlevel);
+octree_t    octree_clone(octree_t* octr);
 void        octree_delete(octree_t* octr);
 void        octree_reset(octree_t* octr, v4_t base);
-octets_t    octree_insert_point(octree_t* octr, size_t arrind, size_t orind, v3_t pnt);
+octets_t    octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pnt, int* modind);
 void        octree_insert_path(octree_t* octr, size_t arrind, size_t orind, int* octs);
 void        octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind);
 void        octree_log_path(octets_t o, size_t index);
+void        octree_comp(octree_t* octra, octree_t* octrb);
 int         octree_trace_line(octree_t* octr, v3_t pos, v3_t dir);
 
 #endif
@@ -68,6 +70,23 @@ octree_t octree_create(v4_t base, int maxlevel)
     return octr;
 }
 
+octree_t octree_clone(octree_t* poctr)
+{
+    octree_t octr;
+    octr.basecube = poctr->basecube;
+    octr.levels   = poctr->levels;
+    octr.txwth    = poctr->txwth;
+    octr.txhth    = poctr->txhth;
+    octr.size     = poctr->size;
+    octr.octs     = mt_memory_calloc(sizeof(octets_t) * octr.size, NULL, NULL);
+
+    memcpy(octr.octs, poctr->octs, sizeof(octets_t) * octr.size);
+
+    octr.len = poctr->len;
+
+    return octr;
+}
+
 void octree_delete(octree_t* octr)
 {
     REL(octr->octs);
@@ -81,7 +100,7 @@ void octree_reset(octree_t* octr, v4_t base)
     octr->len = 1;
 }
 
-octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pnt)
+octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pnt, int* modind)
 {
     v4_t     cube   = octr->basecube;
     octets_t result = {0};
@@ -99,6 +118,9 @@ octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pn
 
 	if (octr->octs[index].oct[octet] == 0)
 	{
+	    // store first modified octree index
+	    if (modind && *modind == -1) *modind = index;
+
 	    // store subnode in array
 
 	    octr->octs[index].oct[octet] = octr->len;
@@ -167,8 +189,10 @@ void octree_insert_path(octree_t* octr, size_t index, size_t orind, int* octs)
 
 void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
 {
-    v4_t cube  = octr->basecube;
-    int  index = 0;
+    v4_t cube   = octr->basecube;
+    int  index  = 0;
+    int  lindex = 0;
+    int  loctet = 0;
 
     for (int level = 0; level < octr->levels; level++)
     {
@@ -189,12 +213,14 @@ void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
 
 	if (level == octr->levels - 1)
 	{
-	    *orind                       = octr->octs[index].oct[8];
-	    *octind                      = index;
-	    octr->octs[index].oct[octet] = 0;
+	    *orind                         = octr->octs[index].oct[8];
+	    *octind                        = index;
+	    octr->octs[lindex].oct[loctet] = 0;
 	}
 
-	index = octr->octs[index].oct[octet];
+	lindex = index;
+	loctet = octet;
+	index  = octr->octs[index].oct[octet];
 
 	if (index == 0) return;
     }
@@ -219,6 +245,24 @@ void octree_log_path(octets_t o, size_t index)
 	o.oct[11]
 
     );
+}
+
+void octree_comp(octree_t* octra, octree_t* octrb)
+{
+    for (int i = 0; i < octrb->len; i++)
+    {
+	octets_t octsa = octra->octs[i];
+	octets_t octsb = octrb->octs[i];
+
+	for (int j = 0; j < 12; j++)
+	{
+	    if (octsa.oct[j] != octsb.oct[j])
+	    {
+		mt_log_debug("OCTREE DIFF AT %i : OCTET : %i : %i != %i", i, j, octsa.oct[j], octsb.oct[j]);
+		return;
+	    }
+	}
+    }
 }
 
 typedef struct _stck_t
