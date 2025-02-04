@@ -42,7 +42,7 @@ qubatron_sources = [
 	       'src/qubatron/octree.c',
 	       'src/qubatron/readfile.c',
 	       'src/qubatron/skeleconn.c',
-	       'src/qubatron/renderconn.c',
+	       'src/qubatron/octreeconn.c',
 	       'src/qubatron/shader.c',
 	       'src/mt_core/mt_log.c',
 	       'src/mt_core/mt_time.c',

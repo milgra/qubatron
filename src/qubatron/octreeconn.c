@@ -1,5 +1,5 @@
-#ifndef renderconn_h
-#define renderconn_h
+#ifndef octreeconn_h
+#define octreeconn_h
 
 #include "mt_log.c"
 #include "mt_math_3d.c"
@@ -16,7 +16,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-typedef struct renderconn_t
+typedef struct octreeconn_t
 {
     // shaders
 
@@ -44,11 +44,11 @@ typedef struct renderconn_t
     GLuint oct1_tex;
     GLuint oct2_tex;
 
-} renderconn_t;
+} octreeconn_t;
 
-renderconn_t renderconn_init();
-void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
-void         renderconn_upload_texbuffer(renderconn_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
+octreeconn_t octreeconn_init();
+void         octreeconn_update(octreeconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
+void         octreeconn_upload_texbuffer(octreeconn_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
 
 #endif
 
@@ -56,9 +56,9 @@ void         renderconn_upload_texbuffer(renderconn_t* rc, void* data, int x, in
 
 v3_t lightc = {420.0, 200.0, 680.0};
 
-renderconn_t renderconn_init()
+octreeconn_t octreeconn_init()
 {
-    renderconn_t rc;
+    octreeconn_t rc;
 
     char* base_path = SDL_GetBasePath();
     char  vshpath[PATH_MAX];
@@ -220,7 +220,7 @@ renderconn_t renderconn_init()
     return rc;
 }
 
-void renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel)
+void octreeconn_update(octreeconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel)
 {
 
     // first render scene to texture
@@ -373,8 +373,8 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void renderconn_upload_texbuffer(
-    renderconn_t* rc,
+void octreeconn_upload_texbuffer(
+    octreeconn_t* rc,
     void*         data,
     int           x,
     int           y,
