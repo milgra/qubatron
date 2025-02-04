@@ -1,7 +1,6 @@
 #ifndef octree_h
 #define octree_h
 
-// #include <GLES2/gl2.h>
 #include "mt_log.c"
 #include "mt_memory.c"
 #include "mt_vector_3d.c"
@@ -26,15 +25,15 @@ typedef struct octree_t
 } octree_t;
 
 octree_t    octree_create(v4_t base, int maxlevel);
-octree_t    octree_clone(octree_t* octr);
-void        octree_delete(octree_t* octr);
-void        octree_reset(octree_t* octr, v4_t base);
-octets_t    octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pnt, int* modind);
-void        octree_insert_path(octree_t* octr, size_t arrind, size_t orind, int* octs);
-void        octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind);
+octree_t    octree_clone(octree_t* tree);
+void        octree_delete(octree_t* tree);
+void        octree_reset(octree_t* tree, v4_t base);
+octets_t    octree_insert_point(octree_t* tree, size_t index, size_t orind, v3_t pnt, int* modind);
+void        octree_insert_path(octree_t* tree, size_t arrind, size_t orind, int* octs);
+void        octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octind);
 void        octree_log_path(octets_t o, size_t index);
-void        octree_comp(octree_t* octra, octree_t* octrb);
-int         octree_trace_line(octree_t* octr, v3_t pos, v3_t dir);
+void        octree_comp(octree_t* treea, octree_t* treeb);
+int         octree_trace_line(octree_t* tree, v3_t pos, v3_t dir);
 
 #endif
 
@@ -56,85 +55,84 @@ static const int deppairs[8] = {4, 5, 6, 7, 0, 1, 2, 3}; // depth pairs of octet
 
 octree_t octree_create(v4_t base, int maxlevel)
 {
-    octree_t octr;
-    octr.basecube = base;
-    octr.levels   = maxlevel;
-    octr.txwth    = 8192;
-    octr.txhth    = 1;
-    octr.size     = 8192 / 3;
-    octr.octs     = mt_memory_calloc(sizeof(octets_t) * octr.size, NULL, NULL);
+    octree_t tree;
+    tree.basecube = base;
+    tree.levels   = maxlevel;
+    tree.txwth    = 8192;
+    tree.txhth    = 1;
+    tree.size     = 8192 * 3;
+    tree.octs     = mt_memory_calloc(sizeof(octets_t) * tree.size, NULL, NULL);
 
-    octr.octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
-    octr.len     = 1;
+    tree.octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
+    tree.len     = 1;
 
-    return octr;
+    return tree;
 }
 
-octree_t octree_clone(octree_t* poctr)
+octree_t octree_clone(octree_t* ptree)
 {
-    octree_t octr;
-    octr.basecube = poctr->basecube;
-    octr.levels   = poctr->levels;
-    octr.txwth    = poctr->txwth;
-    octr.txhth    = poctr->txhth;
-    octr.size     = poctr->size;
-    octr.octs     = mt_memory_calloc(sizeof(octets_t) * octr.size, NULL, NULL);
+    octree_t tree;
+    tree.basecube = ptree->basecube;
+    tree.levels   = ptree->levels;
+    tree.txwth    = ptree->txwth;
+    tree.txhth    = ptree->txhth;
+    tree.size     = ptree->size;
+    tree.octs     = mt_memory_calloc(sizeof(octets_t) * tree.size, NULL, NULL);
 
-    memcpy(octr.octs, poctr->octs, sizeof(octets_t) * octr.size);
+    memcpy(tree.octs, ptree->octs, sizeof(octets_t) * tree.size);
 
-    octr.len = poctr->len;
+    tree.len = ptree->len;
 
-    return octr;
+    return tree;
 }
 
-void octree_delete(octree_t* octr)
+void octree_delete(octree_t* tree)
 {
-    REL(octr->octs);
+    REL(tree->octs);
 }
 
-void octree_reset(octree_t* octr, v4_t base)
+void octree_reset(octree_t* tree, v4_t base)
 {
-    octr->len     = 0;
-    octr->octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
-
-    octr->len = 1;
+    tree->len     = 1;
+    tree->octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
 }
 
-octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pnt, int* modind)
+octets_t octree_insert_point(octree_t* tree, size_t index, size_t orind, v3_t pnt, int* modind)
 {
-    v4_t     cube   = octr->basecube;
+    v4_t     cube   = tree->basecube;
     octets_t result = {0};
 
-    for (int level = 0; level < octr->levels; level++)
+    for (int level = 0; level < tree->levels; level++)
     {
 	float size = cube.w / 2.0;
 
-	int octet = (int) floor(pnt.x / size) % 2;
-	int yi    = (int) floor(pnt.y / size) % 2;
-	int zi    = (int) floor(pnt.z / size) % 2;
+	int octet = (int) (pnt.x / size) % 2;
+	int yi    = (int) (pnt.y / size) % 2;
+	int zi    = (int) (pnt.z / size) % 2;
 
 	if (yi == 0) octet += 2;
 	if (zi == 0) octet += 4;
 
-	if (octr->octs[index].oct[octet] == 0)
+	if (tree->octs[index].oct[octet] == 0)
 	{
 	    // store first modified octree index
+
 	    if (modind && *modind == -1) *modind = index;
 
 	    // store subnode in array
 
-	    octr->octs[index].oct[octet] = octr->len;
-	    octr->octs[octr->len++]      = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
+	    tree->octs[index].oct[octet] = tree->len;
+	    tree->octs[tree->len++]      = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
 
 	    // resize array if needed
 
-	    if (octr->len == octr->size)
+	    if (tree->len == tree->size)
 	    {
-		octr->size *= 2;
-		octr->txhth = (octr->size * 3) / octr->txwth;
-		octr->octs  = mt_memory_realloc(octr->octs, octr->size * sizeof(octets_t));
-		if (octr->octs == NULL) mt_log_debug("not enough memory");
-		mt_log_debug("              octree array size %lu\033[1A", octr->size * sizeof(octets_t));
+		tree->size += 8192 * 3;
+		tree->txhth = (tree->size * 3) / tree->txwth;
+		tree->octs  = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
+		if (tree->octs == NULL) mt_log_debug("not enough memory");
+		mt_log_debug("              octree array size %lu\033[1A", tree->size * sizeof(octets_t));
 	    }
 	}
 
@@ -146,7 +144,7 @@ octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pn
 
 	// increase index and length
 
-	index = octr->octs[index].oct[octet];
+	index = tree->octs[index].oct[octet];
 
 	// store debug info
 
@@ -156,51 +154,51 @@ octets_t octree_insert_point(octree_t* octr, size_t index, size_t orind, v3_t pn
     return result;
 }
 
-void octree_insert_path(octree_t* octr, size_t index, size_t orind, int* octs)
+void octree_insert_path(octree_t* tree, size_t index, size_t orind, int* octs)
 {
-    for (int level = 0; level < octr->levels; level++)
+    for (int level = 0; level < tree->levels; level++)
     {
 	int octet = octs[level];
 
-	if (octr->octs[index].oct[octet] == 0)
+	if (tree->octs[index].oct[octet] == 0)
 	{
 	    // store subnode in array
 
-	    octr->octs[index].oct[octet] = octr->len;
-	    octr->octs[octr->len++]      = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
+	    tree->octs[index].oct[octet] = tree->len;
+	    tree->octs[tree->len++]      = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, orind}};
 
 	    // resize array if needed
 
-	    if (octr->len == octr->size)
+	    if (tree->len == tree->size)
 	    {
-		octr->size *= 2;
-		octr->txhth = (octr->size * 3) / octr->txwth;
-		octr->octs  = mt_memory_realloc(octr->octs, octr->size * sizeof(octets_t));
-		if (octr->octs == NULL)
+		tree->size += 8192 * 3;
+		tree->txhth = (tree->size * 3) / tree->txwth;
+		tree->octs  = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
+		if (tree->octs == NULL)
 		    mt_log_debug("not enough memory");
 	    }
 	}
 
 	// increase index and length
 
-	index = octr->octs[index].oct[octet];
+	index = tree->octs[index].oct[octet];
     }
 }
 
-void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
+void octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octind)
 {
-    v4_t cube   = octr->basecube;
+    v4_t cube   = tree->basecube;
     int  index  = 0;
     int  lindex = 0;
     int  loctet = 0;
 
-    for (int level = 0; level < octr->levels; level++)
+    for (int level = 0; level < tree->levels; level++)
     {
 	float size = cube.w / 2.0;
 
-	int octet = (int) floor(pnt.x / size) % 2;
-	int yi    = (int) floor(pnt.y / size) % 2;
-	int zi    = (int) floor(pnt.z / size) % 2;
+	int octet = (int) (pnt.x / size) % 2;
+	int yi    = (int) (pnt.y / size) % 2;
+	int zi    = (int) (pnt.z / size) % 2;
 
 	if (yi == 0) octet += 2;
 	if (zi == 0) octet += 4;
@@ -211,16 +209,16 @@ void octree_remove_point(octree_t* octr, v3_t pnt, int* orind, int* octind)
 	    cube.z - zsft[octet] * size,
 	    size};
 
-	if (level == octr->levels - 1)
+	if (level == tree->levels - 1)
 	{
-	    *orind                         = octr->octs[index].oct[8];
+	    *orind                         = tree->octs[index].oct[8];
 	    *octind                        = index;
-	    octr->octs[lindex].oct[loctet] = 0;
+	    tree->octs[lindex].oct[loctet] = 0;
 	}
 
 	lindex = index;
 	loctet = octet;
-	index  = octr->octs[index].oct[octet];
+	index  = tree->octs[index].oct[octet];
 
 	if (index == 0) return;
     }
@@ -247,12 +245,12 @@ void octree_log_path(octets_t o, size_t index)
     );
 }
 
-void octree_comp(octree_t* octra, octree_t* octrb)
+void octree_comp(octree_t* treea, octree_t* treeb)
 {
-    for (int i = 0; i < octrb->len; i++)
+    for (int i = 0; i < treeb->len; i++)
     {
-	octets_t octsa = octra->octs[i];
-	octets_t octsb = octrb->octs[i];
+	octets_t octsa = treea->octs[i];
+	octets_t octsb = treeb->octs[i];
 
 	for (int j = 0; j < 12; j++)
 	{
@@ -313,18 +311,18 @@ v4_t is_cube_zplane(float z, v3_t lp, v3_t lv)
     return r;
 }
 
-int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
+int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir)
 {
     int level = 0;
 
     // under 17 and over 20 shader becomes very slow, why?
     stck_t stck[18];
-    stck[0].cube  = octr->basecube;
+    stck[0].cube  = tree->basecube;
     stck[0].octi  = 0;
     stck[0].ispsi = 0;
 
     v4_t act;
-    v4_t tlf = octr->basecube;
+    v4_t tlf = tree->basecube;
     v4_t brb = (v4_t){tlf.x + tlf.w, tlf.y - tlf.w, tlf.z - tlf.w, 0.0};
 
     int  hitc = 0;
@@ -380,7 +378,7 @@ int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
 	tlf = stck[level].cube;
 
 	// bingo, we reached bottom, return index of point
-	if (level == octr->levels) return octr->octs[stck[level].octi].oct[8];
+	if (level == tree->levels) return tree->octs[stck[level].octi].oct[8];
 
 	// check subnode intersection if needed
 	if (stck[level].ispsi == 0)
@@ -445,7 +443,7 @@ int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
 
 		pre = oct;
 
-		int octi = octr->octs[stck[level].octi].oct[oct];
+		int octi = tree->octs[stck[level].octi].oct[oct];
 
 		// add to isps if there are subnodes in current cube
 		if (octi > 0)
@@ -483,7 +481,7 @@ int octree_trace_line(octree_t* octr, v3_t pos, v3_t dir)
 	    // increase index and decrease length at current level
 	    stck[level].ispsi = 128 | (nxt_ind << 4) | cur_len;
 
-	    int octi = octr->octs[stck[level].octi].oct[nxt_oct];
+	    int octi = tree->octs[stck[level].octi].oct[nxt_oct];
 
 	    // increase stack level
 	    level += 1;

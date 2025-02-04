@@ -1,7 +1,5 @@
-// skeleton shader connector
-
-#ifndef glc_skeleton_h
-#define glc_skeleton_h
+#ifndef skeleton_glc_h
+#define skeleton_glc_h
 
 #include "mt_log.c"
 #include "readfile.c"
@@ -16,7 +14,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-typedef struct glc_skeleton_t
+typedef struct skeleton_glc_t
 {
     GLuint cmp_sp;
     GLuint cmp_vbo_in;
@@ -31,23 +29,23 @@ typedef struct glc_skeleton_t
     GLint* octqueue;
 
     size_t size;
-} glc_skeleton_t;
+} skeleton_glc_t;
 
-glc_skeleton_t glc_skeleton_init(char* path);
-void           glc_skeleton_update(glc_skeleton_t* cc, float lighta, int model_count, int maxlevel);
-void           glc_skeleton_alloc_in(glc_skeleton_t* cc, void* data, size_t size);
-void           glc_skeleton_alloc_out(glc_skeleton_t* cc, void* data, size_t size);
+skeleton_glc_t skeleton_glc_init(char* path);
+void           skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel);
+void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* data, size_t size);
+void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size);
 
-void glc_skeleton_alloc_in(glc_skeleton_t* cc, void* data, size_t size);
-void glc_skeleton_alloc_out(glc_skeleton_t* cc, void* data, size_t size);
+void skeleton_glc_alloc_in(skeleton_glc_t* cc, void* data, size_t size);
+void skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-glc_skeleton_t glc_skeleton_init(char* base_path)
+skeleton_glc_t skeleton_glc_init(char* base_path)
 {
-    glc_skeleton_t cc;
+    skeleton_glc_t cc;
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];
@@ -105,7 +103,7 @@ glc_skeleton_t glc_skeleton_init(char* base_path)
     return cc;
 }
 
-void glc_skeleton_update(glc_skeleton_t* cc, float lighta, int model_count, int maxlevel)
+void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel)
 {
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
@@ -192,14 +190,14 @@ void glc_skeleton_update(glc_skeleton_t* cc, float lighta, int model_count, int 
     glDisable(GL_RASTERIZER_DISCARD);
 }
 
-void glc_skeleton_alloc_in(glc_skeleton_t* cc, void* data, size_t size)
+void skeleton_glc_alloc_in(skeleton_glc_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void glc_skeleton_alloc_out(glc_skeleton_t* cc, void* data, size_t size)
+void skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_READ);

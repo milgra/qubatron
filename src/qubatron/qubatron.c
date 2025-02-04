@@ -7,14 +7,14 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "glc_octree.c"
-#include "glc_skeleton.c"
 #include "model.c"
 #include "mt_log.c"
 #include "mt_time.c"
 #include "mt_vector_2d.c"
 #include "octree.c"
+#include "octree_glc.c"
 #include "readfile.c"
+#include "skeleton_glc.c"
 
 #ifdef EMSCRIPTEN
     #include <emscripten.h>
@@ -61,8 +61,8 @@ uint32_t ind = 0;
 v3_t  offset  = {0.0, 0.0, 0.0};
 float scaling = 1.0;
 
-glc_skeleton_t cc;
-glc_octree_t   rc;
+skeleton_glc_t cc;
+octree_glc_t   rc;
 
 octree_t static_octree;
 octree_t dynamic_octree;
@@ -96,13 +96,14 @@ void main_init()
     snprintf(path, PATH_MAX, "%s", base_path);
 #endif
 
-    cc = glc_skeleton_init(path);
-    rc = glc_octree_init(path);
+    rc = octree_glc_init(path);
+    cc = skeleton_glc_init(path);
 
-    dynamic_model = model_init();
     static_model  = model_init();
+    dynamic_model = model_init();
 
 #ifdef OCTTEST
+
     int point_count = 5;
 
     GLfloat points[3 * 8192] = {
@@ -150,15 +151,15 @@ void main_init()
 	    NULL);
     }
 
-    glc_octree_upload_texbuffer(&rc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->nrm1_tex, 8);
-    glc_octree_upload_texbuffer(&rc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->col1_tex, 6);
-    glc_octree_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
+    octree_glc_upload_texbuffer(&rc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->nrm1_tex, 8);
+    octree_glc_upload_texbuffer(&rc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->col1_tex, 6);
+    octree_glc_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
 
     // init dynamic model
 
     dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
 
-    glc_octree_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
+    octree_glc_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
     // set rendering mode to octtest
     octtest = 1;
@@ -246,9 +247,9 @@ void main_init()
 
     // upload static model
 
-    glc_octree_upload_texbuffer(&rc, static_model.colors, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col1_tex, 6);
-    glc_octree_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
-    glc_octree_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
+    octree_glc_upload_texbuffer(&rc, static_model.colors, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col1_tex, 6);
+    octree_glc_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
+    octree_glc_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
 
     scenepath = "zombie.ply";
     snprintf(pntpath, PATH_MAX, "%s%s.pnt", base_path, scenepath);
@@ -287,16 +288,16 @@ void main_init()
 
     // upload dynamic model
 
-    glc_octree_upload_texbuffer(&rc, dynamic_model.colors, 0, 0, dynamic_model.txwth, dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col2_tex, 7);
-    glc_octree_upload_texbuffer(&rc, dynamic_model.normals, 0, 0, dynamic_model.txwth, dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm2_tex, 9);
-    glc_octree_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
+    octree_glc_upload_texbuffer(&rc, dynamic_model.colors, 0, 0, dynamic_model.txwth, dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col2_tex, 7);
+    octree_glc_upload_texbuffer(&rc, dynamic_model.normals, 0, 0, dynamic_model.txwth, dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm2_tex, 9);
+    octree_glc_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
     // upload actor to skeleton modifier
 
-    glc_skeleton_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 3 * sizeof(GLfloat));
-    glc_skeleton_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
-    glc_skeleton_update(&cc, lighta, dynamic_model.point_count, maxlevel);
-    glc_skeleton_update(&cc, lighta, dynamic_model.point_count, maxlevel); // double run to step over double buffer
+    skeleton_glc_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 3 * sizeof(GLfloat));
+    skeleton_glc_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
+    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel);
+    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel); // double run to step over double buffer
 
     // add modified point coords by compute shader
 
@@ -311,7 +312,7 @@ void main_init()
 	    &cc.octqueue[index * 12]); // 48 bytes stride 12 int
     }
 
-    glc_octree_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
+    octree_glc_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
 #endif
 
@@ -467,7 +468,7 @@ void main_shoot()
 	mt_log_debug("sy %i ey %i", sy, ey);
 	mt_log_debug("noi %i", noi);
 
-	glc_octree_upload_texbuffer(
+	octree_glc_upload_texbuffer(
 	    &rc,
 	    data + noi,
 	    0,
@@ -531,8 +532,8 @@ void main_shoot()
 	mt_log_debug("sy %i ey %i", sy, ey);
 	mt_log_debug("noi %i", noi);
 
-	glc_octree_upload_texbuffer(&rc, static_model.colors, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col1_tex, 6);
-	glc_octree_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
+	octree_glc_upload_texbuffer(&rc, static_model.colors, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col1_tex, 6);
+	octree_glc_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
 
 	if (data != (GLint*) static_octree.octs)
 	{
@@ -541,7 +542,7 @@ void main_shoot()
 
 	data = (GLint*) static_octree.octs;
 
-	glc_octree_upload_texbuffer(
+	octree_glc_upload_texbuffer(
 	    &rc,
 	    data + noi,
 	    0,
@@ -720,7 +721,7 @@ bool main_loop(double time, void* userdata)
 
 	if (octtest == 0)
 	{
-	    glc_skeleton_update(&cc, lighta, dynamic_model.point_count, maxlevel);
+	    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel);
 
 	    // add modified point coords by compute shader
 
@@ -735,11 +736,11 @@ bool main_loop(double time, void* userdata)
 		    &cc.octqueue[index * 12]); // 48 bytes stride 12 int
 	    }
 
-	    glc_octree_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
+	    octree_glc_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 	}
 
 	/* mt_time(NULL); */
-	glc_octree_update(&rc, width, height, position, angle, lighta, quality, maxlevel);
+	octree_glc_update(&rc, width, height, position, angle, lighta, quality, maxlevel);
 
 	SDL_GL_SwapWindow(window);
 	/* mt_time("Render"); */

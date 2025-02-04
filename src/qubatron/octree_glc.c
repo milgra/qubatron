@@ -1,5 +1,5 @@
-#ifndef glc_octree_h
-#define glc_octree_h
+#ifndef octree_glc_h
+#define octree_glc_h
 
 #include "mt_log.c"
 #include "mt_math_3d.c"
@@ -14,7 +14,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-typedef struct glc_octree_t
+typedef struct octree_glc_t
 {
     // shaders
 
@@ -42,11 +42,11 @@ typedef struct glc_octree_t
     GLuint oct1_tex;
     GLuint oct2_tex;
 
-} glc_octree_t;
+} octree_glc_t;
 
-glc_octree_t glc_octree_init(char* path);
-void         glc_octree_update(glc_octree_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
-void         glc_octree_upload_texbuffer(glc_octree_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
+octree_glc_t octree_glc_init(char* path);
+void         octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
+void         octree_glc_upload_texbuffer(octree_glc_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
 
 #endif
 
@@ -54,9 +54,9 @@ void         glc_octree_upload_texbuffer(glc_octree_t* rc, void* data, int x, in
 
 v3_t lightc = {420.0, 200.0, 680.0};
 
-glc_octree_t glc_octree_init(char* base_path)
+octree_glc_t octree_glc_init(char* base_path)
 {
-    glc_octree_t rc;
+    octree_glc_t rc;
 
     char vshpath[PATH_MAX];
     char fshpath[PATH_MAX];
@@ -206,7 +206,7 @@ glc_octree_t glc_octree_init(char* base_path)
     return rc;
 }
 
-void glc_octree_update(glc_octree_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel)
+void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel)
 {
     // bind scale framebuffer
 
@@ -308,8 +308,8 @@ void glc_octree_update(glc_octree_t* rc, float width, float height, v3_t positio
     glDisable(GL_SCISSOR_TEST);
 }
 
-void glc_octree_upload_texbuffer(
-    glc_octree_t* rc,
+void octree_glc_upload_texbuffer(
+    octree_glc_t* rc,
     void*         data,
     int           x,
     int           y,
