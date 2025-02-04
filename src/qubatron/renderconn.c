@@ -40,16 +40,15 @@ typedef struct renderconn_t
 renderconn_t renderconn_init();
 
 void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
-void         renderconn_upload_normals(renderconn_t* cc, void* data, int width, int height, int components, bool dynamic);
-void         renderconn_upload_colors(renderconn_t* cc, void* data, int width, int height, int components, bool dynamic);
 void         renderconn_upload_octree_quadruplets(renderconn_t* cc, void* data, int width, int height, bool dynamic);
 void         renderconn_upload_octree_quadruplets_partial(renderconn_t* rc, void* data, int x, int y, int width, int height, bool dynamic);
+void         renderconn_upload_texbuffer(renderconn_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-v3_t lightc = {420.0, 200.0, 680.0};
+    v3_t lightc = {420.0, 200.0, 680.0};
 
 renderconn_t renderconn_init()
 {
@@ -355,123 +354,28 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void renderconn_upload_normals(renderconn_t* rc, void* data, int width, int height, int components, bool dynamic)
+void renderconn_upload_texbuffer(
+    renderconn_t* rc,
+    void*         data,
+    int           x,
+    int           y,
+    int           width,
+    int           height,
+    int           internalformat,
+    int           format,
+    int           type,
+    int           texture,
+    int           uniform)
 {
     glUseProgram(rc->sha.name);
+    glActiveTexture(GL_TEXTURE0 + uniform + 1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(rc->sha.uni_loc[uniform], uniform + 1);
 
-    if (dynamic)
-    {
-	glActiveTexture(GL_TEXTURE0 + 10);
-	glBindTexture(GL_TEXTURE_2D, rc->nrm2_tex);
-	glUniform1i(rc->sha.uni_loc[9], 10);
-    }
+    if (y == 0)
+	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, type, data); // full upload
     else
-    {
-	glActiveTexture(GL_TEXTURE0 + 9);
-	glBindTexture(GL_TEXTURE_2D, rc->nrm1_tex);
-	glUniform1i(rc->sha.uni_loc[8], 9);
-    }
-
-    if (components == 3)
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
-
-    mt_log_debug("uploaded normals dyn %i width %i height %i components %i", dynamic, width, height, components);
-    /* GLfloat* arr = data; */
-    /* for (int i = 0; i < 12; i += 3) */
-    /* 	mt_log_debug("%f %f %f", arr[i], arr[i + 1], arr[i + 2]); */
-}
-
-void renderconn_upload_colors(renderconn_t* rc, void* data, int width, int height, int components, bool dynamic)
-{
-    glUseProgram(rc->sha.name);
-
-    if (dynamic)
-    {
-	glActiveTexture(GL_TEXTURE0 + 8);
-	glBindTexture(GL_TEXTURE_2D, rc->col2_tex);
-	glUniform1i(rc->sha.uni_loc[7], 8);
-    }
-    else
-    {
-	glActiveTexture(GL_TEXTURE0 + 7);
-	glBindTexture(GL_TEXTURE_2D, rc->col1_tex);
-	glUniform1i(rc->sha.uni_loc[6], 7);
-    }
-
-    if (components == 3)
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
-
-    mt_log_debug("uploaded colors dyn %i width %i height %i components %i", dynamic, width, height, components);
-    /* GLfloat* arr = data; */
-    /* for (int i = 0; i < 12; i += 3) */
-    /* 	mt_log_debug("%f %f %f", arr[i], arr[i + 1], arr[i + 2]); */
-}
-
-void renderconn_upload_octree_quadruplets(renderconn_t* rc, void* data, int width, int height, bool dynamic)
-{
-    glUseProgram(rc->sha.name);
-
-    if (dynamic)
-    {
-	glActiveTexture(GL_TEXTURE0 + 12);
-	glBindTexture(GL_TEXTURE_2D, rc->oct2_tex);
-	glUniform1i(rc->sha.uni_loc[11], 12);
-    }
-    else
-    {
-	glActiveTexture(GL_TEXTURE0 + 11);
-	glBindTexture(GL_TEXTURE_2D, rc->oct1_tex);
-	glUniform1i(rc->sha.uni_loc[10], 11);
-    }
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, width, height, 0, GL_RGBA_INTEGER, GL_INT, data);
-
-    /* mt_log_debug("uploaded octree dyn %i width %i height %i", dynamic, width, height); */
-    /* GLint* arr = data; */
-    /* for (int i = 0; i < 48; i += 12) */
-    /* { */
-    /* 	printf( */
-    /* 	    "nodes : %i | %i | %i | %i | %i | %i | %i | %i index %i\n", */
-    /* 	    arr[i + 0], */
-    /* 	    arr[i + 1], */
-    /* 	    arr[i + 2], */
-    /* 	    arr[i + 3], */
-    /* 	    arr[i + 4], */
-    /* 	    arr[i + 5], */
-    /* 	    arr[i + 6], */
-    /* 	    arr[i + 7], */
-    /* 	    arr[i + 8]); */
-    /* } */
-}
-
-void renderconn_upload_octree_quadruplets_partial(renderconn_t* rc, void* data, int x, int y, int width, int height, bool dynamic)
-{
-    if (width > 8192 || height > 8192) mt_log_debug("INVALID TEXTURE SIZE FOR OCTREE UPLOAD");
-    glUseProgram(rc->sha.name);
-
-    if (dynamic)
-    {
-	glActiveTexture(GL_TEXTURE0 + 12);
-	glBindTexture(GL_TEXTURE_2D, rc->oct2_tex);
-	glUniform1i(rc->sha.uni_loc[11], 12);
-    }
-    else
-    {
-	glActiveTexture(GL_TEXTURE0 + 11);
-	glBindTexture(GL_TEXTURE_2D, rc->oct1_tex);
-	glUniform1i(rc->sha.uni_loc[10], 11);
-    }
-
-    glTexSubImage2D(
-	GL_TEXTURE_2D,
-	0,
-	x,
-	y,
-	width,
-	height,
-	GL_RGBA_INTEGER,
-	GL_INT,
-	data);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, format, type, data); // partial upload
 }
 
 #endif

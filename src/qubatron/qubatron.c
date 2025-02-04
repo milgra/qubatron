@@ -141,8 +141,11 @@ void main_init()
 	    NULL);
     }
 
-    renderconn_upload_normals(&rc, normals, 8192, 1, 3, false);
-    renderconn_upload_colors(&rc, colors, 8192, 1, 3, false);
+    /* renderconn_upload_normals(&rc, normals, 8192, 1, 3, false); */
+
+    renderconn_upload_texbuffer(&rc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->nrm1_tex, 8);
+    renderconn_upload_texbuffer(&rc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->col1_tex, 6);
+
     renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
 
     // init dynamic model
@@ -238,9 +241,9 @@ void main_init()
 
     // upload static model
 
-    renderconn_upload_normals(&rc, static_model.normals, static_model.txwth, static_model.txhth, static_model.comps, false);
-    renderconn_upload_colors(&rc, static_model.colors, static_model.txwth, static_model.txhth, static_model.comps, false);
-    renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
+    renderconn_upload_texbuffer(&rc, static_model.colors, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col1_tex, 6);
+    renderconn_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
+    renderconn_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
 
     /* float* octs = mt_memory_calloc(8192 * 4, NULL, NULL); */
     /* renderconn_upload_octree_quadruplets(&rc, octs, 8192, 1, false); */
@@ -282,9 +285,9 @@ void main_init()
 
     // upload dynamic model
 
-    renderconn_upload_normals(&rc, dynamic_model.normals, dynamic_model.txwth, dynamic_model.txhth, dynamic_model.comps, true);
-    renderconn_upload_colors(&rc, dynamic_model.colors, dynamic_model.txwth, dynamic_model.txhth, dynamic_model.comps, true);
-    renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
+    renderconn_upload_texbuffer(&rc, dynamic_model.colors, 0, 0, dynamic_model.txwth, dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col2_tex, 7);
+    renderconn_upload_texbuffer(&rc, dynamic_model.normals, 0, 0, dynamic_model.txwth, dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm2_tex, 9);
+    renderconn_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
     // upload actor to skeleton modifier
 
@@ -462,14 +465,18 @@ void main_shoot()
 	mt_log_debug("sy %i ey %i", sy, ey);
 	mt_log_debug("noi %i", noi);
 
-	renderconn_upload_octree_quadruplets_partial(
+	renderconn_upload_texbuffer(
 	    &rc,
 	    data + noi,
 	    0,
 	    sy,
-	    8192,
+	    static_octree.txwth,
 	    ey - sy,
-	    false);
+	    GL_RGBA32I,
+	    GL_RGBA_INTEGER,
+	    GL_INT,
+	    rc.oct1_tex,
+	    10);
 
 	// hole is created, push touched circle inside wall
 
@@ -522,9 +529,8 @@ void main_shoot()
 	mt_log_debug("sy %i ey %i", sy, ey);
 	mt_log_debug("noi %i", noi);
 
-	renderconn_upload_normals(&rc, static_model.normals, static_model.txwth, static_model.txhth, static_model.comps, false);
-	renderconn_upload_colors(&rc, static_model.colors, static_model.txwth, static_model.txhth, static_model.comps, false);
-	/* renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false); */
+	renderconn_upload_texbuffer(&rc, static_model.colors, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.col1_tex, 6);
+	renderconn_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
 
 	if (data != (GLint*) static_octree.octs)
 	{
@@ -533,15 +539,18 @@ void main_shoot()
 
 	data = (GLint*) static_octree.octs;
 
-	// check if full reupload needed
-	renderconn_upload_octree_quadruplets_partial(
+	renderconn_upload_texbuffer(
 	    &rc,
 	    data + noi,
 	    0,
 	    sy,
 	    static_octree.txwth,
 	    ey - sy,
-	    false);
+	    GL_RGBA32I,
+	    GL_RGBA_INTEGER,
+	    GL_INT,
+	    rc.oct1_tex,
+	    10);
     }
 }
 
