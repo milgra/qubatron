@@ -18,16 +18,24 @@
 
 typedef struct renderconn_t
 {
-    glsha_t sha;
-    glsha_t sha_texquad;
+    // shaders
 
-    GLuint frg_vbo_in;
-    GLuint frg_vao;
+    glsha_t octr_sha;
+    glsha_t r2tx_sha;
 
-    GLuint vao_texquad;
-    GLuint vbo_texquad;
-    GLuint texture;
-    GLuint framebuffer;
+    // vbo and vao for octree shader
+
+    GLuint octr_vbo;
+    GLuint octr_vao;
+
+    // render to texture vao, vbo, fbo and texture
+
+    GLuint r2tex_vao;
+    GLuint r2tex_vbo;
+    GLuint r2tex_tex;
+    GLuint r2tex_fbo;
+
+    // texture buffers for color, normal and octree
 
     GLuint col1_tex;
     GLuint col2_tex;
@@ -35,36 +43,33 @@ typedef struct renderconn_t
     GLuint nrm2_tex;
     GLuint oct1_tex;
     GLuint oct2_tex;
+
 } renderconn_t;
 
 renderconn_t renderconn_init();
-
 void         renderconn_update(renderconn_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
-void         renderconn_upload_octree_quadruplets(renderconn_t* cc, void* data, int width, int height, bool dynamic);
-void         renderconn_upload_octree_quadruplets_partial(renderconn_t* rc, void* data, int x, int y, int width, int height, bool dynamic);
 void         renderconn_upload_texbuffer(renderconn_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-    v3_t lightc = {420.0, 200.0, 680.0};
+v3_t lightc = {420.0, 200.0, 680.0};
 
 renderconn_t renderconn_init()
 {
     renderconn_t rc;
-    // shader
 
     char* base_path = SDL_GetBasePath();
     char  vshpath[PATH_MAX];
     char  fshpath[PATH_MAX];
 
 #ifdef EMSCRIPTEN
-    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/shaders/vsh_render.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/shaders/fsh_render.c", base_path);
+    snprintf(vshpath, PATH_MAX, "%s/src/qubatron/shaders/vsh_octree.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%s/src/qubatron/shaders/fsh_octree.c", base_path);
 #else
-    snprintf(vshpath, PATH_MAX, "%svsh_render.c", base_path);
-    snprintf(fshpath, PATH_MAX, "%sfsh_render.c", base_path);
+    snprintf(vshpath, PATH_MAX, "%svsh_octree.c", base_path);
+    snprintf(fshpath, PATH_MAX, "%sfsh_octree.c", base_path);
 #endif
 
     mt_log_debug("loading shaders \n%s\n%s", vshpath, fshpath);
@@ -72,13 +77,27 @@ renderconn_t renderconn_init()
     char* vsh = readfile(vshpath);
     char* fsh = readfile(fshpath);
 
-    rc.sha = shader_create(
+    rc.octr_sha = shader_create(
 	vsh,
 	fsh,
 	1,
-	((const char*[]){"position"}),
+	((const char*[]){
+	    "position"}),
 	13,
-	((const char*[]){"projection", "camfp", "angle_in", "light", "basecube", "dimensions", "coltexbuf_s", "coltexbuf_d", "nrmtexbuf_s", "nrmtexbuf_d", "octtexbuf_s", "octtexbuf_d", "maxlevel"}));
+	((const char*[]){
+	    "projection",
+	    "camfp",
+	    "angle_in",
+	    "light",
+	    "basecube",
+	    "dimensions",
+	    "coltexbuf_s",
+	    "coltexbuf_d",
+	    "nrmtexbuf_s",
+	    "nrmtexbuf_d",
+	    "octtexbuf_s",
+	    "octtexbuf_d",
+	    "maxlevel"}));
 
     free(vsh);
     free(fsh);
@@ -93,7 +112,7 @@ renderconn_t renderconn_init()
     char* vsh_texquad = readfile(vshpath);
     char* fsh_texquad = readfile(fshpath);
 
-    rc.sha_texquad = shader_create(
+    rc.r2tx_sha = shader_create(
 	vsh_texquad,
 	fsh_texquad,
 	2,
@@ -106,35 +125,35 @@ renderconn_t renderconn_init()
 
     // scene sha
 
-    // create vertex array object for vertex buffer
-    glGenVertexArrays(1, &rc.frg_vao);
-    glBindVertexArray(rc.frg_vao);
+    // create vertex array object for octree rendering
+    glGenVertexArrays(1, &rc.octr_vao);
+    glBindVertexArray(rc.octr_vao);
 
-    // create vertex buffer object
-    glGenBuffers(1, &rc.frg_vbo_in);
-    glBindBuffer(GL_ARRAY_BUFFER, rc.frg_vbo_in);
+    // create vertex buffer object for octree rendering
+    glGenBuffers(1, &rc.octr_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, rc.octr_vbo);
 
     // create attribute for compute shader
-    GLint inputAttrib = glGetAttribLocation(rc.sha.name, "position");
+    GLint inputAttrib = glGetAttribLocation(rc.octr_sha.name, "position");
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     // texquad sha
 
     // create vertex array object for vertex buffer
-    glGenVertexArrays(1, &rc.vao_texquad);
-    glBindVertexArray(rc.vao_texquad);
+    glGenVertexArrays(1, &rc.r2tex_vao);
+    glBindVertexArray(rc.r2tex_vao);
 
     // create vertex buffer object
-    glGenBuffers(1, &rc.vbo_texquad);
-    glBindBuffer(GL_ARRAY_BUFFER, rc.vbo_texquad);
+    glGenBuffers(1, &rc.r2tex_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, rc.r2tex_vbo);
 
     // create attribute for compute shader
-    inputAttrib = glGetAttribLocation(rc.sha_texquad.name, "position");
+    inputAttrib = glGetAttribLocation(rc.r2tx_sha.name, "position");
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
 
-    inputAttrib = glGetAttribLocation(rc.sha_texquad.name, "texcoord");
+    inputAttrib = glGetAttribLocation(rc.r2tx_sha.name, "texcoord");
     glEnableVertexAttribArray(inputAttrib);
     glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (const GLvoid*) 12);
 
@@ -179,17 +198,17 @@ renderconn_t renderconn_init()
 
     // render to texture
 
-    glGenFramebuffers(1, &rc.framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, rc.framebuffer);
+    glGenFramebuffers(1, &rc.r2tex_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, rc.r2tex_fbo);
 
-    glGenTextures(1, &rc.texture);
-    glBindTexture(GL_TEXTURE_2D, rc.texture);
+    glGenTextures(1, &rc.r2tex_tex);
+    glBindTexture(GL_TEXTURE_2D, rc.r2tex_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, 2048, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     /* glBindTexture(GL_TEXTURE_2D, 0); */
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rc.texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rc.r2tex_tex, 0);
 
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) printf("Failed to create framebuffer at ogl_framebuffer_with_texture ");
@@ -206,13 +225,13 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     // first render scene to texture
 
-    glUseProgram(rc->sha.name);
+    glUseProgram(rc->octr_sha.name);
 
     glBindFramebuffer(
 	GL_FRAMEBUFFER,
-	rc->framebuffer);
+	rc->r2tex_fbo);
 
-    glUniform1i(rc->sha.uni_loc[12], maxlevel);
+    glUniform1i(rc->octr_sha.uni_loc[12], maxlevel);
 
     matrix4array_t projection = {0};
 
@@ -221,27 +240,27 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     m4_t pers         = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
-    glUniformMatrix4fv(rc->sha.uni_loc[0], 1, 0, projection.array);
+    glUniformMatrix4fv(rc->octr_sha.uni_loc[0], 1, 0, projection.array);
 
     GLfloat lightarr[3] = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
     /* printf("%f %f %f\n", lightarr[0], lightarr[1], lightarr[2]); */
-    glUniform3fv(rc->sha.uni_loc[3], 1, lightarr);
+    glUniform3fv(rc->octr_sha.uni_loc[3], 1, lightarr);
 
     GLfloat anglearr[3] = {angle.x, angle.y, 0.0};
 
-    glUniform3fv(rc->sha.uni_loc[2], 1, anglearr);
+    glUniform3fv(rc->octr_sha.uni_loc[2], 1, anglearr);
 
     GLfloat posarr[3] = {position.x, position.y, position.z};
 
-    glUniform3fv(rc->sha.uni_loc[1], 1, posarr);
+    glUniform3fv(rc->octr_sha.uni_loc[1], 1, posarr);
 
     GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
 
-    glUniform4fv(rc->sha.uni_loc[4], 1, basecubearr);
+    glUniform4fv(rc->octr_sha.uni_loc[4], 1, basecubearr);
 
     GLfloat dimensions[2] = {ow, oh};
 
-    glUniform2fv(rc->sha.uni_loc[5], 1, dimensions);
+    glUniform2fv(rc->octr_sha.uni_loc[5], 1, dimensions);
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -260,11 +279,11 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 	ow,
 	oh);
 
-    glBindVertexArray(rc->frg_vao);
+    glBindVertexArray(rc->octr_vao);
 
     glBindBuffer(
 	GL_ARRAY_BUFFER,
-	rc->frg_vbo_in);
+	rc->octr_vbo);
 
     glBufferData(
 	GL_ARRAY_BUFFER,
@@ -301,7 +320,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(rc->sha_texquad.name);
+    glUseProgram(rc->r2tx_sha.name);
 
     glViewport(
 	0.0,
@@ -312,15 +331,15 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
     pers              = m4_defaultortho(0.0, ow, 0.0, oh, -10, 10);
     projection.matrix = pers;
 
-    glUniformMatrix4fv(rc->sha_texquad.uni_loc[0], 1, 0, projection.array);
+    glUniformMatrix4fv(rc->r2tx_sha.uni_loc[0], 1, 0, projection.array);
 
-    glBindVertexArray(rc->vao_texquad);
+    glBindVertexArray(rc->r2tex_vao);
 
     glActiveTexture(GL_TEXTURE0 + 0);
 
-    glUniform1i(rc->sha_texquad.uni_loc[1], 0);
+    glUniform1i(rc->r2tx_sha.uni_loc[1], 0);
 
-    glBindTexture(GL_TEXTURE_2D, rc->texture);
+    glBindTexture(GL_TEXTURE_2D, rc->r2tex_tex);
 
     GLfloat vertexes_uni[] = {
 	0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -332,7 +351,7 @@ void renderconn_update(renderconn_t* rc, float width, float height, v3_t positio
 
     glBindBuffer(
 	GL_ARRAY_BUFFER,
-	rc->vbo_texquad);
+	rc->r2tex_vbo);
 
     glBufferData(
 	GL_ARRAY_BUFFER,
@@ -367,10 +386,10 @@ void renderconn_upload_texbuffer(
     int           texture,
     int           uniform)
 {
-    glUseProgram(rc->sha.name);
+    glUseProgram(rc->octr_sha.name);
     glActiveTexture(GL_TEXTURE0 + uniform + 1);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(rc->sha.uni_loc[uniform], uniform + 1);
+    glUniform1i(rc->octr_sha.uni_loc[uniform], uniform + 1);
 
     if (y == 0)
 	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, type, data); // full upload

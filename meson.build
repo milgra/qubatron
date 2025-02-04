@@ -56,8 +56,8 @@ qubatron_sources = [
 
 fs = import('fs')
 
-fs.copyfile('src/qubatron/shaders/vsh_render.c', 'vsh_render.c')
-fs.copyfile('src/qubatron/shaders/fsh_render.c', 'fsh_render.c')
+fs.copyfile('src/qubatron/shaders/vsh_octree.c', 'vsh_octree.c')
+fs.copyfile('src/qubatron/shaders/fsh_octree.c', 'fsh_octree.c')
 fs.copyfile('src/qubatron/shaders/vsh_skeleton.c', 'vsh_skeleton.c')
 fs.copyfile('src/qubatron/shaders/fsh_skeleton.c', 'fsh_skeleton.c')
 fs.copyfile('src/qubatron/shaders/vsh_texquad.c', 'vsh_texquad.c')

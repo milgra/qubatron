@@ -141,17 +141,15 @@ void main_init()
 	    NULL);
     }
 
-    /* renderconn_upload_normals(&rc, normals, 8192, 1, 3, false); */
-
     renderconn_upload_texbuffer(&rc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->nrm1_tex, 8);
     renderconn_upload_texbuffer(&rc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, rc->col1_tex, 6);
-
-    renderconn_upload_octree_quadruplets(&rc, static_octree.octs, static_octree.txwth, static_octree.txhth, false);
+    renderconn_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
 
     // init dynamic model
 
     dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
-    renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
+
+    renderconn_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
     // set rendering mode to octtest
     octtest = 1;
@@ -245,9 +243,6 @@ void main_init()
     renderconn_upload_texbuffer(&rc, static_model.normals, 0, 0, static_model.txwth, static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, rc.nrm1_tex, 8);
     renderconn_upload_texbuffer(&rc, static_octree.octs, 0, 0, static_octree.txwth, static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct1_tex, 10);
 
-    /* float* octs = mt_memory_calloc(8192 * 4, NULL, NULL); */
-    /* renderconn_upload_octree_quadruplets(&rc, octs, 8192, 1, false); */
-
     scenepath = "zombie.ply";
     snprintf(pntpath, PATH_MAX, "%s/%s.pnt", base_path, scenepath);
     snprintf(nrmpath, PATH_MAX, "%s/%s.nrm", base_path, scenepath);
@@ -309,7 +304,7 @@ void main_init()
 	    &cc.octqueue[index * 12]); // 48 bytes stride 12 int
     }
 
-    renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
+    renderconn_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
 #endif
 
@@ -733,7 +728,7 @@ bool main_loop(double time, void* userdata)
 		    &cc.octqueue[index * 12]); // 48 bytes stride 12 int
 	    }
 
-	    renderconn_upload_octree_quadruplets(&rc, dynamic_octree.octs, dynamic_octree.txwth, dynamic_octree.txhth, true);
+	    renderconn_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 	}
 
 	/* mt_time(NULL); */
