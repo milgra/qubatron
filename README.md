@@ -87,6 +87,7 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
+- separate orind array for octree
 - webgl fencing
 - shotgun wall/figure deformation
 - ik skeleton/mass point engine

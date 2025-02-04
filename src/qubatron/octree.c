@@ -99,12 +99,12 @@ void octree_reset(octree_t* tree, v4_t base)
 
 octets_t octree_insert_point(octree_t* tree, size_t index, size_t orind, v3_t pnt, int* modind)
 {
-    v4_t     cube   = tree->basecube;
+    float    size   = tree->basecube.w;
     octets_t result = {0};
 
     for (int level = 0; level < tree->levels; level++)
     {
-	float size = cube.w / 2.0;
+	size /= 2.0;
 
 	int octet = (int) (pnt.x / size) % 2;
 	int yi    = (int) (pnt.y / size) % 2;
@@ -135,12 +135,6 @@ octets_t octree_insert_point(octree_t* tree, size_t index, size_t orind, v3_t pn
 		mt_log_debug("              octree array size %lu\033[1A", tree->size * sizeof(octets_t));
 	    }
 	}
-
-	cube = (v4_t){
-	    cube.x + xsft[octet] * size,
-	    cube.y - ysft[octet] * size,
-	    cube.z - zsft[octet] * size,
-	    size};
 
 	// increase index and length
 
@@ -187,14 +181,14 @@ void octree_insert_path(octree_t* tree, size_t index, size_t orind, int* octs)
 
 void octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octind)
 {
-    v4_t cube   = tree->basecube;
-    int  index  = 0;
-    int  lindex = 0;
-    int  loctet = 0;
+    float size   = tree->basecube.w;
+    int   index  = 0;
+    int   lindex = 0;
+    int   loctet = 0;
 
     for (int level = 0; level < tree->levels; level++)
     {
-	float size = cube.w / 2.0;
+	size /= 2.0;
 
 	int octet = (int) (pnt.x / size) % 2;
 	int yi    = (int) (pnt.y / size) % 2;
@@ -203,16 +197,15 @@ void octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octind)
 	if (yi == 0) octet += 2;
 	if (zi == 0) octet += 4;
 
-	cube = (v4_t){
-	    cube.x + xsft[octet] * size,
-	    cube.y - ysft[octet] * size,
-	    cube.z - zsft[octet] * size,
-	    size};
-
 	if (level == tree->levels - 1)
 	{
-	    *orind                         = tree->octs[index].oct[8];
-	    *octind                        = index;
+	    // return original index and octet index
+
+	    *orind  = tree->octs[index].oct[8];
+	    *octind = index;
+
+	    // zero out branch
+
 	    tree->octs[lindex].oct[loctet] = 0;
 	}
 
