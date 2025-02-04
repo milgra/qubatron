@@ -1,7 +1,7 @@
 // skeleton shader connector
 
-#ifndef skeleconn_h
-#define skeleconn_h
+#ifndef glc_skeleton_h
+#define glc_skeleton_h
 
 #include "mt_log.c"
 #include "readfile.c"
@@ -16,7 +16,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-typedef struct skeleconn_t
+typedef struct glc_skeleton_t
 {
     GLuint cmp_sp;
     GLuint cmp_vbo_in;
@@ -31,37 +31,31 @@ typedef struct skeleconn_t
     GLint* octqueue;
 
     size_t size;
-} skeleconn_t;
+} glc_skeleton_t;
 
-skeleconn_t   skeleconn_init();
-void          skeleconn_update(skeleconn_t* cc, float lighta, int model_count, int maxlevel);
-void          skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size);
-void          skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size);
+glc_skeleton_t glc_skeleton_init(char* path);
+void           glc_skeleton_update(glc_skeleton_t* cc, float lighta, int model_count, int maxlevel);
+void           glc_skeleton_alloc_in(glc_skeleton_t* cc, void* data, size_t size);
+void           glc_skeleton_alloc_out(glc_skeleton_t* cc, void* data, size_t size);
 
-void skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size);
-void skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size);
+void glc_skeleton_alloc_in(glc_skeleton_t* cc, void* data, size_t size);
+void glc_skeleton_alloc_out(glc_skeleton_t* cc, void* data, size_t size);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-skeleconn_t skeleconn_init()
+glc_skeleton_t glc_skeleton_init(char* base_path)
 {
-    skeleconn_t cc;
+    glc_skeleton_t cc;
 
-    char* base_path = SDL_GetBasePath();
-    char  cshpath[PATH_MAX];
-    char  dshpath[PATH_MAX];
+    char cshpath[PATH_MAX];
+    char dshpath[PATH_MAX];
 
-#ifdef EMSCRIPTEN
-    snprintf(cshpath, PATH_MAX, "%s/src/qubatron/shaders/vsh_skeleton.c", base_path);
-    snprintf(dshpath, PATH_MAX, "%s/src/qubatron/shaders/fsh_skeleton.c", base_path);
-#else
-    snprintf(cshpath, PATH_MAX, "%svsh_skeleton.c", base_path);
-    snprintf(dshpath, PATH_MAX, "%sfsh_skeleton.c", base_path);
-#endif
+    snprintf(cshpath, PATH_MAX, "%sskeleton_vsh.c", base_path);
+    snprintf(dshpath, PATH_MAX, "%sskeleton_fsh.c", base_path);
 
-    mt_log_debug("loading shaders %s %s", cshpath, dshpath);
+    mt_log_debug("loading shaders \n%s\n%s", cshpath, dshpath);
 
     char* csh = readfile(cshpath);
     char* dsh = readfile(dshpath);
@@ -111,7 +105,7 @@ skeleconn_t skeleconn_init()
     return cc;
 }
 
-void skeleconn_update(skeleconn_t* cc, float lighta, int model_count, int maxlevel)
+void glc_skeleton_update(glc_skeleton_t* cc, float lighta, int model_count, int maxlevel)
 {
     // switch off fragment stage
     glEnable(GL_RASTERIZER_DISCARD);
@@ -198,14 +192,14 @@ void skeleconn_update(skeleconn_t* cc, float lighta, int model_count, int maxlev
     glDisable(GL_RASTERIZER_DISCARD);
 }
 
-void skeleconn_alloc_in(skeleconn_t* cc, void* data, size_t size)
+void glc_skeleton_alloc_in(glc_skeleton_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void skeleconn_alloc_out(skeleconn_t* cc, void* data, size_t size)
+void glc_skeleton_alloc_out(glc_skeleton_t* cc, void* data, size_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_READ);

@@ -41,8 +41,8 @@ qubatron_sources = [
 	       'src/qubatron/model.c',
 	       'src/qubatron/octree.c',
 	       'src/qubatron/readfile.c',
-	       'src/qubatron/skeleconn.c',
-	       'src/qubatron/octreeconn.c',
+	       'src/qubatron/glc_skeleton.c',
+	       'src/qubatron/glc_octree.c',
 	       'src/qubatron/shader.c',
 	       'src/mt_core/mt_log.c',
 	       'src/mt_core/mt_time.c',
@@ -56,12 +56,12 @@ qubatron_sources = [
 
 fs = import('fs')
 
-fs.copyfile('src/qubatron/shaders/vsh_octree.c', 'vsh_octree.c')
-fs.copyfile('src/qubatron/shaders/fsh_octree.c', 'fsh_octree.c')
-fs.copyfile('src/qubatron/shaders/vsh_skeleton.c', 'vsh_skeleton.c')
-fs.copyfile('src/qubatron/shaders/fsh_skeleton.c', 'fsh_skeleton.c')
-fs.copyfile('src/qubatron/shaders/vsh_texquad.c', 'vsh_texquad.c')
-fs.copyfile('src/qubatron/shaders/fsh_texquad.c', 'fsh_texquad.c')
+fs.copyfile('src/qubatron/shaders/octree_vsh.c', 'octree_vsh.c')
+fs.copyfile('src/qubatron/shaders/octree_fsh.c', 'octree_fsh.c')
+fs.copyfile('src/qubatron/shaders/skeleton_vsh.c', 'skeleton_vsh.c')
+fs.copyfile('src/qubatron/shaders/skeleton_fsh.c', 'skeleton_fsh.c')
+fs.copyfile('src/qubatron/shaders/texquad_vsh.c', 'texquad_vsh.c')
+fs.copyfile('src/qubatron/shaders/texquad_fsh.c', 'texquad_fsh.c')
 
 fs.copyfile('res/abandoned.ply.col', 'abandoned.ply.col')
 fs.copyfile('res/abandoned.ply.nrm', 'abandoned.ply.nrm')
