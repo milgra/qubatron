@@ -40,7 +40,6 @@ qubatron_sources = [
 	       'src/qubatron/qubatron.c',
 	       'src/qubatron/model.c',
 	       'src/qubatron/octree.c',
-	       'src/qubatron/readfile.c',
 	       'src/qubatron/skeleton_glc.c',
 	       'src/qubatron/octree_glc.c',
 	       'src/qubatron/shader.c',

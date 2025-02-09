@@ -10,6 +10,7 @@ typedef struct _glsha_t
     GLint  uni_loc[13];
 } glsha_t;
 
+char*  shader_readfile(char* name);
 GLuint shader_compile(GLenum type, const GLchar* source);
 int    shader_link(GLuint program);
 
@@ -26,6 +27,29 @@ glsha_t shader_create(
 #if __INCLUDE_LEVEL__ == 0
 
 #include <stdio.h>
+#include <stdlib.h>
+
+char* shader_readfile(char* name)
+{
+    FILE* f      = fopen(name, "rb");
+    char* string = NULL;
+
+    if (f != NULL)
+    {
+
+	fseek(f, 0, SEEK_END);
+	long fsize = ftell(f);
+	fseek(f, 0, SEEK_SET); /* same as rewind(f); */
+
+	string = malloc(fsize + 1);
+	fread(string, fsize, 1, f);
+	fclose(f);
+
+	string[fsize] = 0;
+    }
+
+    return string;
+}
 
 GLuint shader_compile(GLenum type, const GLchar* source)
 {

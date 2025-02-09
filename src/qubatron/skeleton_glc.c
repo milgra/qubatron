@@ -2,7 +2,6 @@
 #define skeleton_glc_h
 
 #include "mt_log.c"
-#include "readfile.c"
 #include <GL/glew.h>
 #include <SDL.h>
 #include <limits.h>
@@ -55,8 +54,8 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
     mt_log_debug("loading shaders \n%s\n%s", cshpath, dshpath);
 
-    char* csh = readfile(cshpath);
-    char* dsh = readfile(dshpath);
+    char* csh = shader_readfile(cshpath);
+    char* dsh = shader_readfile(dshpath);
 
     GLuint cmp_vsh = shader_compile(GL_VERTEX_SHADER, csh);
     GLuint cmp_fsh = shader_compile(GL_FRAGMENT_SHADER, dsh);

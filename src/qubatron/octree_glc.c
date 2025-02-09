@@ -4,7 +4,6 @@
 #include "mt_log.c"
 #include "mt_math_3d.c"
 #include "mt_matrix_4d.c"
-#include "readfile.c"
 #include <GL/glew.h>
 #include <limits.h>
 #include <stdio.h>
@@ -66,8 +65,8 @@ octree_glc_t octree_glc_init(char* base_path)
 
     mt_log_debug("loading shaders \n%s\n%s", vshpath, fshpath);
 
-    char* vsh = readfile(vshpath);
-    char* fsh = readfile(fshpath);
+    char* vsh = shader_readfile(vshpath);
+    char* fsh = shader_readfile(fshpath);
 
     rc.octr_sha = shader_create(
 	vsh,
@@ -99,8 +98,8 @@ octree_glc_t octree_glc_init(char* base_path)
 
     mt_log_debug("loading shaders \n%s\n%s", vshpath, fshpath);
 
-    char* vsh_texquad = readfile(vshpath);
-    char* fsh_texquad = readfile(fshpath);
+    char* vsh_texquad = shader_readfile(vshpath);
+    char* fsh_texquad = shader_readfile(fshpath);
 
     rc.r2tx_sha = shader_create(
 	vsh_texquad,

@@ -13,7 +13,6 @@
 #include "mt_vector_2d.c"
 #include "octree.c"
 #include "octree_glc.c"
-#include "readfile.c"
 #include "skeleton_glc.c"
 
 #ifdef EMSCRIPTEN
