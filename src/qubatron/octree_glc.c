@@ -17,8 +17,11 @@ typedef struct octree_glc_t
 {
     // shaders
 
-    glsha_t octr_sha;
-    glsha_t r2tx_sha;
+    GLuint octr_sha;
+    GLuint r2tx_sha;
+
+    GLuint octr_unilocs[20];
+    GLuint r2tx_unilocs[10];
 
     // vbo and vao for octree shader
 
@@ -68,30 +71,32 @@ octree_glc_t octree_glc_init(char* base_path)
     char* vsh = shader_readfile(vshpath);
     char* fsh = shader_readfile(fshpath);
 
-    rc.octr_sha = shader_create(
-	vsh,
-	fsh,
-	1,
-	((const char*[]){
-	    "position"}),
-	13,
-	((const char*[]){
-	    "projection",
-	    "camfp",
-	    "angle_in",
-	    "light",
-	    "basecube",
-	    "dimensions",
-	    "coltexbuf_s",
-	    "coltexbuf_d",
-	    "nrmtexbuf_s",
-	    "nrmtexbuf_d",
-	    "octtexbuf_s",
-	    "octtexbuf_d",
-	    "maxlevel"}));
+    rc.octr_sha = shader_create(vsh, fsh, 1);
 
     free(vsh);
     free(fsh);
+
+    glBindAttribLocation(rc.octr_sha, 0, "position");
+
+    // get uniforms
+
+    char* uniforms[] = {
+	"projection",
+	"camfp",
+	"angle_in",
+	"light",
+	"basecube",
+	"dimensions",
+	"coltexbuf_s",
+	"coltexbuf_d",
+	"nrmtexbuf_s",
+	"nrmtexbuf_d",
+	"octtexbuf_s",
+	"octtexbuf_d",
+	"maxlevel"};
+
+    for (int index = 0; index < 13; index++)
+	rc.octr_unilocs[index] = glGetUniformLocation(rc.octr_sha, uniforms[index]);
 
     snprintf(vshpath, PATH_MAX, "%stexquad_vsh.c", base_path);
     snprintf(fshpath, PATH_MAX, "%stexquad_fsh.c", base_path);
@@ -101,20 +106,20 @@ octree_glc_t octree_glc_init(char* base_path)
     char* vsh_texquad = shader_readfile(vshpath);
     char* fsh_texquad = shader_readfile(fshpath);
 
-    rc.r2tx_sha = shader_create(
-	vsh_texquad,
-	fsh_texquad,
-	2,
-	((const char*[]){
-	    "position",
-	    "texcoord"}),
-	2,
-	((const char*[]){
-	    "projection",
-	    "texture_base"}));
+    rc.r2tx_sha = shader_create(vsh_texquad, fsh_texquad, 1);
 
     free(vsh_texquad);
     free(fsh_texquad);
+
+    glBindAttribLocation(rc.r2tx_sha, 0, "position");
+    glBindAttribLocation(rc.r2tx_sha, 1, "texcoord");
+
+    // get uniforms
+
+    char* r2tx_uniforms[] = {"projection", "texture_base"};
+
+    for (int index = 0; index < 2; index++)
+	rc.r2tx_unilocs[index] = glGetUniformLocation(rc.r2tx_sha, r2tx_uniforms[index]);
 
     // octree renderer
 
@@ -126,10 +131,8 @@ octree_glc_t octree_glc_init(char* base_path)
     glGenVertexArrays(1, &rc.octr_vao);
     glBindVertexArray(rc.octr_vao);
 
-    GLint octposAttrib = glGetAttribLocation(rc.octr_sha.name, "position");
-
-    glEnableVertexAttribArray(octposAttrib);
-    glVertexAttribPointer(octposAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     // texture buffers
 
@@ -175,14 +178,11 @@ octree_glc_t octree_glc_init(char* base_path)
 
     // attributes are position and texcoord
 
-    GLint r2posAttrib = glGetAttribLocation(rc.r2tx_sha.name, "position");
-    GLint r2texAttrib = glGetAttribLocation(rc.r2tx_sha.name, "texcoord");
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
-    glEnableVertexAttribArray(r2posAttrib);
-    glEnableVertexAttribArray(r2texAttrib);
-
-    glVertexAttribPointer(r2posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
-    glVertexAttribPointer(r2texAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (const GLvoid*) 12);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, 0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (const GLvoid*) 12);
 
     // render to texture texture/framebufffer
 
@@ -213,7 +213,7 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
 
     // render octree first
 
-    glUseProgram(rc->octr_sha.name);
+    glUseProgram(rc->octr_sha);
 
     // update uniforms
 
@@ -231,13 +231,13 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
     matrix4array_t projection = {0};
     projection.matrix         = pers;
 
-    glUniformMatrix4fv(rc->octr_sha.uni_loc[0], 1, 0, projection.array);
-    glUniform3fv(rc->octr_sha.uni_loc[1], 1, posarr);
-    glUniform3fv(rc->octr_sha.uni_loc[2], 1, anglearr);
-    glUniform3fv(rc->octr_sha.uni_loc[3], 1, lightarr);
-    glUniform4fv(rc->octr_sha.uni_loc[4], 1, basecubearr);
-    glUniform2fv(rc->octr_sha.uni_loc[5], 1, dimensions);
-    glUniform1i(rc->octr_sha.uni_loc[12], maxlevel);
+    glUniformMatrix4fv(rc->octr_unilocs[0], 1, 0, projection.array);
+    glUniform3fv(rc->octr_unilocs[1], 1, posarr);
+    glUniform3fv(rc->octr_unilocs[2], 1, anglearr);
+    glUniform3fv(rc->octr_unilocs[3], 1, lightarr);
+    glUniform4fv(rc->octr_unilocs[4], 1, basecubearr);
+    glUniform2fv(rc->octr_unilocs[5], 1, dimensions);
+    glUniform1i(rc->octr_unilocs[12], maxlevel);
 
     // set viewport and color
 
@@ -267,7 +267,7 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(rc->r2tx_sha.name);
+    glUseProgram(rc->r2tx_sha);
 
     glViewport(0.0, 0.0, width, height);
 
@@ -276,10 +276,10 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
 
     // update uniforms
 
-    glUniformMatrix4fv(rc->r2tx_sha.uni_loc[0], 1, 0, projection.array);
+    glUniformMatrix4fv(rc->r2tx_unilocs[0], 1, 0, projection.array);
 
     glActiveTexture(GL_TEXTURE0 + 0);
-    glUniform1i(rc->r2tx_sha.uni_loc[1], 0);
+    glUniform1i(rc->r2tx_unilocs[1], 0);
     glBindTexture(GL_TEXTURE_2D, rc->r2tex_tex);
 
     GLfloat vertexes_uni[] = {
@@ -320,10 +320,10 @@ void octree_glc_upload_texbuffer(
     int           texture,
     int           uniform)
 {
-    glUseProgram(rc->octr_sha.name);
+    glUseProgram(rc->octr_sha);
     glActiveTexture(GL_TEXTURE0 + uniform + 1);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(rc->octr_sha.uni_loc[uniform], uniform + 1);
+    glUniform1i(rc->octr_unilocs[uniform], uniform + 1);
 
     if (y == 0)
 	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, type, data); // full upload

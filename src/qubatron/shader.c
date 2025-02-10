@@ -4,23 +4,10 @@
 // #include <GLES2/gl2.h>
 #include <GL/glew.h>
 
-typedef struct _glsha_t
-{
-    GLuint name;
-    GLint  uni_loc[13];
-} glsha_t;
-
 char*  shader_readfile(char* name);
 GLuint shader_compile(GLenum type, const GLchar* source);
 int    shader_link(GLuint program);
-
-glsha_t shader_create(
-    const char*  vertex_source,
-    const char*  fragment_source,
-    int          attribute_locations_length,
-    const char** attribute_structure,
-    int          uniform_locations_length,
-    const char** uniform_structure);
+GLuint shader_create(const char* vertex_source, const char* fragment_source, int link);
 
 #endif
 
@@ -105,17 +92,9 @@ int shader_link(GLuint program)
     return 0;
 }
 
-glsha_t shader_create(
-    const char*  vertex_source,
-    const char*  fragment_source,
-    int          attribute_locations_length,
-    const char** attribute_structure,
-    int          uniform_locations_length,
-    const char** uniform_structure)
+GLuint shader_create(const char* vertex_source, const char* fragment_source, int link)
 {
-    glsha_t sh = {0};
-
-    sh.name = glCreateProgram();
+    GLuint shader = glCreateProgram();
 
     GLuint vertex_shader = shader_compile(GL_VERTEX_SHADER, vertex_source);
     if (vertex_shader == 0) printf("Failed to compile vertex shader : %s\n", vertex_source);
@@ -123,42 +102,30 @@ glsha_t shader_create(
     GLuint fragment_shader = shader_compile(GL_FRAGMENT_SHADER, fragment_source);
     if (fragment_shader == 0) printf("Failed to compile fragment shader : %s\n", fragment_source);
 
-    glAttachShader(sh.name, vertex_shader);
-    glAttachShader(sh.name, fragment_shader);
+    glAttachShader(shader, vertex_shader);
+    glAttachShader(shader, fragment_shader);
 
-    for (int index = 0; index < attribute_locations_length; index++)
+    if (link == 1)
     {
-	const GLchar* name = attribute_structure[index];
-	glBindAttribLocation(sh.name, index, name);
-    }
+	int success = shader_link(shader);
 
-    int success = shader_link(sh.name);
+	if (success != 1)
+	    printf("Failed to link shader program\n");
 
-    if (success == 1)
-    {
-	for (int index = 0; index < uniform_locations_length; index++)
+	if (vertex_shader > 0)
 	{
-	    const GLchar* name     = uniform_structure[index];
-	    GLint         location = glGetUniformLocation(sh.name, name);
-	    sh.uni_loc[index]      = location;
+	    glDetachShader(shader, vertex_shader);
+	    glDeleteShader(vertex_shader);
+	}
+
+	if (fragment_shader > 0)
+	{
+	    glDetachShader(shader, fragment_shader);
+	    glDeleteShader(fragment_shader);
 	}
     }
-    else
-	printf("Failed to link shader program\n");
 
-    if (vertex_shader > 0)
-    {
-	glDetachShader(sh.name, vertex_shader);
-	glDeleteShader(vertex_shader);
-    }
-
-    if (fragment_shader > 0)
-    {
-	glDetachShader(sh.name, fragment_shader);
-	glDeleteShader(fragment_shader);
-    }
-
-    return sh;
+    return shader;
 }
 
 #endif

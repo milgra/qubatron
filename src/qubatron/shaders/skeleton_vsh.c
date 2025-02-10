@@ -2,7 +2,7 @@
 
 precision highp float;
 
-in vec3        inValue;
+in vec3        position;
 flat out ivec4 oct14;
 flat out ivec4 oct54;
 flat out ivec4 oct94;
@@ -68,7 +68,7 @@ void main()
     vec3  corner_points[12];
     float corner_ratios[12];
     int   corner_count  = 0;
-    vec3  corner_center = inValue;
+    vec3  corner_center = position;
 
     // go through skeleton point pairs
 
@@ -76,8 +76,8 @@ void main()
     {
 	// TODO convert cover shape to capsule, ellipse is too wide
 
-	vec3 fpd1 = inValue - fpori[i].xyz;          // ellipse focus point dir vector 1
-	vec3 fpd2 = inValue - fpori[i + 1].xyz;      // ellips efocus point dir vector 2
+	vec3 fpd1 = position - fpori[i].xyz;         // ellipse focus point dir vector 1
+	vec3 fpd2 = position - fpori[i + 1].xyz;     // ellips efocus point dir vector 2
 	vec3 bone = fpori[i + 1].xyz - fpori[i].xyz; // bone vector
 
 	float orad = length(bone) + fpori[i].w;
@@ -92,7 +92,7 @@ void main()
 	    rat = max(1.0, rat) - 1.0;
 	    rat = mix(1.0, 0.0, rat / 0.3);
 
-	    vec3 oldd0 = inValue - fpori[i].xyz;
+	    vec3 oldd0 = position - fpori[i].xyz;
 	    vec3 oldb0 = normalize(fpori[i + 1].xyz - fpori[i].xyz);
 	    vec3 newb0 = normalize(fpnew[i + 1] - fpnew[i]);
 

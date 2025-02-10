@@ -15,19 +15,14 @@
 
 typedef struct skeleton_glc_t
 {
-    GLuint cmp_sp;
-    GLuint cmp_vbo_in;
-    GLuint cmp_vbo_out;
-    GLuint cmp_vao;
-
-    GLint oril;
-    GLint newl;
-    GLint cubl;
-    GLint maxl;
+    GLuint defo_sha;
+    GLuint defo_vao;
+    GLuint defo_vbo_in;
+    GLuint defo_vbo_out;
+    GLuint defo_unilocs[10];
 
     GLint* octqueue;
-
-    size_t size;
+    size_t octqueuesize;
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
@@ -54,49 +49,45 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
     mt_log_debug("loading shaders \n%s\n%s", cshpath, dshpath);
 
-    char* csh = shader_readfile(cshpath);
-    char* dsh = shader_readfile(dshpath);
+    char* vsh = shader_readfile(cshpath);
+    char* fsh = shader_readfile(dshpath);
 
-    GLuint cmp_vsh = shader_compile(GL_VERTEX_SHADER, csh);
-    GLuint cmp_fsh = shader_compile(GL_FRAGMENT_SHADER, dsh);
+    cc.defo_sha = shader_create(vsh, fsh, 0);
 
-    free(csh);
-    free(dsh);
+    free(vsh);
+    free(fsh);
 
-    // create compute shader ( it is just a vertex shader with transform feedback )
-    cc.cmp_sp = glCreateProgram();
+    // set transform feedback varyings before linking
 
-    glAttachShader(cc.cmp_sp, cmp_vsh);
-    glAttachShader(cc.cmp_sp, cmp_fsh);
-
-    // we want to capture outvalue in the result buffer
     const GLchar* feedbackVaryings[] = {"oct14", "oct54", "oct94"};
-    glTransformFeedbackVaryings(cc.cmp_sp, 3, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+    glTransformFeedbackVaryings(cc.defo_sha, 3, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
 
-    // link
-    shader_link(cc.cmp_sp);
+    shader_link(cc.defo_sha);
 
-    cc.oril = glGetUniformLocation(cc.cmp_sp, "fpori");
-    cc.newl = glGetUniformLocation(cc.cmp_sp, "fpnew");
-    cc.cubl = glGetUniformLocation(cc.cmp_sp, "basecube");
-    cc.maxl = glGetUniformLocation(cc.cmp_sp, "maxlevel");
+    glBindAttribLocation(cc.defo_sha, 0, "position");
 
-    // create vertex array object for vertex buffer
-    glGenVertexArrays(1, &cc.cmp_vao);
-    glBindVertexArray(cc.cmp_vao);
+    // get uniforms
 
-    // create vertex buffer object
-    glGenBuffers(1, &cc.cmp_vbo_in);
-    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_in);
+    char* defo_uniforms[] = {"fpori", "fpnew", "basecube", "maxlevel"};
 
-    // create attribute for compute shader
-    GLint inputAttrib = glGetAttribLocation(cc.cmp_sp, "inValue");
-    glEnableVertexAttribArray(inputAttrib);
-    glVertexAttribPointer(inputAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+    for (int index = 0; index < 4; index++)
+	cc.defo_unilocs[index] = glGetUniformLocation(cc.defo_sha, defo_uniforms[index]);
+
+    // create vertex array and vertex buffer
+
+    glGenVertexArrays(1, &cc.defo_vao);
+    glBindVertexArray(cc.defo_vao);
+
+    glGenBuffers(1, &cc.defo_vbo_in);
+    glBindBuffer(GL_ARRAY_BUFFER, cc.defo_vbo_in);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     // create and bind result buffer object
-    glGenBuffers(1, &cc.cmp_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, cc.cmp_vbo_out);
+
+    glGenBuffers(1, &cc.defo_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cc.defo_vbo_out);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return cc;
@@ -105,13 +96,16 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel)
 {
     // switch off fragment stage
+
     glEnable(GL_RASTERIZER_DISCARD);
 
-    glUseProgram(cc->cmp_sp);
+    glUseProgram(cc->defo_sha);
 
-    glBindVertexArray(cc->cmp_vao);
+    glBindVertexArray(cc->defo_vao);
 
-    GLfloat pivot_old[48] =
+    // original skeleton
+
+    GLfloat skeleton_old[48] =
 	{
 	    // head
 	    54.0, 205.0, 22.0, 15.0,
@@ -132,14 +126,14 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 	    38.0, 120.0, 22.0, 6.0,
 	    8.0, -10.0, 22.0, 8.0};
 
-    glUniform4fv(cc->oril, 12, pivot_old);
-
     float dx = 250.0;
     float dz = 600.0;
 
-    GLfloat pivot_new[36] =
-	// head
+    // modified skeleton
+
+    GLfloat skeleton_new[36] =
 	{
+	    // head
 	    54.0 + dx, 205.0, 20.0 + dz + sinf(lighta) * 10.0,
 	    54.0 + dx, 170.0, 20.0 + dz,
 	    // torso
@@ -158,27 +152,23 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 	    38.0 + dx, 120.0, 20.0 + dz,
 	    8.0 + dx, -10.0, 20.0 + dz + cosf(lighta) * 15.0};
 
-    glUniform3fv(cc->newl, 12, pivot_new);
+    // update uniforms
 
     GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
-    glUniform4fv(cc->cubl, 1, basecubearr);
 
-    glUniform1i(cc->maxl, maxlevel);
+    glUniform4fv(cc->defo_unilocs[0], 12, skeleton_old);
+    glUniform3fv(cc->defo_unilocs[1], 12, skeleton_new);
+    glUniform4fv(cc->defo_unilocs[2], 1, basecubearr);
+    glUniform1i(cc->defo_unilocs[3], maxlevel);
 
-    /* GLfloat cmp_data[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}; */
-    /* glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in); */
-    /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), model_vertexes, GL_STATIC_DRAW); */
-    /* glBindBuffer(GL_ARRAY_BUFFER, 0); */
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->defo_vbo_out);
 
-    /* glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out); */
-    /* glBufferData(GL_ARRAY_BUFFER, model_count * sizeof(GLfloat), NULL, GL_STATIC_READ); */
+    // get previous state first to avoid feedback buffer stalling
 
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out);
-
-    // get previous state to avoid feedback buffer stalling
-    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->size, cc->octqueue);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->octqueuesize, cc->octqueue);
 
     // run compute shader
+
     glBeginTransformFeedback(GL_POINTS);
     glDrawArrays(GL_POINTS, 0, model_count);
     glEndTransformFeedback();
@@ -191,22 +181,23 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
 void skeleton_glc_alloc_in(skeleton_glc_t* cc, void* data, size_t size)
 {
-    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_in);
+    // upload original points
+
+    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size)
 {
-    glBindBuffer(GL_ARRAY_BUFFER, cc->cmp_vbo_out);
+    // create buffer for modified points coming from the shader
+
+    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_out);
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_READ);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    /* glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->cmp_vbo_out); */
-
-    /* cc->octqueue = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, size, GL_MAP_READ_BIT); */
-    cc->octqueue = mt_memory_alloc(size, NULL, NULL);
-    cc->size     = size;
+    cc->octqueue     = mt_memory_alloc(size, NULL, NULL);
+    cc->octqueuesize = size;
 }
 
 #endif
