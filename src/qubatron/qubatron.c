@@ -44,6 +44,7 @@ int maxlevel = 12;
 float anglex      = 0.0;
 float speed       = 0.0;
 float strafespeed = 0.0;
+float basesize    = 1800.0;
 
 v3_t angle       = {0.0};
 v3_t position    = {440.0, 200.0, 700.0};
@@ -138,7 +139,7 @@ void main_init()
     memcpy(static_model.colors, colors, 3 * 8192);
 
     // !!! it works only with x 0 first
-    static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
+    static_octree = octree_create((v4_t){0.0, basesize, basesize, basesize}, maxlevel);
 
     for (int index = 0; index < point_count * 3; index += 3)
     {
@@ -156,7 +157,7 @@ void main_init()
 
     // init dynamic model
 
-    dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
+    dynamic_octree = octree_create((v4_t){0.0, basesize, basesize, basesize}, maxlevel);
 
     octree_glc_upload_texbuffer(&rc, dynamic_octree.octs, 0, 0, dynamic_octree.txwth, dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, rc.oct2_tex, 11);
 
@@ -219,7 +220,7 @@ void main_init()
 
     model_load_flat(&static_model, pntpath, colpath, nrmpath, rngpath);
 
-    static_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
+    static_octree = octree_create((v4_t){0.0, basesize, basesize, basesize}, maxlevel);
     octets_t pathf;
     octets_t pathl;
     for (int index = 0; index < static_model.point_count * 3; index += 3)
@@ -263,7 +264,7 @@ void main_init()
     #endif
     model_load_flat(&dynamic_model, pntpath, colpath, nrmpath, rngpath);
 
-    dynamic_octree = octree_create((v4_t){0.0, 1800.0, 1800.0, 1800.0}, maxlevel);
+    dynamic_octree = octree_create((v4_t){0.0, basesize, basesize, basesize}, maxlevel);
     for (int index = 0; index < dynamic_model.point_count * 3; index += 3)
     {
 	octets_t path =
@@ -295,12 +296,12 @@ void main_init()
 
     skeleton_glc_alloc_in(&cc, dynamic_model.vertexes, dynamic_model.point_count * 3 * sizeof(GLfloat));
     skeleton_glc_alloc_out(&cc, NULL, dynamic_model.point_count * sizeof(GLint) * 12);
-    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel);
-    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel); // double run to step over double buffer
+    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel, basesize);
+    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel, basesize); // double run to step over double buffer
 
     // add modified point coords by compute shader
 
-    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0});
+    octree_reset(&dynamic_octree, (v4_t){0.0, basesize, basesize, basesize});
 
     for (int index = 0; index < dynamic_model.point_count; index++)
     {
@@ -367,6 +368,28 @@ void touch_neighbours(tempcubes_t* cubes, int x, int y, int z, int size)
     }
 }
 
+int zero_count(tempcubes_t* cubes, int x, int y, int z, int size)
+{
+    int result = 0;
+    for (int cx = x - 1; cx < x + 2; cx++)
+    {
+	for (int cy = y - 1; cy < y + 2; cy++)
+	{
+	    for (int cz = z - 1; cz < z + 2; cz++)
+	    {
+		if (cx > 0 && cx < size && cy > 0 && cy < size && cz > 0 && cz < size)
+		{
+		    if (cubes->arr[cx][cy][cz] == 0)
+		    {
+			result++;
+		    }
+		}
+	    }
+	}
+    }
+    return result;
+}
+
 void main_shoot()
 {
     // check collosion between direction vector and static and dynamic voxels
@@ -386,7 +409,7 @@ void main_shoot()
     // cover all grid points inside a sphere, starting with box
 
     int division = 2;
-    for (int i = 0; i < static_octree.levels; i++) division *= 2;
+    for (int i = 0; i < static_octree.levels - 1; i++) division *= 2;
 
     float step = static_octree.basecube.w / (float) division;
 
@@ -405,7 +428,7 @@ void main_shoot()
 
 		if (dx * dx + dy * dy + dz * dz < (size * step) * (size * step))
 		{
-		    cubes.arr[cx + size][cy + size][cz + size] = 1;
+		    /* cubes.arr[cx + size][cy + size][cz + size] = 1; */
 
 		    int orind  = 0;
 		    int octind = 0;
@@ -415,6 +438,7 @@ void main_shoot()
 		    if (octind > 0)
 		    {
 			cubes.arr[cx + size][cy + size][cz + size] = 2;
+			if (dx * dx + dy * dy + dz * dz > ((size - 2) * step) * ((size - 2) * step)) cubes.arr[cx + size][cy + size][cz + size] = 3;
 
 			if (minind == 0) minind = octind;
 			if (maxind == 0) maxind = octind;
@@ -427,32 +451,21 @@ void main_shoot()
 	}
     }
 
-    // remove closest side of tempcubes divided by removed voxels
-
-    /* int ax = size; */
-    /* int ay = size; */
-    /* int az = size; */
-    /* if (nrm.x > 0.0) ax += 4; */
-    /* if (nrm.x <= 0.0) ax -= 4; */
-    /* if (nrm.y > 0.0) ay += 4; */
-    /* if (nrm.y <= 0.0) ay -= 4; */
-    /* if (nrm.z > 0.0) az += 4; */
-    /* if (nrm.z <= 0.0) az -= 4; */
-
     /* touch_neighbours(&cubes, ax, ay, az, size * 2); */
 
-    /* for (int x = 0; x < 20; x++) */
-    /* { */
-    /* 	for (int y = 0; y < 20; y++) */
-    /* 	{ */
-    /* 	    for (int z = 0; z < 20; z++) */
-    /* 	    { */
-    /* 		if (cubes.arr[x][y][z] == 3) */
-    /* 		    mt_log_debug("%i %i %i", x, y, z); */
-
-    /* 	    } */
-    /* 	} */
-    /* } */
+    for (int x = 0; x < 2 * size; x++)
+    {
+	printf("x : %i\n", x);
+	for (int y = 0; y < 2 * size; y++)
+	{
+	    for (int z = 0; z < 2 * size; z++)
+	    {
+		printf("%i ", cubes.arr[x][y][z]);
+	    }
+	    printf("\n");
+	}
+	printf("\n");
+    }
 
     if (minind > 0)
     {
@@ -495,10 +508,13 @@ void main_shoot()
 		    float dy = cy * step;
 		    float dz = cz * step;
 
-		    v3_t cp = (v3_t){pt.x + dx + nrm.x * -4.0, pt.y + dy + nrm.y * -4.0, pt.z + dz + nrm.z * -4.0};
-
-		    if (cubes.arr[cx + size][cy + size][cz + size] == 2)
+		    if (cubes.arr[cx + size][cy + size][cz + size] > 1)
 		    {
+			v3_t cp = (v3_t){
+			    pt.x + dx + nrm.x * -4.0 * step,
+			    pt.y + dy + nrm.y * -4.0 * step,
+			    pt.z + dz + nrm.z * -4.0 * step};
+
 			model_add_point(&static_model, cp, nrm, col);
 
 			int modind = -1;
@@ -516,6 +532,34 @@ void main_shoot()
 
 			    if (modind < minind) minind = modind;
 			    if (modind > maxind) maxind = modind;
+			}
+
+			if (cubes.arr[cx + size][cy + size][cz + size] == 3)
+			{
+			    // create another layer of points
+			    v3_t cp = (v3_t){
+				pt.x + dx + nrm.x * -2.0 * step,
+				pt.y + dy + nrm.y * -2.0 * step,
+				pt.z + dz + nrm.z * -2.0 * step};
+
+			    model_add_point(&static_model, cp, nrm, col);
+
+			    int modind = -1;
+			    octree_insert_point(
+				&static_octree,
+				0,
+				static_model.point_count - 1,
+				cp,
+				&modind);
+
+			    if (modind > -1)
+			    {
+				if (minind == 0) minind = modind;
+				if (maxind == 0) maxind = modind;
+
+				if (modind < minind) minind = modind;
+				if (modind > maxind) maxind = modind;
+			    }
 			}
 		    }
 		}
@@ -720,11 +764,11 @@ bool main_loop(double time, void* userdata)
 
 	if (octtest == 0)
 	{
-	    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel);
+	    skeleton_glc_update(&cc, lighta, dynamic_model.point_count, maxlevel, basesize);
 
 	    // add modified point coords by compute shader
 
-	    octree_reset(&dynamic_octree, (v4_t){0.0, 1800.0, 1800.0, 1800.0});
+	    octree_reset(&dynamic_octree, (v4_t){0.0, basesize, basesize, basesize});
 
 	    for (int index = 0; index < dynamic_model.point_count; index++)
 	    {
@@ -739,7 +783,7 @@ bool main_loop(double time, void* userdata)
 	}
 
 	/* mt_time(NULL); */
-	octree_glc_update(&rc, width, height, position, angle, lighta, quality, maxlevel);
+	octree_glc_update(&rc, width, height, position, angle, lighta, quality, maxlevel, basesize);
 
 	SDL_GL_SwapWindow(window);
 	/* mt_time("Render"); */

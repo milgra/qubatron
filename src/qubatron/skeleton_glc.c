@@ -26,7 +26,7 @@ typedef struct skeleton_glc_t
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
-void           skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel);
+void           skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* data, size_t size);
 void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size);
 
@@ -68,7 +68,7 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
     // get uniforms
 
-    char* defo_uniforms[] = {"fpori", "fpnew", "basecube", "maxlevel"};
+    char* defo_uniforms[] = {"oldbones", "newbones", "basecube", "maxlevel"};
 
     for (int index = 0; index < 4; index++)
 	cc.defo_unilocs[index] = glGetUniformLocation(cc.defo_sha, defo_uniforms[index]);
@@ -93,7 +93,7 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     return cc;
 }
 
-void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel)
+void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize)
 {
     // switch off fragment stage
 
@@ -154,7 +154,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
     // update uniforms
 
-    GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
+    GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
 
     glUniform4fv(cc->defo_unilocs[0], 12, skeleton_old);
     glUniform3fv(cc->defo_unilocs[1], 12, skeleton_new);

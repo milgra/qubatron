@@ -7,8 +7,8 @@ flat out ivec4 oct14;
 flat out ivec4 oct54;
 flat out ivec4 oct94;
 
-uniform vec4 fpori[12];
-uniform vec3 fpnew[12];
+uniform vec4 oldbones[12];
+uniform vec3 newbones[12];
 
 uniform vec4 basecube;
 uniform int  maxlevel;
@@ -76,11 +76,11 @@ void main()
     {
 	// TODO convert cover shape to capsule, ellipse is too wide
 
-	vec3 fpd1 = position - fpori[i].xyz;         // ellipse focus point dir vector 1
-	vec3 fpd2 = position - fpori[i + 1].xyz;     // ellips efocus point dir vector 2
-	vec3 bone = fpori[i + 1].xyz - fpori[i].xyz; // bone vector
+	vec3 fpd1 = position - oldbones[i].xyz;            // ellipse focus point dir vector 1
+	vec3 fpd2 = position - oldbones[i + 1].xyz;        // ellips efocus point dir vector 2
+	vec3 bone = oldbones[i + 1].xyz - oldbones[i].xyz; // bone vector
 
-	float orad = length(bone) + fpori[i].w;
+	float orad = length(bone) + oldbones[i].w;
 	float nrad = length(fpd1) + length(fpd2);
 	float rat  = nrad / orad;
 
@@ -92,9 +92,9 @@ void main()
 	    rat = max(1.0, rat) - 1.0;
 	    rat = mix(1.0, 0.0, rat / 0.3);
 
-	    vec3 oldd0 = position - fpori[i].xyz;
-	    vec3 oldb0 = normalize(fpori[i + 1].xyz - fpori[i].xyz);
-	    vec3 newb0 = normalize(fpnew[i + 1] - fpnew[i]);
+	    vec3 oldd0 = position - oldbones[i].xyz;
+	    vec3 oldb0 = normalize(oldbones[i + 1].xyz - oldbones[i].xyz);
+	    vec3 newb0 = normalize(newbones[i + 1] - newbones[i]);
 
 	    float angle0 = acos(dot(oldb0, newb0));
 	    vec3  axis0  = normalize(cross(oldb0, newb0));
@@ -103,7 +103,7 @@ void main()
 
 	    vec4 rotq0 = quat_from_axis_angle(axis0, angle0);
 	    vec3 newd0 = qrot(rotq0, oldd0);
-	    vec3 newp0 = fpnew[i] + newd0;
+	    vec3 newp0 = newbones[i] + newd0;
 
 	    if (corner_count == 0) corner_center = newp0;
 

@@ -47,7 +47,7 @@ typedef struct octree_glc_t
 } octree_glc_t;
 
 octree_glc_t octree_glc_init(char* path);
-void         octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel);
+void         octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize);
 void         octree_glc_upload_texbuffer(octree_glc_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
 
 #endif
@@ -205,7 +205,7 @@ octree_glc_t octree_glc_init(char* base_path)
     return rc;
 }
 
-void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel)
+void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize)
 {
     // bind scale framebuffer
 
@@ -217,7 +217,7 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
 
     // update uniforms
 
-    GLfloat basecubearr[4] = {0.0, 1800.0, 1800.0, 1800.0};
+    GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
     GLfloat lightarr[3]    = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
     GLfloat anglearr[3]    = {angle.x, angle.y, 0.0};
     GLfloat posarr[3]      = {position.x, position.y, position.z};
