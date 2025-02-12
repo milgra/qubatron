@@ -4,19 +4,257 @@
 #include "model.c"
 #include "octree.c"
 #include "octree_glc.c"
+#include "skeleton_glc.c"
 
 void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v3_t position, v3_t direction);
+
+void modelutil_load_test(
+    char*           base_path,
+    octree_glc_t*   octrglc,
+    skeleton_glc_t* skelglc,
+    octree_t*       statoctr,
+    octree_t*       dynaoctr,
+    model_t*        statmod,
+    model_t*        dynamod);
+
+void modelutil_load_flat(
+    char*           base_path,
+    octree_glc_t*   octrglc,
+    skeleton_glc_t* skelglc,
+    octree_t*       statoctr,
+    octree_t*       dynaoctr,
+    model_t*        statmod,
+    model_t*        dynamod);
 
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
-void modelutil_load_test()
+void modelutil_load_test(
+    char*           base_path,
+    octree_glc_t*   octrglc,
+    skeleton_glc_t* skelglc,
+    octree_t*       statoctr,
+    octree_t*       dynaoctr,
+    model_t*        statmod,
+    model_t*        dynamod)
 {
+    int point_count = 5;
+
+    GLfloat points[3 * 8192] = {
+	10.0, 690.0, 10.0,
+	10.0, 340.0, 10.0,
+	10.0, 340.0, 690.0,
+	10.0, 10.0, 10.0,
+	690.0, 10.0, 690.0};
+
+    GLfloat normals[3 * 8192] = {
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0,
+	0.0, 0.0, -1.0};
+
+    GLfloat colors[3 * 8192] = {
+	1.0, 1.0, 1.0,
+	1.0, 1.0, 1.0,
+	1.0, 1.0, 1.0,
+	1.0, 1.0, 1.0,
+	1.0, 1.0, 1.0};
+
+    statmod->vertexes    = mt_memory_alloc(3 * 8192, NULL, NULL);
+    statmod->normals     = mt_memory_alloc(3 * 8192, NULL, NULL);
+    statmod->colors      = mt_memory_alloc(3 * 8192, NULL, NULL);
+    statmod->point_count = 5;
+    statmod->txwth       = 8192;
+    statmod->txhth       = (int) ceilf((float) statmod->point_count / (float) statmod->txwth);
+
+    memcpy(statmod->vertexes, points, 3 * 8192);
+    memcpy(statmod->normals, normals, 3 * 8192);
+    memcpy(statmod->colors, colors, 3 * 8192);
+
+    for (int index = 0; index < point_count * 3; index += 3)
+    {
+	octree_insert_point(
+	    statoctr,
+	    0,
+	    index / 3,
+	    (v3_t){points[index], points[index + 1], points[index + 2]},
+	    NULL);
+    }
+
+    octree_glc_upload_texbuffer(octrglc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm1_tex, 8);
+    octree_glc_upload_texbuffer(octrglc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col1_tex, 6);
+    octree_glc_upload_texbuffer(octrglc, statoctr->octs, 0, 0, statoctr->txwth, statoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct1_tex, 10);
+
+    // init dynamic model
+
+    octree_glc_upload_texbuffer(
+	octrglc,
+	dynaoctr->octs,
+	0,
+	0,
+	dynaoctr->txwth,
+	dynaoctr->txhth,
+	GL_RGBA32I,
+	GL_RGBA_INTEGER,
+	GL_INT,
+	octrglc->oct2_tex,
+	11);
+
+    /* for (int i = 0; i < 20000; i++) */
+    /* { */
+    /* 	float x = 100.0 + (float) (rand() % 700); */
+    /* 	float y = 100.0 + (float) (rand() % 700); */
+    /* 	float z = -100.0 - (float) (rand() % 700); */
+
+    /* 	uint32_t c; */
+    /* 	c = rand() & 0xff; */
+    /* 	c |= (rand() & 0xff) << 8; */
+    /* 	c |= (rand() & 0xff) << 16; */
+    /* 	c |= (rand() & 0xff) << 24; */
+
+    /* 	cube_insert(basecube, (v3_t){x, y, z}, c); */
+    /* } */
+
+    /* int maxcol = 10; */
+    /* int maxrow = 10; */
+
+    /* for (int c = 0; c < maxcol; c++) */
+    /* { */
+    /* 	for (int r = 0; r < maxrow; r++) */
+    /* 	{ */
+    /* 	    float x = 100.0 + (float) (5 * c); */
+    /* 	    float y = 100.0 + (float) (5 * r); */
+    /* 	    float z = -110.0; */
+    /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
+    /* 	    z = -790.0; */
+    /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
+    /* 	} */
+    /* } */
 }
 
-void modelutil_load_flat()
+void modelutil_load_flat(
+    char*           base_path,
+    octree_glc_t*   octrglc,
+    skeleton_glc_t* skelglc,
+    octree_t*       statoctr,
+    octree_t*       dynaoctr,
+    model_t*        statmod,
+    model_t*        dynamod)
 {
+    char pntpath[PATH_MAX];
+    char nrmpath[PATH_MAX];
+    char colpath[PATH_MAX];
+    char rngpath[PATH_MAX];
+
+    char* scenepath = "abandoned.ply";
+    snprintf(pntpath, PATH_MAX, "%s%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%s%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%s%s.col", base_path, scenepath);
+    snprintf(rngpath, PATH_MAX, "%s%s.rng", base_path, scenepath);
+#ifdef EMSCRIPTEN
+    snprintf(pntpath, PATH_MAX, "%sres/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%sres/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%sres/%s.col", base_path, scenepath);
+    snprintf(rngpath, PATH_MAX, "%sres/%s.rng", base_path, scenepath);
+#endif
+
+    model_load_flat(statmod, pntpath, colpath, nrmpath, rngpath);
+
+    octets_t fstpath;
+    octets_t lstpath;
+
+    for (int index = 0; index < statmod->point_count * 3; index += 3)
+    {
+	octets_t path =
+	    octree_insert_point(
+		statoctr,
+		0,
+		index / 3,
+		(v3_t){statmod->vertexes[index], statmod->vertexes[index + 1], statmod->vertexes[index + 2]},
+		NULL);
+
+	if (index == 0)
+	    fstpath = path;
+	else if (index == (statmod->point_count - 3))
+	    lstpath = path;
+    }
+
+    mt_log_debug("STATIC MODEL");
+    model_log_vertex_info(statmod, 0);
+    octree_log_path(fstpath, 0);
+    model_log_vertex_info(statmod, statmod->point_count - 1);
+    octree_log_path(lstpath, statmod->point_count - 1);
+
+    // upload static model
+
+    octree_glc_upload_texbuffer(octrglc, statmod->colors, 0, 0, statmod->txwth, statmod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col1_tex, 6);
+    octree_glc_upload_texbuffer(octrglc, statmod->normals, 0, 0, statmod->txwth, statmod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm1_tex, 8);
+    octree_glc_upload_texbuffer(octrglc, statoctr->octs, 0, 0, statoctr->txwth, statoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct1_tex, 10);
+
+    scenepath = "zombie.ply";
+    snprintf(pntpath, PATH_MAX, "%s%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%s%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%s%s.col", base_path, scenepath);
+    snprintf(rngpath, PATH_MAX, "%s%s.rng", base_path, scenepath);
+#ifdef EMSCRIPTEN
+    snprintf(pntpath, PATH_MAX, "%sres/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%sres/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%sres/%s.col", base_path, scenepath);
+    snprintf(rngpath, PATH_MAX, "%sres/%s.rng", base_path, scenepath);
+#endif
+    model_load_flat(dynamod, pntpath, colpath, nrmpath, rngpath);
+
+    for (int index = 0; index < dynamod->point_count * 3; index += 3)
+    {
+	octets_t path =
+	    octree_insert_point(
+		dynaoctr,
+		0,
+		index / 3,
+		(v3_t){dynamod->vertexes[index], dynamod->vertexes[index + 1], dynamod->vertexes[index + 2]},
+		NULL);
+	if (index == 0)
+	    fstpath = path;
+	else if (index == (dynamod->point_count - 3))
+	    lstpath = path;
+    }
+
+    mt_log_debug("DYNAMIC MODEL");
+    model_log_vertex_info(dynamod, 0);
+    model_log_vertex_info(dynamod, dynamod->point_count - 1);
+    octree_log_path(fstpath, 0);
+    octree_log_path(lstpath, dynamod->point_count - 3);
+
+    // upload dynamic model
+
+    octree_glc_upload_texbuffer(octrglc, dynamod->colors, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col2_tex, 7);
+    octree_glc_upload_texbuffer(octrglc, dynamod->normals, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm2_tex, 9);
+    octree_glc_upload_texbuffer(octrglc, dynaoctr->octs, 0, 0, dynaoctr->txwth, dynaoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct2_tex, 11);
+
+    // upload actor to skeleton modifier
+
+    skeleton_glc_alloc_in(skelglc, dynamod->vertexes, dynamod->point_count * 3 * sizeof(GLfloat));
+    skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12);
+
+    /* skeleton_glc_update(skelglc, quba.lightangle, dynamod->point_count, quba.octrdpth, quba.octrsize); */
+    /* skeleton_glc_update(skelglc, quba.lightangle, dynamod->point_count, quba.octrdpth, quba.octrsize); // double run to step over double buffer */
+
+    // add modified point coords by compute shader
+
+    /* octree_reset(dynaoctr, (v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize}); */
+
+    /* for (int index = 0; index < dynamod->point_count; index++) */
+    /* { */
+    /* 	octree_insert_path( */
+    /* 	    dynaoctr, */
+    /* 	    0, */
+    /* 	    index, */
+    /* 	    skelglc.octqueue[index * 12]); // 48 bytes stride 12 int */
+    /* } */
+
+    /* octree_glc_upload_texbuffer(octrglc, dynaoctr->octs, 0, 0, dynaoctr->txwth, dynaoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct2_tex, 11); */
 }
 
 typedef struct _tempcubes_t

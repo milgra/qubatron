@@ -207,6 +207,8 @@ octree_glc_t octree_glc_init(char* base_path)
 
 void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize)
 {
+    glEnable(GL_BLEND);
+
     // bind scale framebuffer
 
     glBindFramebuffer(GL_FRAMEBUFFER, rc->r2tex_fbo);

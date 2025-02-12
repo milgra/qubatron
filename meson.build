@@ -50,6 +50,7 @@ qubatron_sources = [
 	       'src/mt_math/mt_vector_2d.c',
 	       'src/mt_math/mt_vector_3d.c',
 	       'src/mt_math/mt_vector_4d.c',
+	       'src/mt_math/mt_quat.c',
 	       'src/mt_math/mt_math_3d.c',
 	       'src/mt_math/mt_matrix_4d.c'
 	       ]
