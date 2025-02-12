@@ -36,40 +36,48 @@ struct movement_t
 
     int   strafe;
     float strafespeed;
-} movement;
+
+    uint32_t prevticks;
+} move = {0};
 
 struct qubatron_t
 {
+    char          doexit;
     SDL_Window*   window;
     SDL_GLContext context;
-    char          exit_flag;
-    float         window_scale;
 
-    skeleton_glc_t skel_glc;
-    octree_glc_t   octr_glc;
+    float   winscale;
+    int32_t winwth;
+    int32_t winhth;
 
-    model_t static_model;
-    model_t dynamic_model;
+    model_t statmod;
+    model_t dynamod;
 
-    octree_t static_octree;
-    octree_t dynamic_octree;
+    octree_t statoctr;
+    octree_t dynaoctr;
 
-    uint8_t render_detail;
-    int     octree_depth;
-    float   octree_size;
-} quba;
+    skeleton_glc_t skelglc;
+    octree_glc_t   octrglc;
 
-int32_t width  = 1200;
-int32_t height = 800;
+    uint8_t rndscale;
+    int     octrdpth;
+    float   octrsize;
 
-uint32_t frames    = 0;
-uint32_t timestamp = 0;
-uint32_t prevticks = 0;
+    uint32_t frames;
+    uint32_t frametamp;
 
-float lighta = 0.0;
+    float lightangle;
+} quba = {0};
 
 void GLAPIENTRY
-MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+MessageCallback(
+    GLenum        source,
+    GLenum        type,
+    GLuint        id,
+    GLenum        severity,
+    GLsizei       length,
+    const GLchar* message,
+    const void*   userParam)
 {
     mt_log_debug("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
@@ -77,16 +85,6 @@ MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei 
 void main_init()
 {
     srand((unsigned int) time(NULL));
-
-    quba.render_detail = 10;
-    quba.octree_depth  = 12;
-    quba.exit_flag     = 0;
-    quba.window_scale  = 1.0;
-    quba.octree_size   = 1800.0;
-
-    movement.lookpos    = (v3_t){440.0, 200.0, 700.0};
-    movement.direction  = (v3_t){0.0, 0.0, -1.0};
-    movement.directionX = (v3_t){-1.0, 0.0, 0.0};
 
     // opengl init
 
@@ -104,11 +102,11 @@ void main_init()
     snprintf(path, PATH_MAX, "%s", base_path);
 #endif
 
-    quba.octr_glc = octree_glc_init(path);
-    quba.skel_glc = skeleton_glc_init(path);
+    quba.octrglc = octree_glc_init(path);
+    quba.skelglc = skeleton_glc_init(path);
 
-    quba.static_model  = model_init();
-    quba.dynamic_model = model_init();
+    quba.statmod = model_init();
+    quba.dynamod = model_init();
 
 #ifdef OCTTEST
 
@@ -135,42 +133,42 @@ void main_init()
 	1.0, 1.0, 1.0,
 	1.0, 1.0, 1.0};
 
-    quba.static_model.vertexes    = mt_memory_alloc(3 * 8192, NULL, NULL);
-    quba.static_model.normals     = mt_memory_alloc(3 * 8192, NULL, NULL);
-    quba.static_model.colors      = mt_memory_alloc(3 * 8192, NULL, NULL);
-    quba.static_model.point_count = 5;
-    quba.static_model.txwth       = 8192;
-    quba.static_model.txhth       = (int) ceilf((float) quba.static_model.point_count / (float) quba.static_model.txwth);
+    quba.statmod.vertexes    = mt_memory_alloc(3 * 8192, NULL, NULL);
+    quba.statmod.normals     = mt_memory_alloc(3 * 8192, NULL, NULL);
+    quba.statmod.colors      = mt_memory_alloc(3 * 8192, NULL, NULL);
+    quba.statmod.point_count = 5;
+    quba.statmod.txwth       = 8192;
+    quba.statmod.txhth       = (int) ceilf((float) quba.statmod.point_count / (float) quba.statmod.txwth);
 
-    memcpy(quba.static_model.vertexes, points, 3 * 8192);
-    memcpy(quba.static_model.normals, normals, 3 * 8192);
-    memcpy(quba.static_model.colors, colors, 3 * 8192);
+    memcpy(quba.statmod.vertexes, points, 3 * 8192);
+    memcpy(quba.statmod.normals, normals, 3 * 8192);
+    memcpy(quba.statmod.colors, colors, 3 * 8192);
 
     // !!! it works only with x 0 first
-    quba.static_octree = octree_create((v4_t){0.0, quba.octree_size, quba.octree_size, quba.octree_size}, quba.octree_depth);
+    quba.statoctr = octree_create((v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize}, quba.octrdpth);
 
     for (int index = 0; index < point_count * 3; index += 3)
     {
 	octree_insert_point(
-	    &quba.static_octree,
+	    &quba.statoctr,
 	    0,
 	    index / 3,
 	    (v3_t){points[index], points[index + 1], points[index + 2]},
 	    NULL);
     }
 
-    octree_glc_upload_texbuffer(&quba.octr_glc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octr_glc->nrm1_tex, 8);
-    octree_glc_upload_texbuffer(&quba.octr_glc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octr_glc->col1_tex, 6);
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.static_octree.octs, 0, 0, quba.static_octree.txwth, quba.static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octr_glc.oct1_tex, 10);
+    octree_glc_upload_texbuffer(&quba.octrglc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octrglc->nrm1_tex, 8);
+    octree_glc_upload_texbuffer(&quba.octrglc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octrglc->col1_tex, 6);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.statoctr.octs, 0, 0, quba.statoctr.txwth, quba.statoctr.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octrglc.oct1_tex, 10);
 
     // init dynamic model
 
-    quba.dynamic_octree = octree_create((v4_t){0.0, quba.octree_size, quba.octree_size, quba.octree_size}, quba.octree_depth);
+    quba.dynaoctr = octree_create((v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize}, quba.octrdpth);
 
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.dynamic_octree.octs, 0, 0, quba.dynamic_octree.txwth, quba.dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octr_glc.oct2_tex, 11);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.dynaoctr.octs, 0, 0, quba.dynaoctr.txwth, quba.dynaoctr.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octrglc.oct2_tex, 11);
 
     // set camera position to see test cube
-    movement.lookpos = (v3_t){900.0, 900.0, 3000.0};
+    move.lookpos = (v3_t){900.0, 900.0, 3000.0};
 
     /* for (int i = 0; i < 20000; i++) */
     /* { */
@@ -221,38 +219,40 @@ void main_init()
     snprintf(rngpath, PATH_MAX, "%sres/%s.rng", base_path, scenepath);
     #endif
 
-    model_load_flat(&quba.static_model, pntpath, colpath, nrmpath, rngpath);
+    model_load_flat(&quba.statmod, pntpath, colpath, nrmpath, rngpath);
 
-    quba.static_octree = octree_create((v4_t){0.0, quba.octree_size, quba.octree_size, quba.octree_size}, quba.octree_depth);
-    octets_t pathf;
-    octets_t pathl;
-    for (int index = 0; index < quba.static_model.point_count * 3; index += 3)
+    quba.statoctr = octree_create((v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize}, quba.octrdpth);
+
+    octets_t fstpath;
+    octets_t lstpath;
+
+    for (int index = 0; index < quba.statmod.point_count * 3; index += 3)
     {
 	octets_t path =
 	    octree_insert_point(
-		&quba.static_octree,
+		&quba.statoctr,
 		0,
 		index / 3,
-		(v3_t){quba.static_model.vertexes[index], quba.static_model.vertexes[index + 1], quba.static_model.vertexes[index + 2]},
+		(v3_t){quba.statmod.vertexes[index], quba.statmod.vertexes[index + 1], quba.statmod.vertexes[index + 2]},
 		NULL);
 
 	if (index == 0)
-	    pathf = path;
-	else if (index == (quba.static_model.point_count - 3))
-	    pathl = path;
+	    fstpath = path;
+	else if (index == (quba.statmod.point_count - 3))
+	    lstpath = path;
     }
 
     mt_log_debug("STATIC MODEL");
-    model_log_vertex_info(&quba.static_model, 0);
-    octree_log_path(pathf, 0);
-    model_log_vertex_info(&quba.static_model, quba.static_model.point_count - 1);
-    octree_log_path(pathl, quba.static_model.point_count - 1);
+    model_log_vertex_info(&quba.statmod, 0);
+    octree_log_path(fstpath, 0);
+    model_log_vertex_info(&quba.statmod, quba.statmod.point_count - 1);
+    octree_log_path(lstpath, quba.statmod.point_count - 1);
 
     // upload static model
 
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.static_model.colors, 0, 0, quba.static_model.txwth, quba.static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octr_glc.col1_tex, 6);
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.static_model.normals, 0, 0, quba.static_model.txwth, quba.static_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octr_glc.nrm1_tex, 8);
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.static_octree.octs, 0, 0, quba.static_octree.txwth, quba.static_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octr_glc.oct1_tex, 10);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.statmod.colors, 0, 0, quba.statmod.txwth, quba.statmod.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octrglc.col1_tex, 6);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.statmod.normals, 0, 0, quba.statmod.txwth, quba.statmod.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octrglc.nrm1_tex, 8);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.statoctr.octs, 0, 0, quba.statoctr.txwth, quba.statoctr.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octrglc.oct1_tex, 10);
 
     scenepath = "zombie.ply";
     snprintf(pntpath, PATH_MAX, "%s%s.pnt", base_path, scenepath);
@@ -265,57 +265,57 @@ void main_init()
     snprintf(colpath, PATH_MAX, "%sres/%s.col", base_path, scenepath);
     snprintf(rngpath, PATH_MAX, "%sres/%s.rng", base_path, scenepath);
     #endif
-    model_load_flat(&quba.dynamic_model, pntpath, colpath, nrmpath, rngpath);
+    model_load_flat(&quba.dynamod, pntpath, colpath, nrmpath, rngpath);
 
-    quba.dynamic_octree = octree_create((v4_t){0.0, quba.octree_size, quba.octree_size, quba.octree_size}, quba.octree_depth);
-    for (int index = 0; index < quba.dynamic_model.point_count * 3; index += 3)
+    quba.dynaoctr = octree_create((v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize}, quba.octrdpth);
+    for (int index = 0; index < quba.dynamod.point_count * 3; index += 3)
     {
 	octets_t path =
 	    octree_insert_point(
-		&quba.dynamic_octree,
+		&quba.dynaoctr,
 		0,
 		index / 3,
-		(v3_t){quba.dynamic_model.vertexes[index], quba.dynamic_model.vertexes[index + 1], quba.dynamic_model.vertexes[index + 2]},
+		(v3_t){quba.dynamod.vertexes[index], quba.dynamod.vertexes[index + 1], quba.dynamod.vertexes[index + 2]},
 		NULL);
 	if (index == 0)
-	    pathf = path;
-	else if (index == (quba.dynamic_model.point_count - 3))
-	    pathl = path;
+	    fstpath = path;
+	else if (index == (quba.dynamod.point_count - 3))
+	    lstpath = path;
     }
 
     mt_log_debug("DYNAMIC MODEL");
-    model_log_vertex_info(&quba.dynamic_model, 0);
-    model_log_vertex_info(&quba.dynamic_model, quba.dynamic_model.point_count - 1);
-    octree_log_path(pathf, 0);
-    octree_log_path(pathl, quba.dynamic_model.point_count - 3);
+    model_log_vertex_info(&quba.dynamod, 0);
+    model_log_vertex_info(&quba.dynamod, quba.dynamod.point_count - 1);
+    octree_log_path(fstpath, 0);
+    octree_log_path(lstpath, quba.dynamod.point_count - 3);
 
     // upload dynamic model
 
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.dynamic_model.colors, 0, 0, quba.dynamic_model.txwth, quba.dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octr_glc.col2_tex, 7);
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.dynamic_model.normals, 0, 0, quba.dynamic_model.txwth, quba.dynamic_model.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octr_glc.nrm2_tex, 9);
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.dynamic_octree.octs, 0, 0, quba.dynamic_octree.txwth, quba.dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octr_glc.oct2_tex, 11);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.dynamod.colors, 0, 0, quba.dynamod.txwth, quba.dynamod.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octrglc.col2_tex, 7);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.dynamod.normals, 0, 0, quba.dynamod.txwth, quba.dynamod.txhth, GL_RGB32F, GL_RGB, GL_FLOAT, quba.octrglc.nrm2_tex, 9);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.dynaoctr.octs, 0, 0, quba.dynaoctr.txwth, quba.dynaoctr.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octrglc.oct2_tex, 11);
 
     // upload actor to skeleton modifier
 
-    skeleton_glc_alloc_in(&quba.skel_glc, quba.dynamic_model.vertexes, quba.dynamic_model.point_count * 3 * sizeof(GLfloat));
-    skeleton_glc_alloc_out(&quba.skel_glc, NULL, quba.dynamic_model.point_count * sizeof(GLint) * 12);
-    skeleton_glc_update(&quba.skel_glc, lighta, quba.dynamic_model.point_count, quba.octree_depth, quba.octree_size);
-    skeleton_glc_update(&quba.skel_glc, lighta, quba.dynamic_model.point_count, quba.octree_depth, quba.octree_size); // double run to step over double buffer
+    skeleton_glc_alloc_in(&quba.skelglc, quba.dynamod.vertexes, quba.dynamod.point_count * 3 * sizeof(GLfloat));
+    skeleton_glc_alloc_out(&quba.skelglc, NULL, quba.dynamod.point_count * sizeof(GLint) * 12);
+    skeleton_glc_update(&quba.skelglc, quba.lightangle, quba.dynamod.point_count, quba.octrdpth, quba.octrsize);
+    skeleton_glc_update(&quba.skelglc, quba.lightangle, quba.dynamod.point_count, quba.octrdpth, quba.octrsize); // double run to step over double buffer
 
     // add modified point coords by compute shader
 
-    octree_reset(&quba.dynamic_octree, (v4_t){0.0, quba.octree_size, quba.octree_size, quba.octree_size});
+    octree_reset(&quba.dynaoctr, (v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize});
 
-    for (int index = 0; index < quba.dynamic_model.point_count; index++)
+    for (int index = 0; index < quba.dynamod.point_count; index++)
     {
 	octree_insert_path(
-	    &quba.dynamic_octree,
+	    &quba.dynaoctr,
 	    0,
 	    index,
-	    &quba.skel_glc.octqueue[index * 12]); // 48 bytes stride 12 int
+	    &quba.skelglc.octqueue[index * 12]); // 48 bytes stride 12 int
     }
 
-    octree_glc_upload_texbuffer(&quba.octr_glc, quba.dynamic_octree.octs, 0, 0, quba.dynamic_octree.txwth, quba.dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octr_glc.oct2_tex, 11);
+    octree_glc_upload_texbuffer(&quba.octrglc, quba.dynaoctr.octs, 0, 0, quba.dynaoctr.txwth, quba.dynaoctr.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octrglc.oct2_tex, 11);
 
 #endif
 
@@ -324,20 +324,6 @@ void main_init()
 
 void main_free()
 {
-}
-
-// A line point 0
-// B line point 1
-// C point to project
-
-v3_t project_point(v3_t A, v3_t B, v3_t C)
-{
-    v3_t  AC      = v3_sub(C, A);
-    v3_t  AB      = v3_sub(B, A);
-    float dotACAB = v3_dot(AC, AB);
-    float dotABAB = v3_dot(AB, AB);
-    float dotDiv  = dotACAB / dotABAB;
-    return v3_add(A, v3_scale(AB, dotDiv));
 }
 
 v4_t quat_from_axis_angle(v3_t axis, float angle)
@@ -369,57 +355,57 @@ bool main_loop(double time, void* userdata)
 	    int x = 0, y = 0;
 	    SDL_GetMouseState(&x, &y);
 
-	    /* v2_t dimensions = {.x = x * quba.window_scale, .y = y * quba.window_scale}; */
+	    /* v2_t dimensions = {.x = x * quba.winscale, .y = y * quba.winscale}; */
 
 	    if (event.type == SDL_MOUSEMOTION)
 	    {
-		movement.lookangle.x += event.motion.xrel / 300.0;
-		movement.lookangle.y -= event.motion.yrel / 300.0;
+		move.lookangle.x += event.motion.xrel / 300.0;
+		move.lookangle.y -= event.motion.yrel / 300.0;
 
-		movement.direction  = v3_rotatearoundy((v3_t){0.0, 0.0, -1.0}, movement.lookangle.x);
-		movement.directionX = v3_rotatearoundy((v3_t){1.0, 0.0, 0.0}, movement.lookangle.x);
+		move.direction  = v3_rotatearoundy((v3_t){0.0, 0.0, -1.0}, move.lookangle.x);
+		move.directionX = v3_rotatearoundy((v3_t){1.0, 0.0, 0.0}, move.lookangle.x);
 
-		v4_t axisquat      = quat_from_axis_angle(movement.directionX, movement.lookangle.y);
-		movement.direction = qrot(axisquat, movement.direction);
+		v4_t axisquat  = quat_from_axis_angle(move.directionX, move.lookangle.y);
+		move.direction = qrot(axisquat, move.direction);
 	    }
 
 	    if (event.type == SDL_MOUSEBUTTONDOWN)
 	    {
-		modelutil_punch_hole(&quba.octr_glc, &quba.static_octree, &quba.static_model, movement.lookpos, movement.direction);
+		modelutil_punch_hole(&quba.octrglc, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
 	    }
 	}
 	else if (event.type == SDL_QUIT)
 	{
-	    quba.exit_flag = 1;
+	    quba.doexit = 1;
 	}
 	else if (event.type == SDL_WINDOWEVENT)
 	{
 	    if (event.window.event == SDL_WINDOWEVENT_RESIZED)
 	    {
-		width  = event.window.data1;
-		height = event.window.data2;
+		quba.winwth = event.window.data1;
+		quba.winhth = event.window.data2;
 
-		v2_t dimensions = {.x = event.window.data1 * quba.window_scale, .y = event.window.data2 * quba.window_scale};
+		v2_t dimensions = {.x = event.window.data1 * quba.winscale, .y = event.window.data2 * quba.winscale};
 
-		mt_log_debug("new dimension %f %f scale %f", dimensions.x, dimensions.y, quba.window_scale);
+		mt_log_debug("new dimension %f %f scale %f", dimensions.x, dimensions.y, quba.winscale);
 	    }
 	}
 	else if (event.type == SDL_KEYUP)
 	{
-	    if (event.key.keysym.sym == SDLK_a) movement.strafe = 0;
-	    if (event.key.keysym.sym == SDLK_d) movement.strafe = 0;
-	    if (event.key.keysym.sym == SDLK_w) movement.walk = 0;
-	    if (event.key.keysym.sym == SDLK_s) movement.walk = 0;
-	    if (event.key.keysym.sym == SDLK_1) quba.render_detail = 1;
-	    if (event.key.keysym.sym == SDLK_2) quba.render_detail = 2;
-	    if (event.key.keysym.sym == SDLK_3) quba.render_detail = 3;
-	    if (event.key.keysym.sym == SDLK_4) quba.render_detail = 4;
-	    if (event.key.keysym.sym == SDLK_5) quba.render_detail = 5;
-	    if (event.key.keysym.sym == SDLK_6) quba.render_detail = 6;
-	    if (event.key.keysym.sym == SDLK_7) quba.render_detail = 7;
-	    if (event.key.keysym.sym == SDLK_8) quba.render_detail = 8;
-	    if (event.key.keysym.sym == SDLK_9) quba.render_detail = 9;
-	    if (event.key.keysym.sym == SDLK_0) quba.render_detail = 10;
+	    if (event.key.keysym.sym == SDLK_a) move.strafe = 0;
+	    if (event.key.keysym.sym == SDLK_d) move.strafe = 0;
+	    if (event.key.keysym.sym == SDLK_w) move.walk = 0;
+	    if (event.key.keysym.sym == SDLK_s) move.walk = 0;
+	    if (event.key.keysym.sym == SDLK_1) quba.rndscale = 1;
+	    if (event.key.keysym.sym == SDLK_2) quba.rndscale = 2;
+	    if (event.key.keysym.sym == SDLK_3) quba.rndscale = 3;
+	    if (event.key.keysym.sym == SDLK_4) quba.rndscale = 4;
+	    if (event.key.keysym.sym == SDLK_5) quba.rndscale = 5;
+	    if (event.key.keysym.sym == SDLK_6) quba.rndscale = 6;
+	    if (event.key.keysym.sym == SDLK_7) quba.rndscale = 7;
+	    if (event.key.keysym.sym == SDLK_8) quba.rndscale = 8;
+	    if (event.key.keysym.sym == SDLK_9) quba.rndscale = 9;
+	    if (event.key.keysym.sym == SDLK_0) quba.rndscale = 10;
 	}
 	else if (event.type == SDL_KEYDOWN)
 	{
@@ -432,19 +418,19 @@ bool main_loop(double time, void* userdata)
 		    break;
 
 		case SDLK_a:
-		    movement.strafe = 1;
+		    move.strafe = 1;
 		    break;
 
 		case SDLK_d:
-		    movement.strafe = -1;
+		    move.strafe = -1;
 		    break;
 
 		case SDLK_w:
-		    movement.walk = 1;
+		    move.walk = 1;
 		    break;
 
 		case SDLK_s:
-		    movement.walk = -1;
+		    move.walk = -1;
 		    break;
 	    }
 	}
@@ -456,79 +442,79 @@ bool main_loop(double time, void* userdata)
     // update simulation
 
     uint32_t ticks = SDL_GetTicks();
-    uint32_t delta = ticks - prevticks;
+    uint32_t delta = ticks - move.prevticks;
 
     if (delta > 16)
     {
-	prevticks = ticks;
+	move.prevticks = ticks;
 
 	if (delta > 1000) delta = 1000;
 	if (delta < 16) delta = 16;
 	float whole_step = 10.0;
 	float curr_step  = whole_step / (1000.0 / (float) delta);
 
-	if (movement.strafe != 0)
+	if (move.strafe != 0)
 	{
-	    movement.strafespeed += curr_step * movement.strafe;
+	    move.strafespeed += curr_step * move.strafe;
 
-	    if (movement.strafespeed > 10.0) movement.strafespeed = 10.0;
-	    if (movement.strafespeed < -10.0) movement.strafespeed = -10.0;
+	    if (move.strafespeed > 10.0) move.strafespeed = 10.0;
+	    if (move.strafespeed < -10.0) move.strafespeed = -10.0;
 	}
 	else
-	    movement.strafespeed *= 0.9;
+	    move.strafespeed *= 0.9;
 
-	if (movement.walk != 0)
+	if (move.walk != 0)
 	{
-	    movement.walkspeed += curr_step * movement.walk;
+	    move.walkspeed += curr_step * move.walk;
 
-	    if (movement.walkspeed > 10.0) movement.walkspeed = 10.0;
-	    if (movement.walkspeed < -10.0) movement.walkspeed = -10.0;
+	    if (move.walkspeed > 10.0) move.walkspeed = 10.0;
+	    if (move.walkspeed < -10.0) move.walkspeed = -10.0;
 	}
 	else
-	    movement.walkspeed *= 0.9;
+	    move.walkspeed *= 0.9;
 
-	if (movement.strafespeed > 0.0001 || movement.strafespeed < -0.0001)
+	if (move.strafespeed > 0.0001 || move.strafespeed < -0.0001)
 	{
-	    v3_t curr_speed  = v3_scale(movement.directionX, -movement.strafespeed);
-	    movement.lookpos = v3_add(movement.lookpos, curr_speed);
+	    v3_t curr_speed = v3_scale(move.directionX, -move.strafespeed);
+	    move.lookpos    = v3_add(move.lookpos, curr_speed);
 	}
 
-	if (movement.walkspeed > 0.0001 || movement.walkspeed < -0.0001)
+	if (move.walkspeed > 0.0001 || move.walkspeed < -0.0001)
 	{
-	    v3_t curr_speed  = v3_scale(movement.direction, movement.walkspeed);
-	    movement.lookpos = v3_add(movement.lookpos, curr_speed);
+	    v3_t curr_speed = v3_scale(move.direction, move.walkspeed);
+	    move.lookpos    = v3_add(move.lookpos, curr_speed);
 	}
 
-	lighta += curr_step / 10.0;
-	if (lighta > 6.28) lighta = 0.0;
+	quba.lightangle += curr_step / 10.0;
+	if (quba.lightangle > 6.28) quba.lightangle = 0.0;
 
 #ifndef OCTTEST
 
-	skeleton_glc_update(&quba.skel_glc, lighta, quba.dynamic_model.point_count, quba.octree_depth, quba.octree_size);
+	skeleton_glc_update(&quba.skelglc, quba.lightangle, quba.dynamod.point_count, quba.octrdpth, quba.octrsize);
 
 	// add modified point coords by compute shader
 
-	octree_reset(&quba.dynamic_octree, (v4_t){0.0, quba.octree_size, quba.octree_size, quba.octree_size});
+	octree_reset(&quba.dynaoctr, (v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize});
 
-	for (int index = 0; index < quba.dynamic_model.point_count; index++)
+	for (int index = 0; index < quba.dynamod.point_count; index++)
 	{
 	    octree_insert_path(
-		&quba.dynamic_octree,
+		&quba.dynaoctr,
 		0,
 		index,
-		&quba.skel_glc.octqueue[index * 12]); // 48 bytes stride 12 int
+		&quba.skelglc.octqueue[index * 12]); // 48 bytes stride 12 int
 	}
 
-	octree_glc_upload_texbuffer(&quba.octr_glc, quba.dynamic_octree.octs, 0, 0, quba.dynamic_octree.txwth, quba.dynamic_octree.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octr_glc.oct2_tex, 11);
+	octree_glc_upload_texbuffer(&quba.octrglc, quba.dynaoctr.octs, 0, 0, quba.dynaoctr.txwth, quba.dynaoctr.txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, quba.octrglc.oct2_tex, 11);
 #endif
 
 	/* mt_time(NULL); */
-	octree_glc_update(&quba.octr_glc, width, height, movement.lookpos, movement.lookangle, lighta, quba.render_detail, quba.octree_depth, quba.octree_size);
+	octree_glc_update(&quba.octrglc, quba.winwth, quba.winhth, move.lookpos, move.lookangle, quba.lightangle, quba.rndscale, quba.octrdpth, quba.octrsize);
 
 	SDL_GL_SwapWindow(quba.window);
 	/* mt_time("Render"); */
 
-	frames++;
+	quba.frames++;
     }
 
     return 1;
@@ -536,6 +522,18 @@ bool main_loop(double time, void* userdata)
 
 int main(int argc, char* argv[])
 {
+    quba.rndscale = 10;
+    quba.octrdpth = 12;
+    quba.doexit   = 0;
+    quba.winscale = 1.0;
+    quba.winwth   = 1200;
+    quba.winhth   = 800;
+    quba.octrsize = 1800.0;
+
+    move.lookpos    = (v3_t){440.0, 200.0, 700.0};
+    move.direction  = (v3_t){0.0, 0.0, -1.0};
+    move.directionX = (v3_t){-1.0, 0.0, 0.0};
+
     mt_log_use_colors(isatty(STDERR_FILENO));
     mt_log_level_info();
     mt_time(NULL);
@@ -563,21 +561,15 @@ int main(int argc, char* argv[])
 	{
 	    case '?': printf("parsing option %c value: %s\n", option, optarg); break;
 	    case 'v': mt_log_inc_verbosity(); break;
-	    case 'l': quba.octree_depth = atoi(optarg); break;
+	    case 'l': quba.octrdpth = atoi(optarg); break;
 	    default: fprintf(stderr, "%s", usage); return EXIT_FAILURE;
 	}
     }
 
-    // enable high dpi
-
     SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
-
-    // init sdl
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == 0)
     {
-	// setup opengl version
-
 #ifdef EMSCRIPTEN
 	mt_log_inc_verbosity();
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -591,30 +583,16 @@ int main(int argc, char* argv[])
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 #endif
 
-	/* window size should be full screen on phones, scaled down on desktops */
-
-	SDL_DisplayMode displaymode;
-	SDL_GetCurrentDisplayMode(0, &displaymode);
-
-	/* if (displaymode.w < 800 || displaymode.h < 400) */
-	/* { */
-	/*     width  = displaymode.w; */
-	/*     height = displaymode.h; */
-	/* } */
-	/* else */
-	/* { */
-	/*     width  = displaymode.w * 0.8; */
-	/*     height = displaymode.h * 0.8; */
-	/* } */
-
 	// create window
+
+	mt_log_debug("create window  %i %i", quba.winwth, quba.winhth);
 
 	quba.window = SDL_CreateWindow(
 	    "Qubatron",
 	    SDL_WINDOWPOS_CENTERED,
 	    SDL_WINDOWPOS_CENTERED,
-	    width,
-	    height,
+	    quba.winwth,
+	    quba.winhth,
 	    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN |
 #ifndef EMSCRIPTEN
 		SDL_WINDOW_ALLOW_HIGHDPI |
@@ -623,8 +601,6 @@ int main(int argc, char* argv[])
 
 	if (quba.window != NULL)
 	{
-	    // create context
-
 	    quba.context = SDL_GL_CreateContext(quba.window);
 
 	    if (quba.context != NULL)
@@ -633,15 +609,7 @@ int main(int argc, char* argv[])
 		if (GLEW_OK != GlewInitResult)
 		    mt_log_error("%s", glewGetErrorString(GlewInitResult));
 
-		int nw;
-		int nh;
-
-		SDL_GL_GetDrawableSize(quba.window, &nw, &nh);
-
-		mt_log_debug("DRAWABLE %i %i", nw, nh);
-
-		width  = nw;
-		height = nh;
+		SDL_GL_GetDrawableSize(quba.window, &quba.winwth, &quba.winhth);
 
 		// try to set up vsync
 
@@ -658,29 +626,21 @@ int main(int argc, char* argv[])
 		return 0;
 #else
 		// infinite loop til quit
-		while (!quba.exit_flag)
-		{
+		while (!quba.doexit)
 		    main_loop(0, NULL);
-		}
 #endif
 
 		main_free();
-
-		// cleanup
 
 		SDL_GL_DeleteContext(quba.context);
 	    }
 	    else
 		mt_log_error("SDL context creation error %s", SDL_GetError());
 
-	    // cleanup
-
 	    SDL_DestroyWindow(quba.window);
 	}
 	else
 	    mt_log_error("SDL window creation error %s", SDL_GetError());
-
-	// cleanup
 
 	SDL_Quit();
     }

@@ -11,6 +11,14 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 
 #if __INCLUDE_LEVEL__ == 0
 
+void modelutil_load_test()
+{
+}
+
+void modelutil_load_flat()
+{
+}
+
 typedef struct _tempcubes_t
 {
     char arr[30][30][30];
