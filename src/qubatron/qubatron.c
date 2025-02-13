@@ -266,42 +266,12 @@ bool main_loop(double time, void* userdata)
 
 #ifndef OCTTEST
 
-	skeleton_glc_update(
-	    &quba.skelglc,
-	    quba.lightangle,
-	    quba.dynamod.point_count,
-	    quba.octrdpth,
-	    quba.octrsize);
+	modelutil_update_skeleton(&quba.skelglc, &quba.octrglc, &quba.dynamod, &quba.dynaoctr, quba.lightangle);
 
-	// add modified point coords by compute shader
-
-	octree_reset(
-	    &quba.dynaoctr,
-	    (v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize});
-
-	for (int index = 0; index < quba.dynamod.point_count; index++)
-	{
-	    octree_insert_path(
-		&quba.dynaoctr,
-		0,
-		index,
-		&quba.skelglc.octqueue[index * 12]); // 48 bytes stride 12 int
-	}
-
-	octree_glc_upload_texbuffer(
-	    &quba.octrglc,
-	    quba.dynaoctr.octs,
-	    0,
-	    0,
-	    quba.dynaoctr.txwth,
-	    quba.dynaoctr.txhth,
-	    GL_RGBA32I,
-	    GL_RGBA_INTEGER,
-	    GL_INT,
-	    quba.octrglc.oct2_tex, 11);
 #endif
 
-	/* mt_time(NULL); */
+	// render scene
+
 	octree_glc_update(
 	    &quba.octrglc,
 	    quba.winwth,
@@ -314,7 +284,6 @@ bool main_loop(double time, void* userdata)
 	    quba.octrsize);
 
 	SDL_GL_SwapWindow(quba.window);
-	/* mt_time("Render"); */
 
 	quba.frames++;
     }

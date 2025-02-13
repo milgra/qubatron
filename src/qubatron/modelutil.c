@@ -26,6 +26,13 @@ void modelutil_load_flat(
     model_t*        statmod,
     model_t*        dynamod);
 
+void modelutil_update_skeleton(
+    skeleton_glc_t* skelglc,
+    octree_glc_t*   octrglc,
+    model_t*        model,
+    octree_t*       octree,
+    float           angle);
+
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
@@ -255,6 +262,43 @@ void modelutil_load_flat(
     /* } */
 
     /* octree_glc_upload_texbuffer(octrglc, dynaoctr->octs, 0, 0, dynaoctr->txwth, dynaoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct2_tex, 11); */
+}
+
+void modelutil_update_skeleton(skeleton_glc_t* skelglc, octree_glc_t* octrglc, model_t* model, octree_t* octree, float angle)
+{
+    skeleton_glc_update(
+	skelglc,
+	angle,
+	model->point_count,
+	octree->levels,
+	octree->basecube.w);
+
+    // add modified point coords by compute shader
+
+    octree_reset(
+	octree,
+	octree->basecube);
+
+    for (int index = 0; index < model->point_count; index++)
+    {
+	octree_insert_path(
+	    octree,
+	    0,
+	    index,
+	    &skelglc->octqueue[index * 12]); // 48 bytes stride 12 int
+    }
+
+    octree_glc_upload_texbuffer(
+	octrglc,
+	octree->octs,
+	0,
+	0,
+	octree->txwth,
+	octree->txhth,
+	GL_RGBA32I,
+	GL_RGBA_INTEGER,
+	GL_INT,
+	octrglc->oct2_tex, 11);
 }
 
 typedef struct _tempcubes_t
