@@ -139,8 +139,11 @@ cube_trace_line(vec3 pos, vec3 dir)
 
     ctlres res;
     res.isp = vec4(0.0, 0.0, 0.0, 0.0);
+#ifdef OCTTEST
     res.col = vec4(0.0, 0.2, 0.0, 0.0);
-
+#else
+    res.col = vec4(0.0, 0.0, 0.0, 0.0);
+#endif
     // under 17 and over 20 shader becomes very slow, why?
     stck_t stck[18];
     stck[0].cube  = basecube;

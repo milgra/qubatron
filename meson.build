@@ -63,6 +63,8 @@ fs.copyfile('src/qubatron/shaders/skeleton_vsh.c', 'skeleton_vsh.c')
 fs.copyfile('src/qubatron/shaders/skeleton_fsh.c', 'skeleton_fsh.c')
 fs.copyfile('src/qubatron/shaders/texquad_vsh.c', 'texquad_vsh.c')
 fs.copyfile('src/qubatron/shaders/texquad_fsh.c', 'texquad_fsh.c')
+fs.copyfile('src/qubatron/shaders/particle_vsh.c', 'particle_vsh.c')
+fs.copyfile('src/qubatron/shaders/particle_fsh.c', 'particle_fsh.c')
 
 fs.copyfile('res/abandoned.ply.col', 'abandoned.ply.col')
 fs.copyfile('res/abandoned.ply.nrm', 'abandoned.ply.nrm')
