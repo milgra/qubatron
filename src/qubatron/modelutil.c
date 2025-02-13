@@ -6,8 +6,6 @@
 #include "octree_glc.c"
 #include "skeleton_glc.c"
 
-void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v3_t position, v3_t direction);
-
 void modelutil_load_test(
     char*           base_path,
     octree_glc_t*   octrglc,
@@ -33,6 +31,13 @@ void modelutil_update_skeleton(
     octree_t*       octree,
     float           angle);
 
+void modelutil_punch_hole(
+    octree_glc_t* glc,
+    octree_t*     octree,
+    model_t*      model,
+    v3_t          position,
+    v3_t          direction);
+
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
@@ -46,6 +51,8 @@ void modelutil_load_test(
     model_t*        statmod,
     model_t*        dynamod)
 {
+    // load testscene with 5 points
+
     int point_count = 5;
 
     GLfloat points[3 * 8192] = {
@@ -90,11 +97,44 @@ void modelutil_load_test(
 	    NULL);
     }
 
-    octree_glc_upload_texbuffer(octrglc, normals, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm1_tex, 8);
-    octree_glc_upload_texbuffer(octrglc, colors, 0, 0, 8192, 1, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col1_tex, 6);
-    octree_glc_upload_texbuffer(octrglc, statoctr->octs, 0, 0, statoctr->txwth, statoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct1_tex, 10);
+    octree_glc_upload_texbuffer(
+	octrglc,
+	normals,
+	0,
+	0,
+	8192,
+	1,
+	GL_RGB32F,
+	GL_RGB,
+	GL_FLOAT,
+	octrglc->nrm1_tex,
+	8);
 
-    // init dynamic model
+    octree_glc_upload_texbuffer(
+	octrglc,
+	colors,
+	0,
+	0,
+	8192,
+	1,
+	GL_RGB32F,
+	GL_RGB,
+	GL_FLOAT,
+	octrglc->col1_tex,
+	6);
+
+    octree_glc_upload_texbuffer(
+	octrglc,
+	statoctr->octs,
+	0,
+	0,
+	statoctr->txwth,
+	statoctr->txhth,
+	GL_RGBA32I,
+	GL_RGBA_INTEGER,
+	GL_INT,
+	octrglc->oct1_tex,
+	10);
 
     octree_glc_upload_texbuffer(
 	octrglc,
@@ -108,37 +148,6 @@ void modelutil_load_test(
 	GL_INT,
 	octrglc->oct2_tex,
 	11);
-
-    /* for (int i = 0; i < 20000; i++) */
-    /* { */
-    /* 	float x = 100.0 + (float) (rand() % 700); */
-    /* 	float y = 100.0 + (float) (rand() % 700); */
-    /* 	float z = -100.0 - (float) (rand() % 700); */
-
-    /* 	uint32_t c; */
-    /* 	c = rand() & 0xff; */
-    /* 	c |= (rand() & 0xff) << 8; */
-    /* 	c |= (rand() & 0xff) << 16; */
-    /* 	c |= (rand() & 0xff) << 24; */
-
-    /* 	cube_insert(basecube, (v3_t){x, y, z}, c); */
-    /* } */
-
-    /* int maxcol = 10; */
-    /* int maxrow = 10; */
-
-    /* for (int c = 0; c < maxcol; c++) */
-    /* { */
-    /* 	for (int r = 0; r < maxrow; r++) */
-    /* 	{ */
-    /* 	    float x = 100.0 + (float) (5 * c); */
-    /* 	    float y = 100.0 + (float) (5 * r); */
-    /* 	    float z = -110.0; */
-    /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
-    /* 	    z = -790.0; */
-    /* 	    cube_insert(basecube, (v3_t){x, y, z}, 0xFFFFFFFF); */
-    /* 	} */
-    /* } */
 }
 
 void modelutil_load_flat(

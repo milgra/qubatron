@@ -266,7 +266,12 @@ bool main_loop(double time, void* userdata)
 
 #ifndef OCTTEST
 
-	modelutil_update_skeleton(&quba.skelglc, &quba.octrglc, &quba.dynamod, &quba.dynaoctr, quba.lightangle);
+	modelutil_update_skeleton(
+	    &quba.skelglc,
+	    &quba.octrglc,
+	    &quba.dynamod,
+	    &quba.dynaoctr,
+	    quba.lightangle);
 
 #endif
 
