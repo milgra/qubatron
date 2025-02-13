@@ -205,9 +205,44 @@ void modelutil_load_flat(
 
     // upload static model
 
-    octree_glc_upload_texbuffer(octrglc, statmod->colors, 0, 0, statmod->txwth, statmod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col1_tex, 6);
-    octree_glc_upload_texbuffer(octrglc, statmod->normals, 0, 0, statmod->txwth, statmod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm1_tex, 8);
-    octree_glc_upload_texbuffer(octrglc, statoctr->octs, 0, 0, statoctr->txwth, statoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct1_tex, 10);
+    octree_glc_upload_texbuffer(
+	octrglc,
+	statmod->colors,
+	0,
+	0,
+	statmod->txwth,
+	statmod->txhth,
+	GL_RGB32F,
+	GL_RGB,
+	GL_FLOAT,
+	octrglc->col1_tex,
+	6);
+
+    octree_glc_upload_texbuffer(
+	octrglc,
+	statmod->normals,
+	0,
+	0,
+	statmod->txwth,
+	statmod->txhth,
+	GL_RGB32F,
+	GL_RGB,
+	GL_FLOAT,
+	octrglc->nrm1_tex,
+	8);
+
+    octree_glc_upload_texbuffer(
+	octrglc,
+	statoctr->octs,
+	0,
+	0,
+	statoctr->txwth,
+	statoctr->txhth,
+	GL_RGBA32I,
+	GL_RGBA_INTEGER,
+	GL_INT,
+	octrglc->oct1_tex,
+	10);
 
     scenepath = "zombie.ply";
     snprintf(pntpath, PATH_MAX, "%s%s.pnt", base_path, scenepath);
@@ -337,6 +372,28 @@ int modelutil_zeroes(tempcubes_t* cubes, int x, int y, int z, int size)
     return result;
 }
 
+int grid_fill_half(tempcubes_t* cubes, int x, int y, int z, int size)
+{
+    int result = 0;
+    for (int cx = x - 1; cx < x + 2; cx++)
+    {
+	for (int cy = y - 1; cy < y + 2; cy++)
+	{
+	    for (int cz = z - 1; cz < z + 2; cz++)
+	    {
+		if (cx > 0 && cx < size && cy > 0 && cy < size && cz > 0 && cz < size)
+		{
+		    if (cubes->arr[cx][cy][cz] == 0)
+		    {
+			result++;
+		    }
+		}
+	    }
+	}
+    }
+    return result;
+}
+
 void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v3_t position, v3_t direction)
 {
     // check collosion between direction vector and static and dynamic voxels
@@ -414,20 +471,18 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 
     if (minind > 0)
     {
-	int sy  = (minind * 3) / 8192;
-	int ey  = (maxind * 3) / 8192 + 1;
-	int noi = sy * 8192 * 4;
+	int sy = octree_line_index_for_octet_index(octree, minind);
+	int ey = octree_line_index_for_octet_index(octree, maxind) + 1;
+	int si = octree_octet_index_for_line_index(octree, sy);
+	int di = octree_rgba32idata_index_for_octet_index(octree, si);
 
 	GLint* data = (GLint*) octree->octs;
 
-	mt_log_debug("UPDATING HOLE");
-	mt_log_debug("minind %i maxind %i", minind, maxind);
-	mt_log_debug("sy %i ey %i", sy, ey);
-	mt_log_debug("noi %i", noi);
+	mt_log_debug("delete hole, updating textbuffer at sy %i ey %i si %i di %i", sy, ey, si, di);
 
 	octree_glc_upload_texbuffer(
 	    glc,
-	    data + noi,
+	    data + di,
 	    0,
 	    sy,
 	    octree->txwth,
@@ -442,6 +497,8 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 
 	int minind = 0;
 	int maxind = 0;
+
+	int modind = model->point_count;
 
 	for (int cx = -size; cx < size; cx++)
 	{
@@ -511,37 +568,75 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 	    }
 	}
 
-	sy  = (minind * 3) / 8192;
-	ey  = (octree->len * 3) / 8192 + 1;
-	noi = sy * 8192 * 4;
+	mt_log_debug("points added, new octree length %i new model length %i", octree->len, model->point_count);
 
-	mt_log_debug("MOVING VOXELS");
-	mt_log_debug("minind %i size %i", minind, octree->size);
-	mt_log_debug("sy %i ey %i", sy, ey);
-	mt_log_debug("noi %i", noi);
+	sy = octree_line_index_for_octet_index(octree, minind);
+	ey = octree_line_index_for_octet_index(octree, octree->len) + 1;
+	si = octree_octet_index_for_line_index(octree, sy);
+	di = octree_rgba32idata_index_for_octet_index(octree, si);
 
-	octree_glc_upload_texbuffer(glc, model->colors, 0, 0, model->txwth, model->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, glc->col1_tex, 6);
-	octree_glc_upload_texbuffer(glc, model->normals, 0, 0, model->txwth, model->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, glc->nrm1_tex, 8);
+	mt_log_debug("adding sphere, updating textbuffer at sy %i ey %i si %i di %i", sy, ey, si, di);
 
-	if (data != (GLint*) octree->octs)
-	{
-	    mt_log_debug("OCTREE BACKING BUFFER RESIZED!!!");
-	}
+	int modsy = model_line_index_for_point_index(model, modind);
+	int modey = model_line_index_for_point_index(model, model->point_count) + 1;
+	int modsi = model_point_index_for_line_index(model, modsy);
+	int moddi = model_data_index_for_point_index(model, modsi);
+
+	mt_log_debug("updating model at sy %i ey %i si %i di %i", modsy, modey, modsi, moddi);
+
+	octree_glc_upload_texbuffer(
+	    glc,
+	    model->colors + moddi,
+	    0,
+	    modsy,
+	    model->txwth,
+	    modey - modsy,
+	    GL_RGB32F,
+	    GL_RGB,
+	    GL_FLOAT,
+	    glc->col1_tex,
+	    6);
+
+	octree_glc_upload_texbuffer(
+	    glc,
+	    model->normals + moddi,
+	    0,
+	    modsy,
+	    model->txwth,
+	    modey - modsy,
+	    GL_RGB32F,
+	    GL_RGB,
+	    GL_FLOAT,
+	    glc->nrm1_tex,
+	    8);
 
 	data = (GLint*) octree->octs;
 
 	octree_glc_upload_texbuffer(
 	    glc,
-	    data + noi,
+	    data,
 	    0,
-	    sy,
+	    0,
 	    octree->txwth,
-	    ey - sy,
+	    octree->txhth,
 	    GL_RGBA32I,
 	    GL_RGBA_INTEGER,
 	    GL_INT,
 	    glc->oct1_tex,
 	    10);
+
+	/* octree_glc_upload_texbuffer( */
+	/*     glc, */
+	/*     data + di, */
+	/*     0, */
+	/*     sy, */
+	/*     octree->txwth, */
+	/*     ey - sy, */
+	/*     GL_RGBA32I, */
+	/*     GL_RGBA_INTEGER, */
+	/*     GL_INT, */
+	/*     glc->oct1_tex, */
+	/*     10); */
     }
 }
 

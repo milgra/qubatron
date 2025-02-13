@@ -34,6 +34,9 @@ void    model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color);
 
 void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path, char* range_path);
 void model_log_vertex_info(model_t* model, size_t index);
+int  model_data_index_for_point_index(model_t* model, int index);
+int  model_line_index_for_point_index(model_t* model, int index);
+int  model_point_index_for_line_index(model_t* model, int index);
 
 #endif
 
@@ -60,7 +63,7 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     fseek(pntfile, 0, SEEK_SET);
 
     model->point_count = float_count / 3;
-    model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth);
+    model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth) + 10; // TODO check max height
     model->buffs       = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
 
     model->vertexes = mt_memory_alloc(model->buffs, NULL, NULL);
@@ -172,6 +175,21 @@ void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
     model->colors[index + 2] = color.z;
 
     model->point_count += 1;
+}
+
+int model_data_index_for_point_index(model_t* model, int index)
+{
+    return index * 3;
+}
+
+int model_line_index_for_point_index(model_t* model, int index)
+{
+    return index / model->txwth;
+}
+
+int model_point_index_for_line_index(model_t* model, int index)
+{
+    return index * model->txwth;
 }
 
 #endif

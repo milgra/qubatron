@@ -34,6 +34,9 @@ void        octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octin
 void        octree_log_path(octets_t o, size_t index);
 void        octree_comp(octree_t* treea, octree_t* treeb);
 int         octree_trace_line(octree_t* tree, v3_t pos, v3_t dir);
+int         octree_line_index_for_octet_index(octree_t* octree, int index);
+int         octree_octet_index_for_line_index(octree_t* octree, int index);
+int         octree_rgba32idata_index_for_octet_index(octree_t* octree, int index);
 
 #endif
 
@@ -496,6 +499,21 @@ int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir)
     }
 
     return 0;
+}
+
+int octree_line_index_for_octet_index(octree_t* octree, int index)
+{
+    return (index * 3) / octree->txwth;
+}
+
+int octree_octet_index_for_line_index(octree_t* octree, int index)
+{
+    return index * octree->txwth;
+}
+
+int octree_rgba32idata_index_for_octet_index(octree_t* octree, int index)
+{
+    return index * 4;
 }
 
 #endif
