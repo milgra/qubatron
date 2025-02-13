@@ -38,6 +38,12 @@ void modelutil_punch_hole(
     v3_t          position,
     v3_t          direction);
 
+void modelutil_punch_hole_dyna(
+    skeleton_glc_t* skelglc,
+    int index, model_t* model,
+    v3_t position,
+    v3_t direction);
+
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
@@ -288,24 +294,6 @@ void modelutil_load_flat(
 
     skeleton_glc_alloc_in(skelglc, dynamod->vertexes, dynamod->point_count * 3 * sizeof(GLfloat));
     skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12);
-
-    /* skeleton_glc_update(skelglc, quba.lightangle, dynamod->point_count, quba.octrdpth, quba.octrsize); */
-    /* skeleton_glc_update(skelglc, quba.lightangle, dynamod->point_count, quba.octrdpth, quba.octrsize); // double run to step over double buffer */
-
-    // add modified point coords by compute shader
-
-    /* octree_reset(dynaoctr, (v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize}); */
-
-    /* for (int index = 0; index < dynamod->point_count; index++) */
-    /* { */
-    /* 	octree_insert_path( */
-    /* 	    dynaoctr, */
-    /* 	    0, */
-    /* 	    index, */
-    /* 	    skelglc.octqueue[index * 12]); // 48 bytes stride 12 int */
-    /* } */
-
-    /* octree_glc_upload_texbuffer(octrglc, dynaoctr->octs, 0, 0, dynaoctr->txwth, dynaoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct2_tex, 11); */
 }
 
 void modelutil_update_skeleton(skeleton_glc_t* skelglc, octree_glc_t* octrglc, model_t* model, octree_t* octree, float angle)
@@ -513,9 +501,9 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 		    if (cubes.arr[cx + size][cy + size][cz + size] > 1)
 		    {
 			v3_t cp = (v3_t){
-			    pt.x + dx + nrm.x * -4.0 * step,
-			    pt.y + dy + nrm.y * -4.0 * step,
-			    pt.z + dz + nrm.z * -4.0 * step};
+			    pt.x + dx + nrm.x * -10.0 * step,
+			    pt.y + dy + nrm.y * -10.0 * step,
+			    pt.z + dz + nrm.z * -10.0 * step};
 
 			model_add_point(model, cp, nrm, col);
 
@@ -540,9 +528,9 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 			{
 			    // create another layer of points
 			    v3_t cp = (v3_t){
-				pt.x + dx + nrm.x * -2.0 * step,
-				pt.y + dy + nrm.y * -2.0 * step,
-				pt.z + dz + nrm.z * -2.0 * step};
+				pt.x + dx + nrm.x * -5.0 * step,
+				pt.y + dy + nrm.y * -5.0 * step,
+				pt.z + dz + nrm.z * -5.0 * step};
 
 			    model_add_point(model, cp, nrm, col);
 
@@ -638,6 +626,37 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 	/*     glc->oct1_tex, */
 	/*     10); */
     }
+}
+
+void modelutil_punch_hole_dyna(skeleton_glc_t* skelglc, int index, model_t* model, v3_t position, v3_t direction)
+{
+    float ox = model->vertexes[index * 3];
+    float oy = model->vertexes[index * 3 + 1];
+    float oz = model->vertexes[index * 3 + 2];
+
+    int cnt = 0;
+    for (int i = 0; i < model->point_count * 3; i++)
+    {
+	float x = model->vertexes[i];
+	float y = model->vertexes[i + 1];
+	float z = model->vertexes[i + 2];
+
+	float dx = x - ox;
+	float dy = y - oy;
+	float dz = z - oz;
+
+	if (dx * dx + dy * dy + dz * dz < 100.0)
+	{
+	    model->vertexes[i]     = 0.0;
+	    model->vertexes[i + 1] = 0.0;
+	    model->vertexes[i + 2] = 0.0;
+	    cnt++;
+	}
+    }
+
+    mt_log_debug("punch hole dyna, index %i, x %f y %f z %f zeroed point count %i", index, cnt, ox, oy, oz);
+
+    skeleton_glc_alloc_in(skelglc, model->vertexes, model->point_count * 3 * sizeof(GLfloat));
 }
 
 #endif

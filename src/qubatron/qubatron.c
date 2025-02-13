@@ -172,7 +172,13 @@ bool main_loop(double time, void* userdata)
 
 	    if (event.type == SDL_MOUSEBUTTONDOWN)
 	    {
-		modelutil_punch_hole(&quba.octrglc, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
+		int statindex = octree_trace_line(&quba.statoctr, move.lookpos, move.direction);
+		int dynaindex = octree_trace_line(&quba.dynaoctr, move.lookpos, move.direction);
+
+		if (dynaindex > 0)
+		    modelutil_punch_hole_dyna(&quba.skelglc, dynaindex, &quba.dynamod, move.lookpos, move.direction);
+		else if (statindex > 0)
+		    modelutil_punch_hole(&quba.octrglc, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
 	    }
 	}
 	else if (event.type == SDL_QUIT)

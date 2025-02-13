@@ -66,7 +66,9 @@ How to create model files
 - Use CloudCompare, open abandoned_cc.bin then zombie_cc.bin
 - Convert mesh to sample ( 90 million points for abandoned, 10 million for zombie )
 - Export as ply with color and normal data
-- Use build/qmc to convert result .ply-s to flat vertex, normal and color files
+- Use build/qmc to convert result .ply-s to flat vertex, normal and color files :
+ - build/qmc -s 1800 -l 12 -i media/abandoned.ply
+ - build/qmc -s 1800 -l 12 -i media/zombie.ply
 - Problem : CloudCompare doesn't cover mesh perfectly since it uses random points
 - Alternative solution : Convert [obj2voxel](https`://github.com/Eisenwave/obj2voxel) to export surface normals
 
@@ -87,8 +89,6 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- bash script for model conversion
-- figure deformation
 - debris/blood particle splash
 - separate orind array for octree
 - webgl fencing
