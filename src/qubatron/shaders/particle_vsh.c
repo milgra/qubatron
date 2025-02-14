@@ -45,6 +45,17 @@ struct stck_t
     int  docti;   // dynamic cube octets index for stack level
 };
 
+// A line point 0
+// B line point 1
+// C point to project
+
+vec3 project_point(vec3 A, vec3 B, vec3 C)
+{
+    vec3 AC = C - A;
+    vec3 AB = B - A;
+    return A + dot(AC, AB) / dot(AB, AB) * AB;
+}
+
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
 {
     vec4 r = vec4(0.0);
@@ -342,26 +353,38 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 void main()
 {
-    // add gravity to speed
+    // add gravity to speed, slow down to simulate friction
 
     speed += vec3(0.0,-1.0,0.0);
+    speed *= 0.9;
 
     // check collosion with actual step
 
-    if (abs(speed) < 1.0)
-    {
-        position_out = vec3(0.0,0.0,0.0);
-        discard;
-    }
+    position_out = vec3(0.0,0.0,0.0);
+    speed_out = vec3(0.0,0.0,0.0);
+
+    if (length(speed) < 1.0) return;
+
+    position_out = position + speed;
+    speed_out = speed;
     
     ctlres res = cube_trace_line(position, speed);
 
-    if (res.isp.w > 0.0)
-    {
-        // bounce, mirror speed to normal
-    }
+    if (res.isp.w == 0.0) return;
 
-    // if speed is big and particle is solid, bounce
+    // if speed is big and particle is solid, bounce using normal of surface
+
+    vec3 projp = project_point(res.isp.xyz, res.isp.xyz + res.isp.nrm, res.isp.xyz - speed);
+    vec4 mirrp = projp + projp - (res.isp.xyz - speed);
+    speed = mirrp - res.isp.xyz;
+
+    position_out = projp;
+    speed_out = speed;
+
+    return;
 
     // if speed is slow or not solid particle, stall, particle will be added to static model
+
+    // this shader should calculate the octree path for speedup like in skeleton_vsh
+
 }
