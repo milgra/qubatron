@@ -27,6 +27,17 @@ const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
 
+// A line point 0
+// B line point 1
+// C point to project
+
+vec3 project_point(vec3 A, vec3 B, vec3 C)
+{
+    vec3 AC = C - A;
+    vec3 AB = B - A;
+    return A + dot(AC, AB) / dot(AB, AB) * AB;
+}
+
 struct ctlres
 {
     vec4 isp;
@@ -44,17 +55,6 @@ struct stck_t
     int  socti;   // static cube octets index for stack level
     int  docti;   // dynamic cube octets index for stack level
 };
-
-// A line point 0
-// B line point 1
-// C point to project
-
-vec3 project_point(vec3 A, vec3 B, vec3 C)
-{
-    vec3 AC = C - A;
-    vec3 AB = B - A;
-    return A + dot(AC, AB) / dot(AB, AB) * AB;
-}
 
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
 {
