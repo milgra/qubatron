@@ -53,11 +53,13 @@ struct qubatron_t
 
     model_t statmod;
     model_t dynamod;
+    model_t partmod;
 
     octree_t statoctr;
     octree_t dynaoctr;
 
     skeleton_glc_t skelglc;
+    particle_glc_t partglc;
     octree_glc_t   octrglc;
 
     uint8_t rndscale;
@@ -105,9 +107,11 @@ void main_init()
 
     quba.octrglc = octree_glc_init(path);
     quba.skelglc = skeleton_glc_init(path);
+    quba.partglc = particle_glc_init(path);
 
     quba.statmod = model_init();
     quba.dynamod = model_init();
+    quba.partmod = model_init();
 
     quba.statoctr = octree_create(
 	(v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize},
@@ -178,7 +182,11 @@ bool main_loop(double time, void* userdata)
 		if (dynaindex > 0)
 		    modelutil_punch_hole_dyna(&quba.skelglc, dynaindex, &quba.dynamod, move.lookpos, move.direction);
 		else if (statindex > 0)
+		{
 		    modelutil_punch_hole(&quba.octrglc, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
+
+		    modelutil_emit_particles(&quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
+		}
 	    }
 	}
 	else if (event.type == SDL_QUIT)

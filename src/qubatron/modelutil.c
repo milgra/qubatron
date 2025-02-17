@@ -4,6 +4,7 @@
 #include "model.c"
 #include "octree.c"
 #include "octree_glc.c"
+#include "particle_glc.c"
 #include "skeleton_glc.c"
 
 void modelutil_load_test(
@@ -43,6 +44,14 @@ void modelutil_punch_hole_dyna(
     int index, model_t* model,
     v3_t position,
     v3_t direction);
+
+void modelutil_emit_particles(
+    particle_glc_t* glc,
+    model_t*        partmod,
+    octree_t*       statoctr,
+    model_t*        statmod,
+    v3_t            position,
+    v3_t            direction);
 
 #endif
 
@@ -657,6 +666,32 @@ void modelutil_punch_hole_dyna(skeleton_glc_t* skelglc, int index, model_t* mode
     mt_log_debug("punch hole dyna, index %i, x %f y %f z %f zeroed point count %i", index, cnt, ox, oy, oz);
 
     skeleton_glc_alloc_in(skelglc, model->vertexes, model->point_count * 3 * sizeof(GLfloat));
+}
+
+void modelutil_emit_particles(
+    particle_glc_t* partglc,
+    model_t*        partmod,
+    octree_t*       statoctr,
+    model_t*        statmod,
+    v3_t            position,
+    v3_t            direction)
+{
+    // check collosion between direction vector and static and dynamic voxels
+
+    int index = octree_trace_line(statoctr, position, direction);
+
+    v3_t pt  = (v3_t){statmod->vertexes[index * 3], statmod->vertexes[index * 3 + 1], statmod->vertexes[index * 3 + 2]};
+    v3_t nrm = (v3_t){statmod->normals[index * 3], statmod->normals[index * 3 + 1], statmod->normals[index * 3 + 2]};
+    v3_t col = (v3_t){statmod->colors[index * 3], statmod->colors[index * 3 + 1], statmod->colors[index * 3 + 2]};
+
+    // add one particle to particle model
+
+    model_add_point(partmod, pt, nrm, col);
+
+    // setup particle connector
+
+    particle_glc_alloc_in(partglc, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
+    particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
 }
 
 #endif

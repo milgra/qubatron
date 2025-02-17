@@ -20,9 +20,19 @@ uniform sampler2D nrmtexbuf_d; // normal data per point for dynamic
 uniform lowp isampler2D octtexbuf_s; // octree for static in a format, nine ints, first 8 is octets for cube, 9th is index for next octet/color/normal
 uniform lowp isampler2D octtexbuf_d; // octree for dynamic
 
-const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
-const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0);
-const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+// octets
+//     4 5
+//     6 7
+// 0 1
+// 2 3
+
+const float xsft[] = float[8](0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0); // x shift
+const float ysft[] = float[8](0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0); // y shift
+const float zsft[] = float[8](0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0); // z shift
+
+const int horpairs[] = int[8](1, 0, 3, 2, 5, 4, 7, 6);
+const int verpairs[] = int[8](2, 3, 0, 1, 6, 7, 4, 5);
+const int deppairs[] = int[8](4, 5, 6, 7, 0, 1, 2, 3);
 
 const float PI   = 3.1415926535897932384626433832795;
 const float PI_2 = 1.57079632679489661923;
@@ -165,10 +175,10 @@ cube_trace_line(vec3 pos, vec3 dir)
 	hitp[hitc++] = act;
 
     // we don't deal with the outside world
-    if (hitc < 2) discard;
+    if (hitc < 2) return res;
 
     // one hitp have to be in front of the camera
-    if (hitp[0].w < 0.0 && hitp[1].w < 0.0) discard;
+    if (hitp[0].w < 0.0 && hitp[1].w < 0.0) return res;
 
 #ifdef OCTTEST
     res.col.a += 0.2;
@@ -212,10 +222,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 		res.col = texelFetch(coltexbuf_d, crd, 0);
 		res.nrm = texelFetch(nrmtexbuf_d, crd, 0);
 	    }
-
-	    // add sub-detail fuzzyness SWITCHABLE
-	    if (res.isp.w < 1.0)
-		res.col.xyz += res.col.xyz * random(res.isp.xyz) * 0.4;
 
 	    return res;
 	}
@@ -355,36 +361,37 @@ void main()
 {
     // add gravity to speed, slow down to simulate friction
 
-    speed += vec3(0.0,-1.0,0.0);
-    speed *= 0.9;
+    vec3 vspeed = speed;
+
+    vspeed += vec3(0.0, -1.0, 0.0);
+    vspeed *= 0.9;
 
     // check collosion with actual step
 
-    position_out = vec3(0.0,0.0,0.0);
-    speed_out = vec3(0.0,0.0,0.0);
+    position_out = vec3(0.0, 0.0, 0.0);
+    speed_out    = vec3(0.0, 0.0, 0.0);
 
-    if (length(speed) < 1.0) return;
+    if (length(vspeed) < 1.0) return;
 
-    position_out = position + speed;
-    speed_out = speed;
-    
-    ctlres res = cube_trace_line(position, speed);
+    position_out = position + vspeed;
+    speed_out    = vspeed;
+
+    ctlres res = cube_trace_line(position, vspeed);
 
     if (res.isp.w == 0.0) return;
 
     // if speed is big and particle is solid, bounce using normal of surface
 
-    vec3 projp = project_point(res.isp.xyz, res.isp.xyz + res.isp.nrm, res.isp.xyz - speed);
-    vec4 mirrp = projp + projp - (res.isp.xyz - speed);
-    speed = mirrp - res.isp.xyz;
+    vec3 projp = project_point(res.isp.xyz, res.isp.xyz + res.nrm.xyz, res.isp.xyz - vspeed);
+    vec3 mirrp = projp + projp - (res.isp.xyz - vspeed);
+    vspeed     = mirrp - res.isp.xyz;
 
     position_out = projp;
-    speed_out = speed;
+    speed_out    = vspeed;
 
     return;
 
     // if speed is slow or not solid particle, stall, particle will be added to static model
 
     // this shader should calculate the octree path for speedup like in skeleton_vsh
-
 }
