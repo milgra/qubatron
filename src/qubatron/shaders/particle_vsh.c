@@ -2,11 +2,11 @@
 
 precision highp float;
 
-in vec3 position;
-in vec3 speed;
+in vec3 pos;
+in vec3 spd;
 
-out vec3 position_out;
-out vec3 speed_out;
+out vec3 pos_out;
+out vec3 spd_out;
 
 uniform vec4 basecube;
 uniform int  maxlevel;
@@ -359,39 +359,42 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 void main()
 {
-    // add gravity to speed, slow down to simulate friction
+    /* // add gravity to speed, slow down to simulate friction */
 
-    vec3 vspeed = speed;
+    /* vec3 vspd = spd; */
 
-    vspeed += vec3(0.0, -1.0, 0.0);
-    vspeed *= 0.9;
+    /* vspd += vec3(0.0, -1.0, 0.0); */
+    /* vspd *= 0.9; */
 
-    // check collosion with actual step
+    /* // check collosion with actual step */
 
-    position_out = vec3(0.0, 0.0, 0.0);
-    speed_out    = vec3(0.0, 0.0, 0.0);
+    /* pos_out = vec3(0.0, 0.0, 0.0); */
+    /* spd_out = vec3(0.0, 0.0, 0.0); */
 
-    if (length(vspeed) < 1.0) return;
+    /* if (length(vspd) < 1.0) return; */
 
-    position_out = position + vspeed;
-    speed_out    = vspeed;
+    /* pos_out = pos + vspd; */
+    /* spd_out = vspd; */
 
-    ctlres res = cube_trace_line(position, vspeed);
+    /* ctlres res = cube_trace_line(pos, vspd); */
 
-    if (res.isp.w == 0.0) return;
+    /* if (res.isp.w == 0.0) return; */
 
-    // if speed is big and particle is solid, bounce using normal of surface
+    /* // if speed is big and particle is solid, bounce using normal of surface */
 
-    vec3 projp = project_point(res.isp.xyz, res.isp.xyz + res.nrm.xyz, res.isp.xyz - vspeed);
-    vec3 mirrp = projp + projp - (res.isp.xyz - vspeed);
-    vspeed     = mirrp - res.isp.xyz;
+    /* vec3 projp = project_point(res.isp.xyz, res.isp.xyz + res.nrm.xyz, res.isp.xyz - vspd); */
+    /* vec3 mirrp = projp + projp - (res.isp.xyz - vspd); */
+    /* vspd       = mirrp - res.isp.xyz; */
 
-    position_out = projp;
-    speed_out    = vspeed;
+    /* pos_out = projp; */
+    /* spd_out = vspd; */
 
-    return;
+    /* return; */
 
-    // if speed is slow or not solid particle, stall, particle will be added to static model
+    /* // if speed is slow or not solid particle, stall, particle will be added to static model */
 
-    // this shader should calculate the octree path for speedup like in skeleton_vsh
+    /* // this shader should calculate the octree path for speedup like in skeleton_vsh */
+
+    pos_out = vec3(1.0, 1.0, 1.0);
+    spd_out = vec3(1.0, 1.0, 1.0);
 }

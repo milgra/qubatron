@@ -46,7 +46,14 @@ model_t model_init()
 {
     model_t model = {0};
     model.txwth   = 8192;
+    model.txhth   = 1;
     model.comps   = 3;
+    model.buffs   = model.txwth * model.txhth * model.comps * sizeof(GLfloat);
+
+    model.vertexes = mt_memory_alloc(model.buffs, NULL, NULL);
+    model.normals  = mt_memory_alloc(model.buffs, NULL, NULL);
+    model.colors   = mt_memory_alloc(model.buffs, NULL, NULL);
+
     return model;
 }
 
@@ -66,9 +73,9 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth) + 10; // TODO check max height
     model->buffs       = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
 
-    model->vertexes = mt_memory_alloc(model->buffs, NULL, NULL);
-    model->normals  = mt_memory_alloc(model->buffs, NULL, NULL);
-    model->colors   = mt_memory_alloc(model->buffs, NULL, NULL);
+    model->vertexes = mt_memory_realloc(model->vertexes, model->buffs);
+    model->normals  = mt_memory_realloc(model->normals,model->buffs);
+    model->colors   = mt_memory_realloc(model->colors,model->buffs);
 
     if (!pntfile || !nrmfile || !colfile)
     {

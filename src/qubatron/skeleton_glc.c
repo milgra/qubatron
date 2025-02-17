@@ -84,11 +84,11 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
+    glBindVertexArray(0);
+
     // create and bind result buffer object
 
     glGenBuffers(1, &cc.defo_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, cc.defo_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return cc;
 }

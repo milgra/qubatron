@@ -676,8 +676,6 @@ void modelutil_emit_particles(
     v3_t            position,
     v3_t            direction)
 {
-    // check collosion between direction vector and static and dynamic voxels
-
     int index = octree_trace_line(statoctr, position, direction);
 
     v3_t pt  = (v3_t){statmod->vertexes[index * 3], statmod->vertexes[index * 3 + 1], statmod->vertexes[index * 3 + 2]};
@@ -690,8 +688,20 @@ void modelutil_emit_particles(
 
     // setup particle connector
 
-    particle_glc_alloc_in(partglc, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
+    particle_glc_alloc_in(partglc, partmod->vertexes, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
     particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
+
+    // update simulation
+
+    particle_glc_update(partglc, partmod->point_count, 12, 1800.0);
+    particle_glc_update(partglc, partmod->point_count, 12, 1800.0);
+
+    mt_log_debug("before particle step");
+    mt_log_debug("%f %f %f", partmod->vertexes[0], partmod->vertexes[1], partmod->vertexes[2]);
+    mt_log_debug("%f %f %f", partmod->normals[0], partmod->normals[1], partmod->normals[2]);
+    mt_log_debug("particle step");
+    mt_log_debug("%f %f %f", partglc->pos_out[0], partglc->pos_out[1], partglc->pos_out[2]);
+    mt_log_debug("%f %f %f", partglc->spd_out[0], partglc->spd_out[1], partglc->spd_out[2]);
 }
 
 #endif

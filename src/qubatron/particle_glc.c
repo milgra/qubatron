@@ -18,22 +18,22 @@ typedef struct particle_glc_t
 {
     GLuint part_sha;
     GLuint part_vao;
-    GLuint part_vbo_in;
-    GLuint part_vbo_out;
+    GLuint part_vbo_pos_in;
+    GLuint part_vbo_spd_in;
+    GLuint part_vbo_pos_out;
+    GLuint part_vbo_spd_out;
     GLuint part_unilocs[10];
 
-    GLfloat* position_out;
-    GLfloat* speed_out;
+    GLfloat* pos_out;
+    GLfloat* spd_out;
     GLuint   out_size;
 } particle_glc_t;
 
 particle_glc_t particle_glc_init(char* path);
 
-void particle_glc_update(particle_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize);
-void particle_glc_alloc_in(particle_glc_t* cc, void* data, size_t size);
-void particle_glc_alloc_out(particle_glc_t* cc, void* data, size_t size);
+void particle_glc_update(particle_glc_t* cc, int model_count, int maxlevel, float basesize);
 
-void particle_glc_alloc_in(particle_glc_t* cc, void* data, size_t size);
+void particle_glc_alloc_in(particle_glc_t* cc, void* posdata, void* spddata, size_t size);
 void particle_glc_alloc_out(particle_glc_t* cc, void* data, size_t size);
 
 #endif
@@ -62,13 +62,13 @@ particle_glc_t particle_glc_init(char* base_path)
 
     // set transform feedback varyings before linking
 
-    const GLchar* feedbackVaryings[] = {"position_out", "speed_out"};
+    const GLchar* feedbackVaryings[] = {"pos_out", "spd_out"};
     glTransformFeedbackVaryings(cc.part_sha, 2, feedbackVaryings, GL_SEPARATE_ATTRIBS);
 
     shader_link(cc.part_sha);
 
-    glBindAttribLocation(cc.part_sha, 0, "position");
-    glBindAttribLocation(cc.part_sha, 0, "speed");
+    glBindAttribLocation(cc.part_sha, 0, "pos");
+    glBindAttribLocation(cc.part_sha, 1, "spd");
 
     // get uniforms
 
@@ -77,27 +77,30 @@ particle_glc_t particle_glc_init(char* base_path)
     for (int index = 0; index < 2; index++)
 	cc.part_unilocs[index] = glGetUniformLocation(cc.part_sha, part_uniforms[index]);
 
+    glGenBuffers(1, &cc.part_vbo_pos_in);
+    glGenBuffers(1, &cc.part_vbo_spd_in);
+    glGenBuffers(1, &cc.part_vbo_pos_out);
+    glGenBuffers(1, &cc.part_vbo_spd_out);
+
     // create vertex array and vertex buffer
 
     glGenVertexArrays(1, &cc.part_vao);
     glBindVertexArray(cc.part_vao);
 
-    glGenBuffers(1, &cc.part_vbo_in);
-    glBindBuffer(GL_ARRAY_BUFFER, cc.part_vbo_in);
-
+    glBindBuffer(GL_ARRAY_BUFFER, cc.part_vbo_pos_in);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
-    // create and bind result buffer object
+    glBindBuffer(GL_ARRAY_BUFFER, cc.part_vbo_spd_in);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
-    glGenBuffers(1, &cc.part_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, cc.part_vbo_out);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     return cc;
 }
 
-void particle_glc_update(particle_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize)
+void particle_glc_update(particle_glc_t* cc, int model_count, int maxlevel, float basesize)
 {
     // switch off fragment stage
 
@@ -111,15 +114,8 @@ void particle_glc_update(particle_glc_t* cc, float lighta, int model_count, int 
 
     GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
 
-    glUniform4fv(cc->part_unilocs[2], 1, basecubearr);
-    glUniform1i(cc->part_unilocs[3], maxlevel);
-
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->part_vbo_out);
-
-    // get previous state first to avoid feedback buffer stalling
-
-    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->out_size, cc->position_out);
-    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 1, cc->out_size, cc->speed_out);
+    glUniform4fv(cc->part_unilocs[0], 1, basecubearr);
+    glUniform1i(cc->part_unilocs[1], maxlevel);
 
     // run compute shader
 
@@ -128,17 +124,26 @@ void particle_glc_update(particle_glc_t* cc, float lighta, int model_count, int 
     glEndTransformFeedback();
     glFlush();
 
+    // get previous state first to avoid feedback buffer stalling
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->part_vbo_pos_out);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->out_size, cc->pos_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->part_vbo_spd_out);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->out_size, cc->spd_out);
+
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
 
     glDisable(GL_RASTERIZER_DISCARD);
 }
 
-void particle_glc_alloc_in(particle_glc_t* cc, void* data, size_t size)
+void particle_glc_alloc_in(particle_glc_t* cc, void* posdata, void* spddata, size_t size)
 {
     // upload original points
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc->part_vbo_in);
-    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->part_vbo_pos_in);
+    glBufferData(GL_ARRAY_BUFFER, size, posdata, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->part_vbo_spd_in);
+    glBufferData(GL_ARRAY_BUFFER, size, spddata, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -146,13 +151,15 @@ void particle_glc_alloc_out(particle_glc_t* cc, void* data, size_t size)
 {
     // create buffer for modified points coming from the shader
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc->part_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->part_vbo_pos_out);
+    glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_READ);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->part_vbo_spd_out);
     glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_STREAM_READ);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    cc->position_out = mt_memory_alloc(size, NULL, NULL);
-    cc->speed_out    = mt_memory_alloc(size, NULL, NULL);
-    cc->out_size     = size;
+    cc->pos_out  = mt_memory_alloc(size, NULL, NULL);
+    cc->spd_out  = mt_memory_alloc(size, NULL, NULL);
+    cc->out_size = size;
 }
 
 #endif
