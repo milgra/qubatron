@@ -287,6 +287,34 @@ bool main_loop(double time, void* userdata)
 	    &quba.dynaoctr,
 	    quba.lightangle);
 
+	if (quba.partmod.point_count > 0)
+	{
+	    modelutil_update_particle(
+		&quba.partglc,
+		&quba.partmod,
+		quba.octrdpth,
+		quba.octrsize);
+
+	    octree_insert_point(
+		&quba.dynaoctr,
+		0,
+		10,
+		(v3_t){quba.partmod.vertexes[0], quba.partmod.vertexes[1], quba.partmod.vertexes[2]}, NULL);
+
+	    octree_glc_upload_texbuffer(
+		&quba.octrglc,
+		quba.dynaoctr.octs,
+		0,
+		0,
+		quba.dynaoctr.txwth,
+		quba.dynaoctr.txhth,
+		GL_RGBA32I,
+		GL_RGBA_INTEGER,
+		GL_INT,
+		quba.octrglc.oct2_tex,
+		11);
+	}
+
 #endif
 
 	// render scene

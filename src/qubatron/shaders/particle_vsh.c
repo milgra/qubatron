@@ -359,22 +359,22 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 void main()
 {
-    /* // add gravity to speed, slow down to simulate friction */
+    // add gravity to speed, slow down to simulate friction
 
-    /* vec3 vspd = spd; */
+    vec3 vspd = spd;
 
-    /* vspd += vec3(0.0, -1.0, 0.0); */
-    /* vspd *= 0.9; */
+    vspd += vec3(0.0, -1.0, 0.0);
+    vspd *= 0.9;
 
-    /* // check collosion with actual step */
+    // check collosion with actual step
 
-    /* pos_out = vec3(0.0, 0.0, 0.0); */
-    /* spd_out = vec3(0.0, 0.0, 0.0); */
+    pos_out = vec3(0.0, 0.0, 0.0);
+    spd_out = vec3(0.0, 0.0, 0.0);
 
-    /* if (length(vspd) < 1.0) return; */
+    if (length(vspd) < 1.0) return;
 
-    /* pos_out = pos + vspd; */
-    /* spd_out = vspd; */
+    pos_out = pos + vspd;
+    spd_out = vspd;
 
     /* ctlres res = cube_trace_line(pos, vspd); */
 
@@ -391,10 +391,7 @@ void main()
 
     /* return; */
 
-    /* // if speed is slow or not solid particle, stall, particle will be added to static model */
+    // if speed is slow or not solid particle, stall, particle will be added to static model
 
-    /* // this shader should calculate the octree path for speedup like in skeleton_vsh */
-
-    pos_out = vec3(1.0, 1.0, 1.0);
-    spd_out = vec3(1.0, 1.0, 1.0);
+    // this shader should calculate the octree path for speedup like in skeleton_vsh
 }

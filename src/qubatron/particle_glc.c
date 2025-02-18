@@ -92,8 +92,8 @@ particle_glc_t particle_glc_init(char* base_path)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, cc.part_vbo_spd_in);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     glBindVertexArray(0);
 
@@ -102,6 +102,7 @@ particle_glc_t particle_glc_init(char* base_path)
 
 void particle_glc_update(particle_glc_t* cc, int model_count, int maxlevel, float basesize)
 {
+    mt_log_debug("UPDATE %i", model_count);
     // switch off fragment stage
 
     glEnable(GL_RASTERIZER_DISCARD);
@@ -117,6 +118,11 @@ void particle_glc_update(particle_glc_t* cc, int model_count, int maxlevel, floa
     glUniform4fv(cc->part_unilocs[0], 1, basecubearr);
     glUniform1i(cc->part_unilocs[1], maxlevel);
 
+    // get previous state first to avoid feedback buffer stalling
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->part_vbo_pos_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, cc->part_vbo_spd_out);
+
     // run compute shader
 
     glBeginTransformFeedback(GL_POINTS);
@@ -124,14 +130,13 @@ void particle_glc_update(particle_glc_t* cc, int model_count, int maxlevel, floa
     glEndTransformFeedback();
     glFlush();
 
-    // get previous state first to avoid feedback buffer stalling
-
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->part_vbo_pos_out);
     glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->out_size, cc->pos_out);
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->part_vbo_spd_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, cc->part_vbo_spd_out);
     glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->out_size, cc->spd_out);
 
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, 0);
 
     glDisable(GL_RASTERIZER_DISCARD);
 }
