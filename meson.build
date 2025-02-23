@@ -45,6 +45,8 @@ qubatron_sources = [
 	       'src/qubatron/skeleton_glc.c',
 	       'src/qubatron/particle_glc.c',
 	       'src/qubatron/shader.c',
+	       'src/qubatron/physics.c',
+	       'src/qubatron/combmodel.c',
 	       'src/mt_core/mt_log.c',
 	       'src/mt_core/mt_time.c',
 	       'src/mt_core/mt_memory.c',

@@ -25,19 +25,15 @@ void modelutil_load_flat(
     model_t*        statmod,
     model_t*        dynamod);
 
-void modelutil_update_skeleton(
-    skeleton_glc_t* skelglc,
-    octree_glc_t*   octrglc,
-    model_t*        model,
-    octree_t*       octree,
-    float           angle);
-
 void modelutil_punch_hole(
-    octree_glc_t* glc,
-    octree_t*     octree,
-    model_t*      model,
-    v3_t          position,
-    v3_t          direction);
+    octree_glc_t*   glc,
+    particle_glc_t* partglc,
+    model_t*        partmod,
+    octree_t*       octree,
+    model_t*        statmod,
+    model_t*        dynamod,
+    v3_t            position,
+    v3_t            direction);
 
 void modelutil_punch_hole_dyna(
     skeleton_glc_t* skelglc,
@@ -311,43 +307,6 @@ void modelutil_load_flat(
     skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12);
 }
 
-void modelutil_update_skeleton(skeleton_glc_t* skelglc, octree_glc_t* octrglc, model_t* model, octree_t* octree, float angle)
-{
-    skeleton_glc_update(
-	skelglc,
-	angle,
-	model->point_count,
-	octree->levels,
-	octree->basecube.w);
-
-    // add modified point coords by compute shader
-
-    octree_reset(
-	octree,
-	octree->basecube);
-
-    for (int index = 0; index < model->point_count; index++)
-    {
-	octree_insert_path(
-	    octree,
-	    0,
-	    index,
-	    &skelglc->octqueue[index * 12]); // 48 bytes stride 12 int
-    }
-
-    /* octree_glc_upload_texbuffer( */
-    /* 	octrglc, */
-    /* 	octree->octs, */
-    /* 	0, */
-    /* 	0, */
-    /* 	octree->txwth, */
-    /* 	octree->txhth, */
-    /* 	GL_RGBA32I, */
-    /* 	GL_RGBA_INTEGER, */
-    /* 	GL_INT, */
-    /* 	octrglc->oct2_tex, 11); */
-}
-
 typedef struct _tempcubes_t
 {
     char arr[30][30][30];
@@ -397,18 +356,18 @@ int grid_fill_half(tempcubes_t* cubes, int x, int y, int z, int size)
     return result;
 }
 
-void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v3_t position, v3_t direction)
+void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* partmod, octree_t* statoctr, model_t* statmod, model_t* dynamod, v3_t position, v3_t direction)
 {
     // check collosion between direction vector and static and dynamic voxels
 
-    int index = octree_trace_line(octree, position, direction);
+    int index = octree_trace_line(statoctr, position, direction);
 
     mt_log_debug("***SHOOT***");
     mt_log_debug("voxel index %i", index);
 
-    v3_t pt  = (v3_t){model->vertexes[index * 3], model->vertexes[index * 3 + 1], model->vertexes[index * 3 + 2]};
-    v3_t nrm = (v3_t){model->normals[index * 3], model->normals[index * 3 + 1], model->normals[index * 3 + 2]};
-    v3_t col = (v3_t){model->colors[index * 3], model->colors[index * 3 + 1], model->colors[index * 3 + 2]};
+    v3_t pnt = (v3_t){statmod->vertexes[index * 3], statmod->vertexes[index * 3 + 1], statmod->vertexes[index * 3 + 2]};
+    v3_t nrm = (v3_t){statmod->normals[index * 3], statmod->normals[index * 3 + 1], statmod->normals[index * 3 + 2]};
+    v3_t col = (v3_t){statmod->colors[index * 3], statmod->colors[index * 3 + 1], statmod->colors[index * 3 + 2]};
 
     int minind = 0;
     int maxind = 0;
@@ -416,9 +375,9 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
     // cover all grid points inside a sphere, starting with box
 
     int division = 2;
-    for (int i = 0; i < octree->levels - 1; i++) division *= 2;
+    for (int i = 0; i < statoctr->levels - 1; i++) division *= 2;
 
-    float step = octree->basecube.w / (float) division;
+    float step = statoctr->basecube.w / (float) division;
 
     int         size  = 15;
     tempcubes_t cubes = {0};
@@ -440,10 +399,14 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 		    int orind  = 0;
 		    int octind = 0;
 
-		    octree_remove_point(octree, (v3_t){pt.x + dx, pt.y + dy, pt.z + dz}, &orind, &octind);
+		    octree_remove_point(statoctr, (v3_t){pnt.x + dx, pnt.y + dy, pnt.z + dz}, &orind, &octind);
 
 		    if (octind > 0)
 		    {
+			v3_t npnt = (v3_t){statmod->vertexes[orind * 3], statmod->vertexes[orind * 3 + 1], statmod->vertexes[orind * 3 + 2]};
+			v3_t nnrm = (v3_t){statmod->normals[orind * 3], statmod->normals[orind * 3 + 1], statmod->normals[orind * 3 + 2]};
+			v3_t ncol = (v3_t){statmod->colors[orind * 3], statmod->colors[orind * 3 + 1], statmod->colors[orind * 3 + 2]};
+
 			cubes.arr[cx + size][cy + size][cz + size] = 2;
 			if (dx * dx + dy * dy + dz * dz > ((size - 2) * step) * ((size - 2) * step)) cubes.arr[cx + size][cy + size][cz + size] = 3;
 
@@ -452,11 +415,34 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 
 			if (octind < minind) minind = octind;
 			if (octind > maxind) maxind = octind;
+
+			// add particle to particle model
+
+			nnrm       = v3_scale(nnrm, (float) (rand() % 100) / 10.0);
+			v3_t speed = (v3_t){
+			    nnrm.x + -0.1 + (float) (rand() % 100) / 100.0,
+			    nnrm.y + -0.1 + (float) (rand() % 100) / 100.0,
+			    nnrm.z + -0.1 + (float) (rand() % 100) / 100.0,
+			};
+
+			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
 		    }
 		}
 	    }
 	}
     }
+
+    // setup particle output buffer
+
+    particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(dynamod->vertexes + dynamod->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(dynamod->normals + dynamod->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(dynamod->colors + dynamod->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat));
+    // dynamod->point_count += partmod->point_count;
+    octree_glc_upload_texbuffer(glc, dynamod->colors, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, glc->col2_tex, 7);
+    octree_glc_upload_texbuffer(glc, dynamod->normals, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, glc->nrm2_tex, 9);
+
+    // add vertex, color and normal info to dynamic model temporarily
 
     /* for (int x = 0; x < 2 * size; x++) */
     /* { */
@@ -474,12 +460,12 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 
     if (minind > 0)
     {
-	int sy = octree_line_index_for_octet_index(octree, minind);
-	int ey = octree_line_index_for_octet_index(octree, maxind) + 1;
-	int si = octree_octet_index_for_line_index(octree, sy);
-	int di = octree_rgba32idata_index_for_octet_index(octree, si);
+	int sy = octree_line_index_for_octet_index(statoctr, minind);
+	int ey = octree_line_index_for_octet_index(statoctr, maxind) + 1;
+	int si = octree_octet_index_for_line_index(statoctr, sy);
+	int di = octree_rgba32idata_index_for_octet_index(statoctr, si);
 
-	GLint* data = (GLint*) octree->octs;
+	GLint* data = (GLint*) statoctr->octs;
 
 	mt_log_debug("delete hole, updating textbuffer at sy %i ey %i si %i di %i", sy, ey, si, di);
 
@@ -488,7 +474,7 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 	    data + di,
 	    0,
 	    sy,
-	    octree->txwth,
+	    statoctr->txwth,
 	    ey - sy,
 	    GL_RGBA32I,
 	    GL_RGBA_INTEGER,
@@ -501,7 +487,7 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 	int minind = 0;
 	int maxind = 0;
 
-	int modind = model->point_count;
+	int modind = statmod->point_count;
 
 	for (int cx = -size; cx < size; cx++)
 	{
@@ -516,17 +502,17 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 		    if (cubes.arr[cx + size][cy + size][cz + size] > 1)
 		    {
 			v3_t cp = (v3_t){
-			    pt.x + dx + nrm.x * -10.0 * step,
-			    pt.y + dy + nrm.y * -10.0 * step,
-			    pt.z + dz + nrm.z * -10.0 * step};
+			    pnt.x + dx + nrm.x * -10.0 * step,
+			    pnt.y + dy + nrm.y * -10.0 * step,
+			    pnt.z + dz + nrm.z * -10.0 * step};
 
-			model_add_point(model, cp, nrm, col);
+			model_add_point(statmod, cp, nrm, col);
 
 			int modind = -1;
 			octree_insert_point(
-			    octree,
+			    statoctr,
 			    0,
-			    model->point_count - 1,
+			    statmod->point_count - 1,
 			    cp,
 			    &modind);
 
@@ -543,17 +529,17 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 			{
 			    // create another layer of points
 			    v3_t cp = (v3_t){
-				pt.x + dx + nrm.x * -5.0 * step,
-				pt.y + dy + nrm.y * -5.0 * step,
-				pt.z + dz + nrm.z * -5.0 * step};
+				pnt.x + dx + nrm.x * -5.0 * step,
+				pnt.y + dy + nrm.y * -5.0 * step,
+				pnt.z + dz + nrm.z * -5.0 * step};
 
-			    model_add_point(model, cp, nrm, col);
+			    model_add_point(statmod, cp, nrm, col);
 
 			    int modind = -1;
 			    octree_insert_point(
-				octree,
+				statoctr,
 				0,
-				model->point_count - 1,
+				statmod->point_count - 1,
 				cp,
 				&modind);
 
@@ -571,28 +557,28 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 	    }
 	}
 
-	mt_log_debug("points added, new octree length %i new model length %i", octree->len, model->point_count);
+	mt_log_debug("points added, new octree length %i new model length %i", statoctr->len, statmod->point_count);
 
-	sy = octree_line_index_for_octet_index(octree, minind);
-	ey = octree_line_index_for_octet_index(octree, octree->len) + 1;
-	si = octree_octet_index_for_line_index(octree, sy);
-	di = octree_rgba32idata_index_for_octet_index(octree, si);
+	sy = octree_line_index_for_octet_index(statoctr, minind);
+	ey = octree_line_index_for_octet_index(statoctr, statoctr->len) + 1;
+	si = octree_octet_index_for_line_index(statoctr, sy);
+	di = octree_rgba32idata_index_for_octet_index(statoctr, si);
 
 	mt_log_debug("adding sphere, updating textbuffer at sy %i ey %i si %i di %i", sy, ey, si, di);
 
-	int modsy = model_line_index_for_point_index(model, modind);
-	int modey = model_line_index_for_point_index(model, model->point_count) + 1;
-	int modsi = model_point_index_for_line_index(model, modsy);
-	int moddi = model_data_index_for_point_index(model, modsi);
+	int modsy = model_line_index_for_point_index(statmod, modind);
+	int modey = model_line_index_for_point_index(statmod, statmod->point_count) + 1;
+	int modsi = model_point_index_for_line_index(statmod, modsy);
+	int moddi = model_data_index_for_point_index(statmod, modsi);
 
 	mt_log_debug("updating model at sy %i ey %i si %i di %i", modsy, modey, modsi, moddi);
 
 	octree_glc_upload_texbuffer(
 	    glc,
-	    model->colors + moddi,
+	    statmod->colors + moddi,
 	    0,
 	    modsy,
-	    model->txwth,
+	    statmod->txwth,
 	    modey - modsy,
 	    GL_RGB32F,
 	    GL_RGB,
@@ -602,10 +588,10 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 
 	octree_glc_upload_texbuffer(
 	    glc,
-	    model->normals + moddi,
+	    statmod->normals + moddi,
 	    0,
 	    modsy,
-	    model->txwth,
+	    statmod->txwth,
 	    modey - modsy,
 	    GL_RGB32F,
 	    GL_RGB,
@@ -613,15 +599,15 @@ void modelutil_punch_hole(octree_glc_t* glc, octree_t* octree, model_t* model, v
 	    glc->nrm1_tex,
 	    8);
 
-	data = (GLint*) octree->octs;
+	data = (GLint*) statoctr->octs;
 
 	octree_glc_upload_texbuffer(
 	    glc,
 	    data,
 	    0,
 	    0,
-	    octree->txwth,
-	    octree->txhth,
+	    statoctr->txwth,
+	    statoctr->txhth,
 	    GL_RGBA32I,
 	    GL_RGBA_INTEGER,
 	    GL_INT,
@@ -712,9 +698,9 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int le
     memcpy(partmod->vertexes, partglc->pos_out, partmod->point_count * 3 * sizeof(GLfloat));
     memcpy(partmod->normals, partglc->spd_out, partmod->point_count * 3 * sizeof(GLfloat));
 
-    mt_log_debug("particle step");
-    mt_log_debug("%f %f %f", partglc->pos_out[0], partglc->pos_out[1], partglc->pos_out[2]);
-    mt_log_debug("%f %f %f", partglc->spd_out[0], partglc->spd_out[1], partglc->spd_out[2]);
+    /* mt_log_debug("particle step"); */
+    /* mt_log_debug("%f %f %f", partglc->pos_out[0], partglc->pos_out[1], partglc->pos_out[2]); */
+    /* mt_log_debug("%f %f %f", partglc->spd_out[0], partglc->spd_out[1], partglc->spd_out[2]); */
 }
 
 #endif

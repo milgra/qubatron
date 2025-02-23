@@ -363,15 +363,15 @@ void main()
 
     vec3 vspd = spd;
 
-    vspd += vec3(0.0, -1.0, 0.0);
-    vspd *= 0.9;
+    vspd += vec3(0.0, -0.2, 0.0);
+    vspd *= 0.95;
 
     // check collosion with actual step
 
     pos_out = vec3(0.0, 0.0, 0.0);
     spd_out = vec3(0.0, 0.0, 0.0);
 
-    if (length(vspd) < 1.0) return;
+    if (length(vspd) < 0.01) return;
 
     pos_out = pos + vspd;
     spd_out = vspd;

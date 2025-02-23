@@ -182,11 +182,7 @@ bool main_loop(double time, void* userdata)
 		if (dynaindex > 0)
 		    modelutil_punch_hole_dyna(&quba.skelglc, dynaindex, &quba.dynamod, move.lookpos, move.direction);
 		else if (statindex > 0)
-		{
-		    modelutil_punch_hole(&quba.octrglc, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
-
-		    modelutil_emit_particles(&quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, move.lookpos, move.direction);
-		}
+		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction);
 	    }
 	}
 	else if (event.type == SDL_QUIT)
@@ -280,12 +276,27 @@ bool main_loop(double time, void* userdata)
 
 #ifndef OCTTEST
 
-	modelutil_update_skeleton(
+	skeleton_glc_update(
 	    &quba.skelglc,
-	    &quba.octrglc,
-	    &quba.dynamod,
+	    quba.lightangle,
+	    quba.dynamod.point_count,
+	    quba.dynaoctr.levels,
+	    quba.dynaoctr.basecube.w);
+
+	// add modified point coords by compute shader
+
+	octree_reset(
 	    &quba.dynaoctr,
-	    quba.lightangle);
+	    quba.dynaoctr.basecube);
+
+	for (int index = 0; index < quba.dynamod.point_count; index++)
+	{
+	    octree_insert_path(
+		&quba.dynaoctr,
+		0,
+		index,
+		&quba.skelglc.octqueue[index * 12]); // 48 bytes stride 12 int
+	}
 
 	if (quba.partmod.point_count > 0)
 	{
@@ -295,25 +306,28 @@ bool main_loop(double time, void* userdata)
 		quba.octrdpth,
 		quba.octrsize);
 
-	    octree_insert_point(
-		&quba.dynaoctr,
-		0,
-		10,
-		(v3_t){quba.partmod.vertexes[0], quba.partmod.vertexes[1], quba.partmod.vertexes[2]}, NULL);
-
-	    octree_glc_upload_texbuffer(
-		&quba.octrglc,
-		quba.dynaoctr.octs,
-		0,
-		0,
-		quba.dynaoctr.txwth,
-		quba.dynaoctr.txhth,
-		GL_RGBA32I,
-		GL_RGBA_INTEGER,
-		GL_INT,
-		quba.octrglc.oct2_tex,
-		11);
+	    for (int index = 0; index < quba.partmod.point_count; index++)
+	    {
+		octree_insert_point(
+		    &quba.dynaoctr,
+		    0,
+		    quba.dynamod.point_count + index,
+		    (v3_t){quba.partmod.vertexes[index + 0], quba.partmod.vertexes[index + 1], quba.partmod.vertexes[index + 2]}, NULL);
+	    }
 	}
+
+	octree_glc_upload_texbuffer(
+	    &quba.octrglc,
+	    quba.dynaoctr.octs,
+	    0,
+	    0,
+	    quba.dynaoctr.txwth,
+	    quba.dynaoctr.txhth,
+	    GL_RGBA32I,
+	    GL_RGBA_INTEGER,
+	    GL_INT,
+	    quba.octrglc.oct2_tex,
+	    11);
 
 #endif
 
