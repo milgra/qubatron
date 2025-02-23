@@ -53,7 +53,8 @@ void modelutil_update_particle(
     particle_glc_t* partglc,
     model_t*        partmod,
     int             levels,
-    float           basesize);
+    float           basesize,
+    uint32_t        frames);
 
 #endif
 
@@ -418,12 +419,21 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 			// add particle to particle model
 
-			nnrm       = v3_scale(nnrm, (float) (rand() % 100) / 10.0);
 			v3_t speed = (v3_t){
-			    nnrm.x + -0.1 + (float) (rand() % 100) / 100.0,
-			    nnrm.y + -0.1 + (float) (rand() % 100) / 100.0,
-			    nnrm.z + -0.1 + (float) (rand() % 100) / 100.0,
+			    nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+			    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+			    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 			};
+			speed = v3_scale(speed, (float) (rand() % 100) / 10.0);
+
+			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
+
+			speed = (v3_t){
+			    nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+			    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+			    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+			};
+			speed = v3_scale(speed, (float) (rand() % 100) / 10.0);
 
 			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
 		    }
@@ -683,7 +693,7 @@ void modelutil_emit_particles(
     particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
 }
 
-void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int levels, float basesize)
+void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int levels, float basesize, uint32_t frames)
 {
     // upload latest position and speed data
 
@@ -701,6 +711,23 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int le
     /* mt_log_debug("particle step"); */
     /* mt_log_debug("%f %f %f", partglc->pos_out[0], partglc->pos_out[1], partglc->pos_out[2]); */
     /* mt_log_debug("%f %f %f", partglc->spd_out[0], partglc->spd_out[1], partglc->spd_out[2]); */
+
+    // check simulation end every second
+
+    if (frames % 20 == 0)
+    {
+	int fincount = 0;
+	int finished = 0;
+	for (int i = 0; i < partmod->point_count * 3; i += 3)
+	{
+	    if (partmod->normals[i] == 0.0 && partmod->normals[i + 1] == 0.0 && partmod->normals[i + 2] == 0.0)
+	    {
+		++fincount;
+		finished = 1;
+	    }
+	}
+	mt_log_debug("finished %i fincount %i", finished, fincount);
+    }
 }
 
 #endif

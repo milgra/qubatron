@@ -359,22 +359,27 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 void main()
 {
-    // add gravity to speed, slow down to simulate friction
-
-    vec3 vspd = spd;
-
-    vspd += vec3(0.0, -0.2, 0.0);
-    vspd *= 0.95;
-
-    // check collosion with actual step
+    // set default return values
 
     pos_out = vec3(0.0, 0.0, 0.0);
     spd_out = vec3(0.0, 0.0, 0.0);
+
+    // add gravity to speed, slow down to simulate friction
+
+    if (spd == vec3(0.0, 0.0, 0.0)) return;
+
+    vec3 vspd = spd;
+
+    vspd += vec3(0.0, -0.4, 0.0);
+
+    // check collosion with actual step
 
     if (length(vspd) < 0.01) return;
 
     pos_out = pos + vspd;
     spd_out = vspd;
+
+    if (pos_out.y < 0.0) spd_out = vec3(0.0, 0.0, 0.0);
 
     /* ctlres res = cube_trace_line(pos, vspd); */
 

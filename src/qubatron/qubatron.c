@@ -304,7 +304,8 @@ bool main_loop(double time, void* userdata)
 		&quba.partglc,
 		&quba.partmod,
 		quba.octrdpth,
-		quba.octrsize);
+		quba.octrsize,
+		quba.frames);
 
 	    for (int index = 0; index < quba.partmod.point_count; index++)
 	    {
