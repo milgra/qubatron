@@ -361,7 +361,7 @@ void main()
 {
     // set default return values
 
-    pos_out = vec3(0.0, 0.0, 0.0);
+    pos_out = vec3(0.0, -1.0, 0.0);
     spd_out = vec3(0.0, 0.0, 0.0);
 
     // add gravity to speed, slow down to simulate friction
@@ -373,8 +373,6 @@ void main()
     vspd += vec3(0.0, -0.4, 0.0);
 
     // check collosion with actual step
-
-    if (length(vspd) < 0.01) return;
 
     pos_out = pos + vspd;
     spd_out = vspd;

@@ -440,8 +440,8 @@ void main()
 	}
 
 	/* yellowish color, SWITCHABLE */
-	col.xyz *= 0.8;
-	col.z *= 0.4;
+	/* col.xyz *= 0.8; */
+	/* col.z *= 0.4; */
     }
 
     if (camangle < 0.02)

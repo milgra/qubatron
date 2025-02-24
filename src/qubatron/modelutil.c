@@ -36,18 +36,14 @@ void modelutil_punch_hole(
     v3_t            direction);
 
 void modelutil_punch_hole_dyna(
+    octree_glc_t*   octrglc,
     skeleton_glc_t* skelglc,
+    particle_glc_t* partglc,
+    model_t*        partmod,
     int index, model_t* model,
     v3_t position,
-    v3_t direction);
-
-void modelutil_emit_particles(
-    particle_glc_t* glc,
-    model_t*        partmod,
-    octree_t*       statoctr,
-    model_t*        statmod,
-    v3_t            position,
-    v3_t            direction);
+    v3_t direction,
+    v4_t tlf);
 
 void modelutil_update_particle(
     particle_glc_t* partglc,
@@ -361,7 +357,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 {
     // check collosion between direction vector and static and dynamic voxels
 
-    int index = octree_trace_line(statoctr, position, direction);
+    int index = octree_trace_line(statoctr, position, direction, NULL);
 
     mt_log_debug("***SHOOT***");
     mt_log_debug("voxel index %i", index);
@@ -639,14 +635,23 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
     }
 }
 
-void modelutil_punch_hole_dyna(skeleton_glc_t* skelglc, int index, model_t* model, v3_t position, v3_t direction)
+void modelutil_punch_hole_dyna(
+    octree_glc_t*   octrglc,
+    skeleton_glc_t* skelglc,
+    particle_glc_t* partglc,
+    model_t*        partmod,
+    int             index,
+    model_t*        model,
+    v3_t            position,
+    v3_t            direction,
+    v4_t            tlf)
 {
     float ox = model->vertexes[index * 3];
     float oy = model->vertexes[index * 3 + 1];
     float oz = model->vertexes[index * 3 + 2];
 
     int cnt = 0;
-    for (int i = 0; i < model->point_count * 3; i++)
+    for (int i = 0; i < model->point_count * 3; i += 3)
     {
 	float x = model->vertexes[i];
 	float y = model->vertexes[i + 1];
@@ -656,8 +661,25 @@ void modelutil_punch_hole_dyna(skeleton_glc_t* skelglc, int index, model_t* mode
 	float dy = y - oy;
 	float dz = z - oz;
 
-	if (dx * dx + dy * dy + dz * dz < 100.0)
+	if (dx * dx + dy * dy + dz * dz < 10.0)
 	{
+	    v3_t npnt = (v3_t){tlf.x + dx, tlf.y + dy, tlf.z + dz};
+	    v3_t nnrm = (v3_t){model->normals[i], model->normals[i + 1], model->normals[i + 2]};
+	    v3_t ncol = (v3_t){model->colors[i], model->colors[i + 1], model->colors[i + 2]};
+
+	    // add particle to particle model
+
+	    v3_t speed = (v3_t){
+		nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+		nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+		nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+	    };
+	    speed = v3_scale(speed, (float) (rand() % 100) / 10.0);
+
+	    mt_log_debug("adding %f %f %f norm %f %f %f", npnt.x, npnt.y, npnt.z, speed.x, speed.y, speed.z);
+
+	    model_add_point(partmod, npnt, speed, (v3_t){1.0, 0.0, 0.0});
+
 	    model->vertexes[i]     = 0.0;
 	    model->vertexes[i + 1] = 0.0;
 	    model->vertexes[i + 2] = 0.0;
@@ -668,29 +690,17 @@ void modelutil_punch_hole_dyna(skeleton_glc_t* skelglc, int index, model_t* mode
     mt_log_debug("punch hole dyna, index %i, x %f y %f z %f zeroed point count %i", index, cnt, ox, oy, oz);
 
     skeleton_glc_alloc_in(skelglc, model->vertexes, model->point_count * 3 * sizeof(GLfloat));
-}
 
-void modelutil_emit_particles(
-    particle_glc_t* partglc,
-    model_t*        partmod,
-    octree_t*       statoctr,
-    model_t*        statmod,
-    v3_t            position,
-    v3_t            direction)
-{
-    int index = octree_trace_line(statoctr, position, direction);
-
-    v3_t pnt = (v3_t){statmod->vertexes[index * 3], statmod->vertexes[index * 3 + 1], statmod->vertexes[index * 3 + 2]};
-    v3_t nrm = (v3_t){statmod->normals[index * 3], statmod->normals[index * 3 + 1], statmod->normals[index * 3 + 2]};
-    v3_t col = (v3_t){statmod->colors[index * 3], statmod->colors[index * 3 + 1], statmod->colors[index * 3 + 2]};
-
-    // add one particle to particle model
-
-    model_add_point(partmod, pnt, nrm, col);
-
-    // setup output buffers
+    // setup particle output buffer
 
     particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(model->vertexes + model->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(model->normals + model->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(model->colors + model->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat));
+
+    // model->point_count += partmod->point_count;
+    octree_glc_upload_texbuffer(octrglc, model->colors, 0, 0, model->txwth, model->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col2_tex, 7);
+    octree_glc_upload_texbuffer(octrglc, model->normals, 0, 0, model->txwth, model->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm2_tex, 9);
 }
 
 void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int levels, float basesize, uint32_t frames)
@@ -717,16 +727,17 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int le
     if (frames % 20 == 0)
     {
 	int fincount = 0;
-	int finished = 0;
 	for (int i = 0; i < partmod->point_count * 3; i += 3)
 	{
 	    if (partmod->normals[i] == 0.0 && partmod->normals[i + 1] == 0.0 && partmod->normals[i + 2] == 0.0)
-	    {
 		++fincount;
-		finished = 1;
-	    }
 	}
-	mt_log_debug("finished %i fincount %i", finished, fincount);
+	mt_log_debug("fincount %i points %i", fincount, partmod->point_count);
+
+	if (fincount == partmod->point_count)
+	{
+	    partmod->point_count = 0;
+	}
     }
 }
 

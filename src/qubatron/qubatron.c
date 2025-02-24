@@ -176,11 +176,12 @@ bool main_loop(double time, void* userdata)
 
 	    if (event.type == SDL_MOUSEBUTTONDOWN)
 	    {
-		int statindex = octree_trace_line(&quba.statoctr, move.lookpos, move.direction);
-		int dynaindex = octree_trace_line(&quba.dynaoctr, move.lookpos, move.direction);
+		v4_t tlf       = (v4_t){0.0};
+		int  statindex = octree_trace_line(&quba.statoctr, move.lookpos, move.direction, &tlf);
+		int  dynaindex = octree_trace_line(&quba.dynaoctr, move.lookpos, move.direction, &tlf);
 
 		if (dynaindex > 0)
-		    modelutil_punch_hole_dyna(&quba.skelglc, dynaindex, &quba.dynamod, move.lookpos, move.direction);
+		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf);
 		else if (statindex > 0)
 		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction);
 	    }
@@ -313,7 +314,11 @@ bool main_loop(double time, void* userdata)
 		    &quba.dynaoctr,
 		    0,
 		    quba.dynamod.point_count + index,
-		    (v3_t){quba.partmod.vertexes[index + 0], quba.partmod.vertexes[index + 1], quba.partmod.vertexes[index + 2]}, NULL);
+		    (v3_t){
+			quba.partmod.vertexes[index + 0],
+			quba.partmod.vertexes[index + 1],
+			quba.partmod.vertexes[index + 2]},
+		    NULL);
 	    }
 	}
 

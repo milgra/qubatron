@@ -33,7 +33,7 @@ void        octree_insert_path(octree_t* tree, size_t arrind, size_t orind, int*
 void        octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octind);
 void        octree_log_path(octets_t o, size_t index);
 void        octree_comp(octree_t* treea, octree_t* treeb);
-int         octree_trace_line(octree_t* tree, v3_t pos, v3_t dir);
+int         octree_trace_line(octree_t* tree, v3_t pos, v3_t dir, v4_t* tlf);
 int         octree_line_index_for_octet_index(octree_t* octree, int index);
 int         octree_octet_index_for_line_index(octree_t* octree, int index);
 int         octree_rgba32idata_index_for_octet_index(octree_t* octree, int index);
@@ -307,7 +307,7 @@ v4_t is_cube_zplane(float z, v3_t lp, v3_t lv)
     return r;
 }
 
-int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir)
+int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir, v4_t* otlf)
 {
     int level = 0;
 
@@ -374,7 +374,11 @@ int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir)
 	tlf = stck[level].cube;
 
 	// bingo, we reached bottom, return index of point
-	if (level == tree->levels) return tree->octs[stck[level].octi].oct[8];
+	if (level == tree->levels)
+	{
+	    if (otlf) *otlf = tlf;
+	    return tree->octs[stck[level].octi].oct[8];
+	}
 
 	// check subnode intersection if needed
 	if (stck[level].ispsi == 0)
