@@ -420,7 +420,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 			    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 			    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 			};
-			speed = v3_scale(speed, (float) (rand() % 100) / 10.0);
+			speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
 
 			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
 
@@ -429,7 +429,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 			    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 			    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 			};
-			speed = v3_scale(speed, (float) (rand() % 100) / 10.0);
+			speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
 
 			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
 		    }
@@ -674,7 +674,7 @@ void modelutil_punch_hole_dyna(
 		nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 		nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 	    };
-	    speed = v3_scale(speed, (float) (rand() % 100) / 10.0);
+	    speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
 
 	    mt_log_debug("adding %f %f %f norm %f %f %f", npnt.x, npnt.y, npnt.z, speed.x, speed.y, speed.z);
 

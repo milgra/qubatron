@@ -89,9 +89,10 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- debris/blood particle splash
+- ik skeleton/mass point engine
+- 1400 size
+- combined model, static octree upload speedup, handle texture sizes in glcs?
 - separate orind array for octree
 - webgl fencing
-- ik skeleton/mass point engine
 - head flickering
 - x/y/z plane shadow error

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include "mt_memory.c"
+#include "mt_vector_3d.c"
 #include "shader.c"
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -23,6 +24,21 @@ typedef struct skeleton_glc_t
 
     GLint* octqueue;
     size_t octqueuesize;
+
+    v3_t head;
+    v3_t neck;
+    v3_t hip;
+    v3_t dir;
+    v3_t lleg;
+    v3_t rleg;
+    v3_t lfoot;
+    v3_t rfoot;
+    v3_t larm;
+    v3_t rarm;
+    v3_t lhand;
+    v3_t rhand;
+
+    GLfloat skeleton[48];
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
@@ -33,13 +49,56 @@ void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t siz
 void skeleton_glc_alloc_in(skeleton_glc_t* cc, void* data, size_t size);
 void skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size);
 
+void skeleton_glc_move(skeleton_glc_t* cc, int dir);
+
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
 
+GLfloat skeleton_old[48] =
+    {
+	// head
+	54.0, 205.0, 22.0, 15.0,
+	54.0, 170.0, 22.0, 15.0,
+	// torso
+	54.0, 170.0, 22.0, 22.0,
+	52.0, 120.0, 22.0, 22.0,
+	// right arm
+	105.0, 170.0, 22.0, 3.0,
+	120.0, 70.0, 22.0, 3.0,
+	// left arm
+	5.0, 170.0, 22.0, 3.0,
+	-10.0, 70.0, 22.0, 3.0,
+	// right leg
+	70.0, 120.0, 22.0, 6.0,
+	100.0, -10.0, 22.0, 8.0,
+	// left leg
+	38.0, 120.0, 22.0, 6.0,
+	8.0, -10.0, 22.0, 8.0};
+
 skeleton_glc_t skeleton_glc_init(char* base_path)
 {
     skeleton_glc_t cc;
+
+    cc.dir = (v3_t){0.0, 0.0, 1.0};
+    cc.hip = (v3_t){52.0, 120.0, 22.0};
+
+    cc.head = v3_add(cc.hip, (v3_t){2.0, 85.0, 0.0});
+    cc.neck = v3_add(cc.hip, (v3_t){2.0, 50.0, 0.0});
+
+    cc.larm  = v3_add(cc.hip, (v3_t){-47.0, 50.0, 1.0});
+    cc.lhand = v3_add(cc.hip, (v3_t){-62.0, -50.0, 1.0});
+
+    cc.rarm  = v3_add(cc.hip, (v3_t){53.0, 50.0, 1.0});
+    cc.rhand = v3_add(cc.hip, (v3_t){68.0, -50.0, 1.0});
+
+    cc.lleg  = v3_add(cc.hip, (v3_t){-14.0, 0.0, 1.0});
+    cc.lfoot = v3_add(cc.hip, (v3_t){-44.0, -130.0, 1.0});
+
+    cc.rleg  = v3_add(cc.hip, (v3_t){18.0, 0.0, 1.0});
+    cc.rfoot = v3_add(cc.hip, (v3_t){48.0, -130.0, 1.0});
+
+    cc.hip.z += 600.0;
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];
@@ -105,29 +164,15 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
     // original skeleton
 
-    GLfloat skeleton_old[48] =
-	{
-	    // head
-	    54.0, 205.0, 22.0, 15.0,
-	    54.0, 170.0, 22.0, 15.0,
-	    // torso
-	    54.0, 170.0, 22.0, 22.0,
-	    52.0, 120.0, 22.0, 22.0,
-	    // right arm
-	    105.0, 170.0, 22.0, 3.0,
-	    120.0, 70.0, 22.0, 3.0,
-	    // left arm
-	    5.0, 170.0, 22.0, 3.0,
-	    -10.0, 70.0, 22.0, 3.0,
-	    // right leg
-	    70.0, 120.0, 22.0, 6.0,
-	    100.0, -10.0, 22.0, 8.0,
-	    // left leg
-	    38.0, 120.0, 22.0, 6.0,
-	    8.0, -10.0, 22.0, 8.0};
-
     float dx = 250.0;
     float dz = 600.0;
+
+    /* cc->hip.z += 1.0; */
+
+    cc->lleg  = v3_add(cc->hip, (v3_t){-20.0, 0.0, 1.0});
+    cc->rleg  = v3_add(cc->hip, (v3_t){+20.0, 0.0, 1.0});
+    cc->lfoot = v3_add(cc->hip, (v3_t){-45.0, -130.0, 1.0});
+    cc->rfoot = v3_add(cc->hip, (v3_t){+45.0, -130.0, 1.0});
 
     // modified skeleton
 
