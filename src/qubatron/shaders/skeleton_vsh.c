@@ -8,7 +8,7 @@ flat out ivec4 oct54;
 flat out ivec4 oct94;
 
 uniform vec4 oldbones[12];
-uniform vec3 newbones[12];
+uniform vec4 newbones[12];
 
 uniform vec4 basecube;
 uniform int  maxlevel;
@@ -94,7 +94,7 @@ void main()
 
 	    vec3 oldd0 = position - oldbones[i].xyz;
 	    vec3 oldb0 = normalize(oldbones[i + 1].xyz - oldbones[i].xyz);
-	    vec3 newb0 = normalize(newbones[i + 1] - newbones[i]);
+	    vec3 newb0 = normalize(newbones[i + 1].xyz - newbones[i].xyz);
 
 	    float angle0 = acos(dot(oldb0, newb0));
 	    vec3  axis0  = normalize(cross(oldb0, newb0));
@@ -103,7 +103,7 @@ void main()
 
 	    vec4 rotq0 = quat_from_axis_angle(axis0, angle0);
 	    vec3 newd0 = qrot(rotq0, oldd0);
-	    vec3 newp0 = newbones[i] + newd0;
+	    vec3 newp0 = newbones[i].xyz + newd0;
 
 	    if (corner_count == 0) corner_center = newp0;
 

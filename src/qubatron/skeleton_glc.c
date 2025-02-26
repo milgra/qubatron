@@ -9,10 +9,25 @@
 #include <stdlib.h>
 
 #include "mt_memory.c"
-#include "mt_vector_3d.c"
+#include "mt_vector_4d.c"
 #include "shader.c"
 #include <GL/gl.h>
 #include <GL/glu.h>
+
+typedef struct _parts_t
+{
+    v4_t head;
+    v4_t neck;
+    v4_t hip;
+    v4_t lleg;
+    v4_t rleg;
+    v4_t lfoot;
+    v4_t rfoot;
+    v4_t larm;
+    v4_t rarm;
+    v4_t lhand;
+    v4_t rhand;
+} parts_t;
 
 typedef struct skeleton_glc_t
 {
@@ -25,20 +40,13 @@ typedef struct skeleton_glc_t
     GLint* octqueue;
     size_t octqueuesize;
 
-    v3_t head;
-    v3_t neck;
-    v3_t hip;
-    v3_t dir;
-    v3_t lleg;
-    v3_t rleg;
-    v3_t lfoot;
-    v3_t rfoot;
-    v3_t larm;
-    v3_t rarm;
-    v3_t lhand;
-    v3_t rhand;
-
     GLfloat skeleton[48];
+    v3_t    dir;
+
+    v4_t oribones[12];
+    v4_t newbones[12];
+
+    parts_t newparts;
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
@@ -55,50 +63,53 @@ void skeleton_glc_move(skeleton_glc_t* cc, int dir);
 
 #if __INCLUDE_LEVEL__ == 0
 
-GLfloat skeleton_old[48] =
-    {
-	// head
-	54.0, 205.0, 22.0, 15.0,
-	54.0, 170.0, 22.0, 15.0,
-	// torso
-	54.0, 170.0, 22.0, 22.0,
-	52.0, 120.0, 22.0, 22.0,
-	// right arm
-	105.0, 170.0, 22.0, 3.0,
-	120.0, 70.0, 22.0, 3.0,
-	// left arm
-	5.0, 170.0, 22.0, 3.0,
-	-10.0, 70.0, 22.0, 3.0,
-	// right leg
-	70.0, 120.0, 22.0, 6.0,
-	100.0, -10.0, 22.0, 8.0,
-	// left leg
-	38.0, 120.0, 22.0, 6.0,
-	8.0, -10.0, 22.0, 8.0};
+// body parts for zombie model
+parts_t parts = {
+
+    .head = (v4_t){54.0, 205.0, 22.0, 15.0},
+    .neck = (v4_t){54.0, 170.0, 22.0, 15.0},
+    .hip  = (v4_t){52.0, 120.0, 22.0, 22.0},
+
+    .larm  = (v4_t){5.0, 170.0, 22.0, 3.0},
+    .lhand = (v4_t){-10.0, 70.0, 22.0, 3.0},
+
+    .rarm  = (v4_t){105.0, 170.0, 22.0, 3.0},
+    .rhand = (v4_t){120.0, 70.0, 22.0, 3.0},
+
+    .lleg  = (v4_t){38.0, 120.0, 22.0, 6.0},
+    .lfoot = (v4_t){8.0, -10.0, 22.0, 8.0},
+
+    .rleg  = (v4_t){70.0, 120.0, 22.0, 6.0},
+    .rfoot = (v4_t){100.0, -10.0, 22.0, 8.0}
+
+};
 
 skeleton_glc_t skeleton_glc_init(char* base_path)
 {
     skeleton_glc_t cc;
 
+    v4_t oribones[] = {
+	parts.head,
+	parts.neck,
+	parts.neck,
+	parts.hip,
+	parts.rarm,
+	parts.rhand,
+	parts.larm,
+	parts.lhand,
+	parts.rleg,
+	parts.rfoot,
+	parts.lleg,
+	parts.lfoot};
+
+    memcpy(cc.oribones, oribones, sizeof(v4_t) * 12);
+
+    cc.newparts = parts;
+
+    cc.newparts.hip.x += 250.0; // starting position
+    cc.newparts.hip.z += 600.0; // starting position
+
     cc.dir = (v3_t){0.0, 0.0, 1.0};
-    cc.hip = (v3_t){52.0, 120.0, 22.0};
-
-    cc.head = v3_add(cc.hip, (v3_t){2.0, 85.0, 0.0});
-    cc.neck = v3_add(cc.hip, (v3_t){2.0, 50.0, 0.0});
-
-    cc.larm  = v3_add(cc.hip, (v3_t){-47.0, 50.0, 1.0});
-    cc.lhand = v3_add(cc.hip, (v3_t){-62.0, -50.0, 1.0});
-
-    cc.rarm  = v3_add(cc.hip, (v3_t){53.0, 50.0, 1.0});
-    cc.rhand = v3_add(cc.hip, (v3_t){68.0, -50.0, 1.0});
-
-    cc.lleg  = v3_add(cc.hip, (v3_t){-14.0, 0.0, 1.0});
-    cc.lfoot = v3_add(cc.hip, (v3_t){-44.0, -130.0, 1.0});
-
-    cc.rleg  = v3_add(cc.hip, (v3_t){18.0, 0.0, 1.0});
-    cc.rfoot = v3_add(cc.hip, (v3_t){48.0, -130.0, 1.0});
-
-    cc.hip.z += 600.0;
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];
@@ -154,6 +165,21 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
 void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize)
 {
+    // update body parts
+    cc->newparts.hip.z += 1.0;
+
+    cc->newparts.head  = v4_add(cc->newparts.hip, (v4_t){2.0, 86.0, -2.0, 0.0});
+    cc->newparts.neck  = v4_add(cc->newparts.hip, (v4_t){2.0, 50.0, 0.0, 0.0});
+    cc->newparts.larm  = v4_add(cc->newparts.hip, (v4_t){-47.0, 50.0, 0.0, 0.0});
+    cc->newparts.lhand = v4_add(cc->newparts.hip, (v4_t){-62.0, -50.0, 0.0, 0.0});
+    cc->newparts.rarm  = v4_add(cc->newparts.hip, (v4_t){53.0, 50.0, 0.0, 0.0});
+    cc->newparts.rhand = v4_add(cc->newparts.hip, (v4_t){68.0, -50.0, 0.0, 0.0});
+
+    cc->newparts.lleg  = v4_add(cc->newparts.hip, (v4_t){-20.0, 0.0, 1.0});
+    cc->newparts.lfoot = v4_add(cc->newparts.hip, (v4_t){-45.0, -130.0, 1.0});
+    cc->newparts.rleg  = v4_add(cc->newparts.hip, (v4_t){+20.0, 0.0, 1.0});
+    cc->newparts.rfoot = v4_add(cc->newparts.hip, (v4_t){+45.0, -130.0, 1.0});
+
     // switch off fragment stage
 
     glEnable(GL_RASTERIZER_DISCARD);
@@ -162,47 +188,26 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
     glBindVertexArray(cc->defo_vao);
 
-    // original skeleton
-
-    float dx = 250.0;
-    float dz = 600.0;
-
-    /* cc->hip.z += 1.0; */
-
-    cc->lleg  = v3_add(cc->hip, (v3_t){-20.0, 0.0, 1.0});
-    cc->rleg  = v3_add(cc->hip, (v3_t){+20.0, 0.0, 1.0});
-    cc->lfoot = v3_add(cc->hip, (v3_t){-45.0, -130.0, 1.0});
-    cc->rfoot = v3_add(cc->hip, (v3_t){+45.0, -130.0, 1.0});
-
-    // modified skeleton
-
-    GLfloat skeleton_new[36] =
-	{
-	    // head
-	    54.0 + dx, 205.0, 20.0 + dz + sinf(lighta) * 10.0,
-	    54.0 + dx, 170.0, 20.0 + dz,
-	    // torso
-	    54.0 + dx, 170.0, 20.0 + dz,
-	    55.0 + dx, 120.0, 20.0 + dz + sinf(lighta) * 2.0,
-	    // right arm
-	    105.0 + dx, 170.0, 20.0 + dz,
-	    120.0 + dx + sinf(lighta) * 15.0, 70.0, 20.0 + dz + cosf(lighta) * 15.0,
-	    // left arm
-	    5.0 + dx, 170.0, 20.0 + dz,
-	    -10.0 + dx + sinf(lighta) * 15.0, 70.0, 20.0 + dz + cosf(lighta) * 15.0,
-	    // right leg
-	    70.0 + dx, 120.0, 20.0 + dz,
-	    90.0 + dx, -10.0, 20 + dz + cosf(lighta) * 15.0,
-	    // left leg
-	    38.0 + dx, 120.0, 20.0 + dz,
-	    8.0 + dx, -10.0, 20.0 + dz + cosf(lighta) * 15.0};
+    v4_t newbones[] = {
+	cc->newparts.head,
+	cc->newparts.neck,
+	cc->newparts.neck,
+	cc->newparts.hip,
+	cc->newparts.rarm,
+	cc->newparts.rhand,
+	cc->newparts.larm,
+	cc->newparts.lhand,
+	cc->newparts.rleg,
+	cc->newparts.rfoot,
+	cc->newparts.lleg,
+	cc->newparts.lfoot};
 
     // update uniforms
 
     GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
 
-    glUniform4fv(cc->defo_unilocs[0], 12, skeleton_old);
-    glUniform3fv(cc->defo_unilocs[1], 12, skeleton_new);
+    glUniform4fv(cc->defo_unilocs[0], 12, (GLfloat*) cc->oribones);
+    glUniform4fv(cc->defo_unilocs[1], 12, (GLfloat*) newbones);
     glUniform4fv(cc->defo_unilocs[2], 1, basecubearr);
     glUniform1i(cc->defo_unilocs[3], maxlevel);
 
