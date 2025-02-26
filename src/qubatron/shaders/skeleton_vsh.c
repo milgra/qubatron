@@ -63,10 +63,15 @@ vec3 qrot(vec4 q, vec3 v)
 
 void main()
 {
+    // one point can be affected by multiple bones
+    // we calculate all new positions, maintain a geometrical center point
+    // and finally we move the center point towards the positions based on
+    // their weight ( distance from each bone )
+
     // we will store corner points and ratios
 
     vec3  corner_points[12];
-    float corner_ratios[12];
+    float corner_weights[12];
     int   corner_count  = 0;
     vec3  corner_center = position;
 
@@ -76,41 +81,57 @@ void main()
     {
 	// TODO convert cover shape to capsule, ellipse is too wide
 
-	vec3 fpd1 = position - oldbones[i].xyz;            // ellipse focus point dir vector 1
-	vec3 fpd2 = position - oldbones[i + 1].xyz;        // ellips efocus point dir vector 2
+	// calculate position radius, get original and current ratio
+
 	vec3 bone = oldbones[i + 1].xyz - oldbones[i].xyz; // bone vector
 
-	float orad = length(bone) + oldbones[i].w;
-	float nrad = length(fpd1) + length(fpd2);
-	float rat  = nrad / orad;
+	vec3 prad1 = position - oldbones[i].xyz;     // position radius to ellipse focus point 1
+	vec3 prad2 = position - oldbones[i + 1].xyz; // position radius to ellipse focus point 2
+
+	float orad = length(bone) + oldbones[i].w;  // original ellipse radius = bone lenght + bone radius
+	float prad = length(prad1) + length(prad2); // position radius
+
+	float rat = prad / orad; // radius ratio
 
 	// we are dealing with points inside an 1.3 muiltiplier
 	// upper 0.3 will be the gradient force
+	// TODO rotation quaternions should be precalculated on the CPU per bone
 
 	if (rat < 1.3)
 	{
+	    // calculate the new position of position base on current bone
+
+	    // convert portion over 1.0 to a linear ratio between 0.0 and 1.0
+
 	    rat = max(1.0, rat) - 1.0;
 	    rat = mix(1.0, 0.0, rat / 0.3);
 
-	    vec3 oldd0 = position - oldbones[i].xyz;
-	    vec3 oldb0 = normalize(oldbones[i + 1].xyz - oldbones[i].xyz);
-	    vec3 newb0 = normalize(newbones[i + 1].xyz - newbones[i].xyz);
+	    // get angle of original and current bone
 
-	    float angle0 = acos(dot(oldb0, newb0));
-	    vec3  axis0  = normalize(cross(oldb0, newb0));
+	    vec3  ob    = normalize(oldbones[i + 1].xyz - oldbones[i].xyz);
+	    vec3  cb    = normalize(newbones[i + 1].xyz - newbones[i].xyz);
+	    float angle = acos(dot(ob, cb));
 
-	    // TODO rotation quaternions should be precalculated on the CPU per bone
+	    // calculate rotation axis
 
-	    vec4 rotq0 = quat_from_axis_angle(axis0, angle0);
-	    vec3 newd0 = qrot(rotq0, oldd0);
-	    vec3 newp0 = newbones[i].xyz + newd0;
+	    vec3 ax  = cross(ob, cb);
+	    vec3 odv = position - oldbones[i].xyz; // original direction vector
+	    vec3 newp;
 
-	    if (corner_count == 0) corner_center = newp0;
-
-	    corner_center += (newp0 - corner_center) / 2.0;
-
-	    corner_points[corner_count] = newp0;
-	    corner_ratios[corner_count] = rat;
+	    if (ax == vec3(0.0, 0.0, 0.0)) // parallel vectors, using original position
+	    {
+		newp = newbones[i].xyz + odv;
+	    }
+	    else
+	    {
+		vec4 rq    = quat_from_axis_angle(normalize(ax), angle); // rotation quaternion
+		vec3 newd0 = qrot(rq, odv);                              // rotate original dvec with angle on axis
+		newp       = newbones[i].xyz + newd0;
+	    }
+	    if (corner_count == 0) corner_center = newp;
+	    corner_center += (newp - corner_center) / 2.0;
+	    corner_points[corner_count]  = newp;
+	    corner_weights[corner_count] = rat;
 	    corner_count++;
 	}
     }
@@ -122,7 +143,7 @@ void main()
     for (int i = 0; i < corner_count; i++)
     {
 	vec3 dir = corner_points[i] - corner_center;
-	pnt += dir * corner_ratios[i];
+	pnt += dir * corner_weights[i];
     }
 
     //  calculate out octets

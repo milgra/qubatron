@@ -168,7 +168,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
     // update body parts
     cc->newparts.hip.z += 1.0;
 
-    cc->newparts.head  = v4_add(cc->newparts.hip, (v4_t){2.0, 86.0, -2.0, 0.0});
+    cc->newparts.head  = v4_add(cc->newparts.hip, (v4_t){2.0, 86.0, 0.0, 0.0});
     cc->newparts.neck  = v4_add(cc->newparts.hip, (v4_t){2.0, 50.0, 0.0, 0.0});
     cc->newparts.larm  = v4_add(cc->newparts.hip, (v4_t){-47.0, 50.0, 0.0, 0.0});
     cc->newparts.lhand = v4_add(cc->newparts.hip, (v4_t){-62.0, -50.0, 0.0, 0.0});
