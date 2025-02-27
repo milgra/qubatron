@@ -220,7 +220,7 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
     // update uniforms
 
     GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
-    GLfloat lightarr[3]    = {lightc.x, lightc.y, lightc.z - sinf(lighta) * 200.0};
+    GLfloat lightarr[3]    = {lightc.x, lightc.y - sinf(lighta) * 20.0, lightc.z - sinf(lighta) * 200.0};
     GLfloat anglearr[3]    = {angle.x, angle.y, 0.0};
     GLfloat posarr[3]      = {position.x, position.y, position.z};
 

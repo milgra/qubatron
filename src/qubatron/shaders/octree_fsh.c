@@ -420,32 +420,31 @@ void main()
 	/* col = vec4(abs(res.nrm.x), abs(res.nrm.y), abs(res.nrm.z), 1.0); */
 
 	/* shadows, test against light SWITCHABLE */
-	vec3 lvec = res.isp.xyz - light;
 
-	ctlres lcres = cube_trace_line(light, lvec); // light cube, cube touched by light
-	if (lcres.isp.w > 0.0)
-	{
-	    // checking isp is needed in case of bigger cube sizes where light can touch the top
-	    if (res.tlf.x != lcres.tlf.x &&
-		res.tlf.y != lcres.tlf.y &&
-		res.tlf.z != lcres.tlf.z)
-	    {
-		col = vec4(col.xyz * 0.2, col.w);
-	    }
-	    else
-	    {
-		float angle = max(dot(normalize(-lvec), normalize(res.nrm.xyz)), 0.0);
-		col         = vec4(col.xyz * (0.2 + angle * 0.8), col.w);
-	    }
-	}
+	vec3   lghtv = res.isp.xyz - light;
+	ctlres lcres = cube_trace_line(light, lghtv);
+	vec3   ispv  = lcres.isp.xyz - res.isp.xyz;
+	float  sqr   = ispv.x * ispv.x + ispv.y * ispv.y + ispv.z * ispv.z;
+	float  angle = max(dot(normalize(-lghtv), normalize(res.nrm.xyz)), 0.0) * step(sqr, 15.0);
+
+	// if isp distance is over 25.0, cube is shadow colored
+	// otherwise it is based on the light angle
+
+	col = vec4(col.xyz * (0.3 + angle * 0.7), col.w);
 
 	/* yellowish color, SWITCHABLE */
-	/* col.xyz *= 0.8; */
-	/* col.z *= 0.4; */
+	col.xyz *= 0.8;
+	col.z *= 0.7;
     }
 
     if (camangle < 0.02)
-	col = vec4(1.0, 1.0, 1.0, 1.0);
+    {
+	vec3   lghtv = light - camfp.xyz;
+	ctlres lcres = cube_trace_line(camfp, lghtv);
+	vec3   resv  = lcres.isp.xyz - camfp.xyz;
+	if (resv.x / lghtv.x > 1.0)
+	    col = vec4(1.0, 1.0, 1.0, 1.0);
+    }
 
 #endif
 

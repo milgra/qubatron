@@ -41,12 +41,18 @@ typedef struct skeleton_glc_t
     size_t octqueuesize;
 
     GLfloat skeleton[48];
-    v3_t    dir;
+    v4_t    dir;
 
     v4_t oribones[12];
     v4_t newbones[12];
 
     parts_t newparts;
+
+    int   left;
+    int   right;
+    int   forw;
+    int   back;
+    float speed;
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
@@ -86,7 +92,7 @@ parts_t parts = {
 
 skeleton_glc_t skeleton_glc_init(char* base_path)
 {
-    skeleton_glc_t cc;
+    skeleton_glc_t cc = {0};
 
     v4_t oribones[] = {
 	parts.head,
@@ -109,7 +115,7 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     cc.newparts.hip.x += 250.0; // starting position
     cc.newparts.hip.z += 600.0; // starting position
 
-    cc.dir = (v3_t){0.0, 0.0, 1.0};
+    cc.dir = (v4_t){0.0, 0.0, 1.0, 0.0};
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];
@@ -166,7 +172,19 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize)
 {
     // update body parts
-    cc->newparts.hip.z += 1.0;
+
+    if (cc->forw)
+	cc->speed += 0.1;
+    else if (cc->back)
+	cc->speed -= 0.1;
+    else if (cc->left)
+	cc->speed -= 0.1;
+    else if (cc->right)
+	cc->speed -= 0.1;
+    else
+	cc->speed *= 0.8;
+
+    cc->newparts.hip = v4_add(cc->newparts.hip, v4_scale(cc->dir, cc->speed));
 
     cc->newparts.head  = v4_add(cc->newparts.hip, (v4_t){2.0, 86.0, 0.0, 0.0});
     cc->newparts.neck  = v4_add(cc->newparts.hip, (v4_t){2.0, 50.0, 0.0, 0.0});
@@ -248,6 +266,33 @@ void skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t size)
 
     cc->octqueue     = mt_memory_alloc(size, NULL, NULL);
     cc->octqueuesize = size;
+}
+
+void skeleton_glc_move(skeleton_glc_t* cc, int dir)
+{
+    if (dir == 0)
+    {
+	cc->left  = 0;
+	cc->right = 0;
+	cc->forw  = 0;
+	cc->back  = 0;
+    }
+    if (dir == 1)
+    {
+	cc->left = 1;
+    }
+    if (dir == 2)
+    {
+	cc->right = 1;
+    }
+    if (dir == 3)
+    {
+	cc->forw = 1;
+    }
+    if (dir == 4)
+    {
+	cc->back = 1;
+    }
 }
 
 #endif

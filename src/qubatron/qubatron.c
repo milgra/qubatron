@@ -205,6 +205,10 @@ bool main_loop(double time, void* userdata)
 	    if (event.key.keysym.sym == SDLK_d) move.strafe = 0;
 	    if (event.key.keysym.sym == SDLK_w) move.walk = 0;
 	    if (event.key.keysym.sym == SDLK_s) move.walk = 0;
+	    if (event.key.keysym.sym == SDLK_g) skeleton_glc_move(&quba.skelglc, 0);
+	    if (event.key.keysym.sym == SDLK_j) skeleton_glc_move(&quba.skelglc, 0);
+	    if (event.key.keysym.sym == SDLK_y) skeleton_glc_move(&quba.skelglc, 0);
+	    if (event.key.keysym.sym == SDLK_h) skeleton_glc_move(&quba.skelglc, 0);
 	    if (event.key.keysym.sym == SDLK_1) quba.rndscale = 1;
 	    if (event.key.keysym.sym == SDLK_2) quba.rndscale = 2;
 	    if (event.key.keysym.sym == SDLK_3) quba.rndscale = 3;
@@ -222,6 +226,10 @@ bool main_loop(double time, void* userdata)
 	    if (event.key.keysym.sym == SDLK_d) move.strafe = -1;
 	    if (event.key.keysym.sym == SDLK_w) move.walk = 1;
 	    if (event.key.keysym.sym == SDLK_s) move.walk = -1;
+	    if (event.key.keysym.sym == SDLK_g) skeleton_glc_move(&quba.skelglc, 1);
+	    if (event.key.keysym.sym == SDLK_j) skeleton_glc_move(&quba.skelglc, 2);
+	    if (event.key.keysym.sym == SDLK_y) skeleton_glc_move(&quba.skelglc, 3);
+	    if (event.key.keysym.sym == SDLK_h) skeleton_glc_move(&quba.skelglc, 4);
 	}
     }
 

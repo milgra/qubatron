@@ -94,4 +94,3 @@ Todo :
 - combined model, static octree upload speedup, handle texture sizes in glcs?
 - separate orind array for octree
 - webgl fencing
-- x/y/z plane shadow error
