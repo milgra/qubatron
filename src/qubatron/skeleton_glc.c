@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include "mt_memory.c"
+#include "mt_quat.c"
 #include "mt_vector_4d.c"
 #include "shader.c"
 #include <GL/gl.h>
@@ -53,6 +54,7 @@ typedef struct skeleton_glc_t
     int   forw;
     int   back;
     float speed;
+    float angle;
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
@@ -178,25 +180,47 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
     else if (cc->back)
 	cc->speed -= 0.1;
     else if (cc->left)
-	cc->speed -= 0.1;
+    {
+	cc->angle -= 0.01;
+    }
     else if (cc->right)
-	cc->speed -= 0.1;
+    {
+	cc->angle += 0.01;
+    }
     else
 	cc->speed *= 0.8;
 
-    cc->newparts.hip = v4_add(cc->newparts.hip, v4_scale(cc->dir, cc->speed));
+    v4_t h  = cc->newparts.hip;
+    v4_t n  = cc->newparts.neck;
+    v3_t h3 = (v3_t){h.x, h.y, h.z};
+    v3_t n3 = (v3_t){n.x, n.y, n.z};
+
+    v4_t rq = quat_from_axis_angle(v3_normalize(v3_sub(h3, n3)), cc->angle);
+
+    v3_t ndir = quat_rotate(rq, (v3_t){cc->dir.x, cc->dir.y, cc->dir.z});
+
+    cc->newparts.hip   = v4_add(cc->newparts.hip, v4_scale((v4_t){ndir.x, ndir.y, ndir.z, 0.0}, cc->speed));
+    cc->newparts.hip.w = cc->angle;
 
     cc->newparts.head  = v4_add(cc->newparts.hip, (v4_t){2.0, 86.0, 0.0, 0.0});
     cc->newparts.neck  = v4_add(cc->newparts.hip, (v4_t){2.0, 50.0, 0.0, 0.0});
-    cc->newparts.larm  = v4_add(cc->newparts.hip, (v4_t){-47.0, 50.0, 0.0, 0.0});
-    cc->newparts.lhand = v4_add(cc->newparts.hip, (v4_t){-62.0, -50.0, 0.0, 0.0});
-    cc->newparts.rarm  = v4_add(cc->newparts.hip, (v4_t){53.0, 50.0, 0.0, 0.0});
-    cc->newparts.rhand = v4_add(cc->newparts.hip, (v4_t){68.0, -50.0, 0.0, 0.0});
+    v3_t nlarm         = quat_rotate(rq, (v3_t){-47.0, 50.0, 0.0});
+    cc->newparts.larm  = v4_add(cc->newparts.hip, (v4_t){nlarm.x, nlarm.y, nlarm.z, 0.0});
+    v3_t nlhand        = quat_rotate(rq, (v3_t){-62.0, -50.0, 0.0});
+    cc->newparts.lhand = v4_add(cc->newparts.hip, (v4_t){nlhand.x, nlhand.y, nlhand.z, 0.0});
+    v3_t nrarm         = quat_rotate(rq, (v3_t){53.0, 50.0, 0.0});
+    cc->newparts.rarm  = v4_add(cc->newparts.hip, (v4_t){nrarm.x, nrarm.y, nrarm.z, 0.0});
+    v3_t nrhand        = quat_rotate(rq, (v3_t){68.0, -50.0, 0.0});
+    cc->newparts.rhand = v4_add(cc->newparts.hip, (v4_t){nrhand.x, nrhand.y, nrhand.z, 0.0});
 
-    cc->newparts.lleg  = v4_add(cc->newparts.hip, (v4_t){-20.0, 0.0, 1.0});
-    cc->newparts.lfoot = v4_add(cc->newparts.hip, (v4_t){-45.0, -130.0, 1.0});
-    cc->newparts.rleg  = v4_add(cc->newparts.hip, (v4_t){+20.0, 0.0, 1.0});
-    cc->newparts.rfoot = v4_add(cc->newparts.hip, (v4_t){+45.0, -130.0, 1.0});
+    v3_t nlleg         = quat_rotate(rq, (v3_t){-20.0, 0.0, 1.0});
+    cc->newparts.lleg  = v4_add(cc->newparts.hip, (v4_t){nlleg.x, nlleg.y, nlleg.z, 0.0});
+    v3_t nlfoot        = quat_rotate(rq, (v3_t){-45.0, -130.0, 1.0});
+    cc->newparts.lfoot = v4_add(cc->newparts.hip, (v4_t){nlfoot.x, nlfoot.y, nlfoot.z, 0.0});
+    v3_t nrleg         = quat_rotate(rq, (v3_t){20.0, 0.0, 1.0});
+    cc->newparts.rleg  = v4_add(cc->newparts.hip, (v4_t){nrleg.x, nrleg.y, nrleg.z, 0.0});
+    v3_t nrfoot        = quat_rotate(rq, (v3_t){45.0, -130.0, 1.0});
+    cc->newparts.rfoot = v4_add(cc->newparts.hip, (v4_t){nrfoot.x, nrfoot.y, nrfoot.z, 0.0});
 
     // switch off fragment stage
 

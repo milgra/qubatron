@@ -116,6 +116,11 @@ void main()
 
 	    vec3 ax  = cross(ob, cb);
 	    vec3 odv = position - oldbones[i].xyz; // original direction vector
+
+	    // rotate odv with rotation of bone
+	    vec4 rq = quat_from_axis_angle(ob, newbones[i].w); // rotation quaternion
+	    odv     = qrot(rq, odv);                           // rotate original dvec with angle on axis
+
 	    vec3 newp;
 
 	    if (ax == vec3(0.0, 0.0, 0.0)) // parallel vectors, using original position
