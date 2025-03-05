@@ -238,8 +238,8 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    }
 
 	    // add sub-detail fuzzyness SWITCHABLE
-	    if (res.isp.w < 1.0)
-		res.col.xyz += res.col.xyz * random(res.isp.xyz) * 0.4;
+	    /* if (res.isp.w < 1.0) */
+	    /* 	res.col.xyz += res.col.xyz * random(res.isp.xyz) * 0.4; */
 
 	    return res;
 	}

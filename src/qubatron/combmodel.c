@@ -9,7 +9,7 @@ typedef struct _combmodel_t
 {
     size_t      indexes[20];
     mt_vector_t models;
-    model_t*    model
+    model_t*    model;
 } combmodel_t;
 
 combmodel_t combmodel_init();

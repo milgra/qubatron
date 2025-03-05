@@ -97,7 +97,7 @@ void main()
 	// upper 0.3 will be the gradient force
 	// TODO rotation quaternions should be precalculated on the CPU per bone
 
-	if (rat < 1.3)
+	if (rat <= 1.3)
 	{
 	    // calculate the new position of position base on current bone
 

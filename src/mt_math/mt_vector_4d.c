@@ -14,6 +14,8 @@ v4_t v4_add(v4_t a, v4_t b);
 v4_t v4_sub(v4_t a, v4_t b);
 v4_t v4_scale(v4_t a, float f);
 void v4_describe(v4_t vector);
+v3_t v4_xyz(v4_t);
+v4_t v4_xyzw(v3_t);
 
 #endif
 #if __INCLUDE_LEVEL__ == 0
@@ -74,6 +76,16 @@ v4_t v4_scale(v4_t a, float f)
     result.w = a.w * f;
 
     return result;
+}
+
+v3_t v4_xyz(v4_t v)
+{
+    return (v3_t){v.x, v.y, v.z};
+}
+
+v4_t v4_xyzw(v3_t v)
+{
+    return (v4_t){v.x, v.y, v.z, 0.};
 }
 
 /* describes vector4 */
