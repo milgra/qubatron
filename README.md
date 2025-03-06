@@ -89,7 +89,9 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- ik skeleton/mass point engine
+- leg smooth movement
+- real contact with voxels
+- ragdoll
 - direction based dynamic model normals
 - 1400 size
 - combined model, static octree upload speedup, handle texture sizes in glcs?

@@ -12,23 +12,9 @@
 #include "mt_quat.c"
 #include "mt_vector_4d.c"
 #include "shader.c"
+#include "zombie.c"
 #include <GL/gl.h>
 #include <GL/glu.h>
-
-typedef struct _parts_t
-{
-    v4_t head;
-    v4_t neck;
-    v4_t hip;
-    v4_t lleg;
-    v4_t rleg;
-    v4_t lfoot;
-    v4_t rfoot;
-    v4_t larm;
-    v4_t rarm;
-    v4_t lhand;
-    v4_t rhand;
-} parts_t;
 
 typedef struct skeleton_glc_t
 {
@@ -41,20 +27,15 @@ typedef struct skeleton_glc_t
     GLint* octqueue;
     size_t octqueuesize;
 
-    GLfloat skeleton[48];
-
     v4_t dir;
     v4_t pos;
-
-    v4_t oribones[12];
-    v4_t newbones[12];
-
-    parts_t newparts;
 
     int left;
     int right;
     int forw;
     int back;
+
+    zombie_t zombie;
 
     float speed;
     float angle;
@@ -76,63 +57,14 @@ void skeleton_glc_move(skeleton_glc_t* cc, int dir);
 
 #if __INCLUDE_LEVEL__ == 0
 
-// body parts for zombie model
-parts_t parts = {
-
-    .head = (v4_t){54.0, 205.0, 22.0, 15.0},
-    .neck = (v4_t){54.0, 170.0, 22.0, 15.0},
-    .hip  = (v4_t){52.0, 120.0, 22.0, 22.0},
-
-    .larm  = (v4_t){5.0, 170.0, 22.0, 10.0},
-    .lhand = (v4_t){-10.0, 70.0, 22.0, 3.0},
-
-    .rarm  = (v4_t){105.0, 170.0, 22.0, 10.0},
-    .rhand = (v4_t){120.0, 70.0, 22.0, 3.0},
-
-    .lleg  = (v4_t){38.0, 120.0, 22.0, 6.0},
-    .lfoot = (v4_t){8.0, -10.0, 22.0, 8.0},
-
-    .rleg  = (v4_t){70.0, 120.0, 22.0, 6.0},
-    .rfoot = (v4_t){100.0, -10.0, 22.0, 8.0}
-
-};
-
 skeleton_glc_t skeleton_glc_init(char* base_path)
 {
     skeleton_glc_t cc = {0};
 
-    v4_t oribones[] = {
-	parts.head,
-	parts.neck,
-	parts.neck,
-	parts.hip,
-	parts.rarm,
-	parts.rhand,
-	parts.larm,
-	parts.lhand,
-	parts.rleg,
-	parts.rfoot,
-	parts.lleg,
-	parts.lfoot};
-
-    memcpy(cc.oribones, oribones, sizeof(v4_t) * 12);
-
-    cc.newparts = parts;
+    cc.zombie = zombie_init();
 
     cc.dir = (v4_t){0.0, 0.0, 1.0, 0.0};
     cc.pos = (v4_t){250.0, 0.0, 600.0, 0.0};
-
-    cc.newparts.head  = v4_add(cc.newparts.hip, (v4_t){2.0, 86.0, 0.0, 0.0});
-    cc.newparts.neck  = v4_add(cc.newparts.hip, (v4_t){2.0, 50.0, 0.0, 0.0});
-    cc.newparts.larm  = v4_add(cc.newparts.hip, (v4_t){-47.0, 50.0, 0.0, 0.0});
-    cc.newparts.lhand = v4_add(cc.newparts.hip, (v4_t){-62.0, -50.0, 0.0, 0.0});
-    cc.newparts.rarm  = v4_add(cc.newparts.hip, (v4_t){53.0, 50.0, 0.0, 0.0});
-    cc.newparts.rhand = v4_add(cc.newparts.hip, (v4_t){68.0, -50.0, 0.0, 0.0});
-
-    cc.newparts.lleg  = v4_add(cc.newparts.hip, (v4_t){-20.0, 0.0, 1.0, 0.0});
-    cc.newparts.lfoot = v4_add(cc.newparts.hip, (v4_t){-45.0, -130.0, 31.0, 0.0});
-    cc.newparts.rleg  = v4_add(cc.newparts.hip, (v4_t){20.0, 0.0, 1.0, 0.0});
-    cc.newparts.rfoot = v4_add(cc.newparts.hip, (v4_t){45.0, -130.0, 1.0, 0.0});
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];
@@ -214,15 +146,15 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
     cc->speed *= 0.8;
 
-    v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->newparts.hip), v4_xyz(cc->newparts.neck))), cc->angle);
+    v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), cc->angle);
     v3_t curr_dir = quat_rotate(back_rot, (v3_t){cc->dir.x, cc->dir.y, cc->dir.z});
 
     cc->pos = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed));
 
     // project left foot and right foot onto direction vector, if dir vector surpasses the active foot, step
 
-    v3_t lfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->newparts.lfoot));
-    v3_t rfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->newparts.rfoot));
+    v3_t lfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.newparts.lfoot));
+    v3_t rfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.newparts.rfoot));
 
     v3_t lfd = v3_sub(lfoot_prjp, v4_xyz(cc->pos)); // left foot distance
     v3_t rfd = v3_sub(rfoot_prjp, v4_xyz(cc->pos)); // right foot distance
@@ -236,51 +168,34 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
     {
 	if (rdirsame == 0)
 	{
-	    cc->newparts.lfoot = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0)));
-
-	    v4_t left_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->newparts.hip), v4_xyz(cc->newparts.neck))), M_PI / 2.0);
+	    v4_t left_pnt = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0)));
+	    v4_t left_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), M_PI / 2.0);
 	    v3_t left_dir = quat_rotate(left_rot, curr_dir);
 
-	    cc->newparts.lfoot   = v4_add(cc->newparts.lfoot, v4_xyzw(v3_resize(left_dir, 40.0)));
-	    cc->newparts.lfoot.y = 10.0;
-	    cc->frontleg         = 0;
+	    left_pnt   = v4_add(left_pnt, v4_xyzw(v3_resize(left_dir, 30.0)));
+	    left_pnt.y = 10.0;
+
+	    cc->frontleg              = 0;
+	    cc->zombie.newparts.lfoot = left_pnt;
 	}
     }
     else
     {
 	if (ldirsame == 0)
 	{
-	    cc->newparts.rfoot = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0)));
-
-	    v4_t right_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->newparts.hip), v4_xyz(cc->newparts.neck))), -M_PI / 2.0);
+	    v4_t right_pnt = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0)));
+	    v4_t right_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), -M_PI / 2.0);
 	    v3_t right_dir = quat_rotate(right_rot, curr_dir);
 
-	    cc->newparts.rfoot = v4_add(cc->newparts.rfoot, v4_xyzw(v3_resize(right_dir, 40.0)));
-	    /* cc->newparts.rfoot   = v4_add(cc->newparts.lfoot, v4_xyzw(v3_resize((v3_t){curr_dir.z, curr_dir.y, curr_dir.x}, 30.0))); */
-	    cc->newparts.rfoot.y = 10.0;
-	    cc->frontleg         = 1;
+	    right_pnt   = v4_add(right_pnt, v4_xyzw(v3_resize(right_dir, 30.0)));
+	    right_pnt.y = 10.0;
+
+	    cc->frontleg              = 1;
+	    cc->zombie.newparts.rfoot = right_pnt;
 	}
     }
 
-    v4_t hipv  = (v4_t){0.0, 120.0 + sin(lighta) * 5.0, 0.0, cc->angle};
-    v4_t headv = (v4_t){2.0, 86.0 + cos(lighta) * 2.0, 0.0 + sin(lighta) * 3.0, 0.0};
-    v4_t neckv = (v4_t){2.0, 50.0 + cos(lighta) * 2.0, 0.0 - sin(lighta) * 3.0, 0.0};
-    v4_t larmv = v4_xyzw(quat_rotate(back_rot, (v3_t){-47.0, 50.0, 0.0}));
-    v4_t lhndv = v4_xyzw(quat_rotate(back_rot, (v3_t){-62.0 + sin(lighta) * 15.0, -50.0, 30.0}));
-    v4_t rarmv = v4_xyzw(quat_rotate(back_rot, (v3_t){53.0, 50.0, 0.0}));
-    v4_t rhndv = v4_xyzw(quat_rotate(back_rot, (v3_t){68.0 + cos(lighta) * 15.0, -50.0, 30.0}));
-    v4_t llegv = v4_xyzw(quat_rotate(back_rot, (v3_t){-20.0, 0.0, 1.0}));
-    v4_t rlegv = v4_xyzw(quat_rotate(back_rot, (v3_t){20.0, 0.0, 1.0}));
-
-    cc->newparts.hip   = v4_add(cc->pos, hipv);
-    cc->newparts.head  = v4_add(cc->newparts.hip, headv);
-    cc->newparts.neck  = v4_add(cc->newparts.hip, neckv);
-    cc->newparts.larm  = v4_add(cc->newparts.hip, larmv);
-    cc->newparts.lhand = v4_add(cc->newparts.hip, lhndv);
-    cc->newparts.rarm  = v4_add(cc->newparts.hip, rarmv);
-    cc->newparts.rhand = v4_add(cc->newparts.hip, rhndv);
-    cc->newparts.lleg  = v4_add(cc->newparts.hip, llegv);
-    cc->newparts.rleg  = v4_add(cc->newparts.hip, rlegv);
+    zombie_update(&cc->zombie, lighta, cc->angle, cc->pos);
 
     // switch off fragment stage
 
@@ -290,26 +205,12 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
     glBindVertexArray(cc->defo_vao);
 
-    v4_t newbones[] = {
-	cc->newparts.head,
-	cc->newparts.neck,
-	cc->newparts.neck,
-	cc->newparts.hip,
-	cc->newparts.rarm,
-	cc->newparts.rhand,
-	cc->newparts.larm,
-	cc->newparts.lhand,
-	cc->newparts.rleg,
-	cc->newparts.rfoot,
-	cc->newparts.lleg,
-	cc->newparts.lfoot};
-
     // update uniforms
 
     GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
 
-    glUniform4fv(cc->defo_unilocs[0], 12, (GLfloat*) cc->oribones);
-    glUniform4fv(cc->defo_unilocs[1], 12, (GLfloat*) newbones);
+    glUniform4fv(cc->defo_unilocs[0], 12, (GLfloat*) cc->zombie.oribones.arr);
+    glUniform4fv(cc->defo_unilocs[1], 12, (GLfloat*) cc->zombie.newbones.arr);
     glUniform4fv(cc->defo_unilocs[2], 1, basecubearr);
     glUniform1i(cc->defo_unilocs[3], maxlevel);
 
