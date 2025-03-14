@@ -304,7 +304,7 @@ bool main_loop(double time, void* userdata)
 		&quba.dynaoctr,
 		0,
 		index,
-		&quba.skelglc.octqueue[index * 12]); // 48 bytes stride 12 int
+		&quba.skelglc.oct_out[index * 12]); // 48 bytes stride 12 int
 	}
 
 	if (quba.partmod.point_count > 0)
@@ -330,6 +330,8 @@ bool main_loop(double time, void* userdata)
 	    }
 	}
 
+	// update dynamic octree
+
 	octree_glc_upload_texbuffer(
 	    &quba.octrglc,
 	    quba.dynaoctr.octs,
@@ -342,6 +344,22 @@ bool main_loop(double time, void* userdata)
 	    GL_INT,
 	    quba.octrglc.oct2_tex,
 	    11);
+
+	// update dynamic normals
+	// !!! in case of desktop opengl, leave modified normals on GPU and use glTexBuffer!!!
+
+	octree_glc_upload_texbuffer(
+	    &quba.octrglc,
+	    quba.skelglc.nrm_out,
+	    0,
+	    0,
+	    quba.dynamod.txwth,
+	    quba.dynamod.txhth,
+	    GL_RGB32F,
+	    GL_RGB,
+	    GL_FLOAT,
+	    quba.octrglc.nrm2_tex,
+	    9);
 
 #endif
 

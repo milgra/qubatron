@@ -89,7 +89,6 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- calculate normals in skeleton shader, leave it on gpu
 - bigger building
 - direction based dynamic model normals
 - ragdoll

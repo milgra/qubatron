@@ -300,8 +300,8 @@ void modelutil_load_flat(
 
     // upload actor to skeleton modifier
 
-    skeleton_glc_alloc_in(skelglc, dynamod->vertexes, dynamod->point_count * 3 * sizeof(GLfloat));
-    skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12);
+    skeleton_glc_alloc_in(skelglc, dynamod->vertexes, dynamod->normals, dynamod->point_count * 3 * sizeof(GLfloat));
+    skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12, dynamod->buffs);
 }
 
 typedef struct _tempcubes_t
@@ -689,7 +689,7 @@ void modelutil_punch_hole_dyna(
 
     mt_log_debug("punch hole dyna, index %i, x %f y %f z %f zeroed point count %i", index, cnt, ox, oy, oz);
 
-    skeleton_glc_alloc_in(skelglc, model->vertexes, model->point_count * 3 * sizeof(GLfloat));
+    skeleton_glc_alloc_in(skelglc, model->vertexes, model->normals, model->point_count * 3 * sizeof(GLfloat));
 
     // setup particle output buffer
 

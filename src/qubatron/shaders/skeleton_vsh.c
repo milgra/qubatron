@@ -72,6 +72,7 @@ void main()
     // we will store corner points and ratios
 
     vec3  corner_points[12];
+    vec3  corner_normals[12];
     float corner_weights[12];
     int   corner_count  = 0;
     vec3  corner_center = position;
@@ -119,24 +120,29 @@ void main()
 	    vec3 odv = position - oldbones[i].xyz; // original direction vector
 
 	    // rotate odv with rotation of bone
-	    vec4 rq = quat_from_axis_angle(ob, newbones[i].w); // rotation quaternion
-	    odv     = qrot(rq, odv);                           // rotate original dvec with angle on axis
+	    vec4 rq  = quat_from_axis_angle(ob, newbones[i].w); // rotation quaternion
+	    odv      = qrot(rq, odv);                           // rotate original dvec with angle on axis
+	    vec3 onv = qrot(rq, normal);                        // rotate original normal with angle on axis
 
 	    vec3 newp;
+	    vec3 newn;
 
 	    if (ax == vec3(0.0, 0.0, 0.0)) // parallel vectors, using original position
 	    {
 		newp = newbones[i].xyz + odv;
+		newn = onv;
 	    }
 	    else
 	    {
 		vec4 rq    = quat_from_axis_angle(normalize(ax), angle); // rotation quaternion
 		vec3 newd0 = qrot(rq, odv);                              // rotate original dvec with angle on axis
 		newp       = newbones[i].xyz + newd0;
+		newn       = qrot(rq, onv);
 	    }
 	    if (corner_count == 0) corner_center = newp;
 	    corner_center += (newp - corner_center) / 2.0;
 	    corner_points[corner_count]  = newp;
+	    corner_normals[corner_count] = newn;
 	    corner_weights[corner_count] = rat;
 	    corner_count++;
 	}
@@ -145,12 +151,16 @@ void main()
     // calculate finel position of vertex
 
     vec3 pnt = corner_center;
+    vec3 nrm = corner_normals[0];
 
     for (int i = 0; i < corner_count; i++)
     {
 	vec3 dir = corner_points[i] - corner_center;
 	pnt += dir * corner_weights[i];
+	nrm = (nrm + corner_normals[i]) / 2.0;
     }
+
+    normal_out = nrm;
 
     //  calculate out octets
 
@@ -177,6 +187,4 @@ void main()
 
 	octets_out[level] = octet;
     }
-
-    normal_out = normal;
 }
