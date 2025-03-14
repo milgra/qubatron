@@ -149,15 +149,16 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
     v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), cc->angle);
     v3_t curr_dir = quat_rotate(back_rot, (v3_t){cc->dir.x, cc->dir.y, cc->dir.z});
 
-    cc->pos = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed));
+    cc->pos        = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed));
+    v4_t front_piv = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed * 10.0));
 
     // project left foot and right foot onto direction vector, if dir vector surpasses the active foot, step
 
-    v3_t lfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.newparts.lfoot));
-    v3_t rfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.newparts.rfoot));
+    v3_t lfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.lfp));
+    v3_t rfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.rfp));
 
-    v3_t lfd = v3_sub(lfoot_prjp, v4_xyz(cc->pos)); // left foot distance
-    v3_t rfd = v3_sub(rfoot_prjp, v4_xyz(cc->pos)); // right foot distance
+    v3_t lfd = v3_sub(lfoot_prjp, v4_xyz(front_piv)); // left foot distance
+    v3_t rfd = v3_sub(rfoot_prjp, v4_xyz(front_piv)); // right foot distance
 
     int ldirsame = ((lfd.x < 0) == (curr_dir.x < 0)) && ((lfd.y < 0) == (curr_dir.y < 0)) && ((lfd.z < 0) == (curr_dir.z < 0));
     int rdirsame = ((rfd.x < 0) == (curr_dir.x < 0)) && ((rfd.y < 0) == (curr_dir.y < 0)) && ((rfd.z < 0) == (curr_dir.z < 0));
@@ -175,8 +176,8 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 	    left_pnt   = v4_add(left_pnt, v4_xyzw(v3_resize(left_dir, 30.0)));
 	    left_pnt.y = 10.0;
 
-	    cc->frontleg              = 0;
-	    cc->zombie.newparts.lfoot = left_pnt;
+	    cc->frontleg   = 0;
+	    cc->zombie.lfp = left_pnt;
 	}
     }
     else
@@ -190,8 +191,8 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 	    right_pnt   = v4_add(right_pnt, v4_xyzw(v3_resize(right_dir, 30.0)));
 	    right_pnt.y = 10.0;
 
-	    cc->frontleg              = 1;
-	    cc->zombie.newparts.rfoot = right_pnt;
+	    cc->frontleg   = 1;
+	    cc->zombie.rfp = right_pnt;
 	}
     }
 
