@@ -2,10 +2,11 @@
 
 precision highp float;
 
-in vec3        position;
-flat out ivec4 oct14;
-flat out ivec4 oct54;
-flat out ivec4 oct94;
+in vec3 position;
+in vec3 normal;
+
+flat out int  octets_out[12];
+flat out vec3 normal_out;
 
 uniform vec4 oldbones[12];
 uniform vec4 newbones[12];
@@ -153,7 +154,6 @@ void main()
 
     //  calculate out octets
 
-    int  octets[12];
     vec4 cube = basecube;
 
     for (int level = 0; level < maxlevel; level++)
@@ -175,19 +175,8 @@ void main()
 	    cube.z - zsft[octet] * size,
 	    size);
 
-	octets[level] = octet;
+	octets_out[level] = octet;
     }
 
-    oct14.x = octets[0];
-    oct14.y = octets[1];
-    oct14.z = octets[2];
-    oct14.w = octets[3];
-    oct54.x = octets[4];
-    oct54.y = octets[5];
-    oct54.z = octets[6];
-    oct54.w = octets[7];
-    oct94.x = octets[8];
-    oct94.y = octets[9];
-    oct94.z = octets[10];
-    oct94.w = octets[11];
+    normal_out = normal;
 }

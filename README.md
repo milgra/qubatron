@@ -89,11 +89,11 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- leg smooth movement
-- real contact with voxels
-- ragdoll
+- calculate normals in skeleton shader, leave it on gpu
+- bigger building
 - direction based dynamic model normals
-- 1400 size
+- ragdoll
+- real contact with voxels
 - combined model, static octree upload speedup, handle texture sizes in glcs?
 - separate orind array for octree
 - webgl fencing

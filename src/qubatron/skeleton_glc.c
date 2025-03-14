@@ -84,12 +84,13 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
     // set transform feedback varyings before linking
 
-    const GLchar* feedbackVaryings[] = {"oct14", "oct54", "oct94"};
-    glTransformFeedbackVaryings(cc.defo_sha, 3, feedbackVaryings, GL_INTERLEAVED_ATTRIBS);
+    const GLchar* feedbackVaryings[] = {"octets_out"};
+    glTransformFeedbackVaryings(cc.defo_sha, 1, feedbackVaryings, GL_SEPARATE_ATTRIBS);
 
     shader_link(cc.defo_sha);
 
     glBindAttribLocation(cc.defo_sha, 0, "position");
+    glBindAttribLocation(cc.defo_sha, 1, "normal");
 
     // get uniforms
 
@@ -107,6 +108,8 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     glBindBuffer(GL_ARRAY_BUFFER, cc.defo_vbo_in);
 
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
+    glEnableVertexAttribArray(1);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     glBindVertexArray(0);

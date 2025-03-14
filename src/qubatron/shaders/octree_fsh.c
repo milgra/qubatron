@@ -394,7 +394,7 @@ vec3 quat_rotate(vec4 q, vec3 v)
 void main()
 {
     vec3 ctp = vec3(coord.xy, 500.0 - dimensions.y / 2.0);                // camera target point
-    vec3 csv = ctp - vec3(dimensions.x / 2.0, dimensions.y / 2.0, 500.0); // current screen vector
+    vec3 csv = ctp - vec3(dimensions.x / 2.0, dimensions.y / 2.0, 700.0); // current screen vector
 
     vec4 qz = quat_from_axis_angle(vec3(0.0, 1.0, 0.0), -angle_in.x); // rotation quaternion
     vec3 vx = quat_rotate(qz, vec3(-1.0, 0.0, 0.0));
