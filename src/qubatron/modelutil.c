@@ -219,44 +219,37 @@ void modelutil_load_flat(
 
     // upload static model
 
-    octree_glc_upload_texbuffer(
-	octrglc,
-	statmod->colors,
-	0,
-	0,
-	statmod->txwth,
-	statmod->txhth,
-	GL_RGB32F,
-	GL_RGB,
-	GL_FLOAT,
-	octrglc->col1_tex,
-	6);
+    mt_log_debug("txwth %i txhth %i", statmod->txwth, statmod->txhth);
 
-    octree_glc_upload_texbuffer(
+    octree_glc_upload_texbuffer_data(
 	octrglc,
-	statmod->normals,
-	0,
-	0,
-	statmod->txwth,
-	statmod->txhth,
-	GL_RGB32F,
-	GL_RGB,
-	GL_FLOAT,
-	octrglc->nrm1_tex,
-	8);
+	statmod->colors,                            // buffer
+	GL_FLOAT,                                   // data type
+	statmod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	statmod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
 
-    octree_glc_upload_texbuffer(
+    octree_glc_upload_texbuffer_data(
 	octrglc,
-	statoctr->octs,
-	0,
-	0,
-	statoctr->txwth,
-	statoctr->txhth,
-	GL_RGBA32I,
-	GL_RGBA_INTEGER,
-	GL_INT,
-	octrglc->oct1_tex,
-	10);
+	statmod->normals,                           // buffer
+	GL_FLOAT,                                   // data type
+	statmod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	statmod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_STATIC_NORMAL);           // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	statoctr->octs,                     // buffer
+	GL_INT,                             // data type
+	statoctr->len * sizeof(GLint) * 12, // size
+	sizeof(GLint) * 4,                  // itemsize
+	0,                                  // start offset
+	statoctr->len * sizeof(GLint) * 12, // end offset
+	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
 
     scenepath = "zombie.ply";
     snprintf(pntpath, PATH_MAX, "%s%s.pnt", base_path, scenepath);

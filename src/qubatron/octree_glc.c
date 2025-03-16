@@ -13,6 +13,16 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+typedef enum _octree_glc_buffer_t
+{
+    OCTREE_GLC_BUFFER_STATIC_COLOR,
+    OCTREE_GLC_BUFFER_STATIC_NORMAL,
+    OCTREE_GLC_BUFFER_STATIC_OCTREE,
+    OCTREE_GLC_BUFFER_DYNAMIC_COLOR,
+    OCTREE_GLC_BUFFER_DYNAMIC_NORMAL,
+    OCTREE_GLC_BUFFER_DYNAMIC_OCTREE
+} octree_glc_buffer_t;
+
 typedef struct octree_glc_t
 {
     // shaders
@@ -49,6 +59,15 @@ typedef struct octree_glc_t
 octree_glc_t octree_glc_init(char* path);
 void         octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize);
 void         octree_glc_upload_texbuffer(octree_glc_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
+void         octree_glc_upload_texbuffer_data(
+	    octree_glc_t*       rc,
+	    void*               data,
+	    int                 type,
+	    size_t              size,
+	    size_t              itemsize,
+	    size_t              start,
+	    size_t              end,
+	    octree_glc_buffer_t buftype);
 
 #endif
 
@@ -140,31 +159,37 @@ octree_glc_t octree_glc_init(char* base_path)
     glBindTexture(GL_TEXTURE_2D, rc.col1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 8192, 0, GL_RGB, GL_FLOAT, NULL);
 
     glGenTextures(1, &rc.col2_tex);
     glBindTexture(GL_TEXTURE_2D, rc.col2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 4096, 0, GL_RGB, GL_FLOAT, NULL);
 
     glGenTextures(1, &rc.nrm1_tex);
     glBindTexture(GL_TEXTURE_2D, rc.nrm1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 8192, 0, GL_RGB, GL_FLOAT, NULL);
 
     glGenTextures(1, &rc.nrm2_tex);
     glBindTexture(GL_TEXTURE_2D, rc.nrm2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 4096, 0, GL_RGB, GL_FLOAT, NULL);
 
     glGenTextures(1, &rc.oct1_tex);
     glBindTexture(GL_TEXTURE_2D, rc.oct1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, 8192, 0, GL_RGBA_INTEGER, GL_INT, NULL);
 
     glGenTextures(1, &rc.oct2_tex);
     glBindTexture(GL_TEXTURE_2D, rc.oct2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, 8192, 0, GL_RGBA_INTEGER, GL_INT, NULL);
 
     // render to texture renderer
 
@@ -331,6 +356,117 @@ void octree_glc_upload_texbuffer(
 	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, type, data); // full upload
     else
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, format, type, data); // partial upload
+}
+
+/* Upload buffer data as three subimages
+ * |-------xxxxxxxxx| top part
+ * |xxxxxxxxxxxxxxxx| mid part
+ * |xxxxxxxxxxxxxxxx| mid part
+ * |xxxxx-----------| bot part
+ */
+
+void octree_glc_upload_texbuffer_data(
+    octree_glc_t*       rc,
+    void*               data,
+    int                 type,
+    size_t              size,
+    size_t              itemsize,
+    size_t              start,
+    size_t              end,
+    octree_glc_buffer_t buftype)
+{
+    int unif = 0;
+    int text = 0;
+
+    if (buftype == OCTREE_GLC_BUFFER_STATIC_COLOR)
+    {
+	text = rc->col1_tex;
+	unif = 6;
+    }
+    else if (buftype == OCTREE_GLC_BUFFER_STATIC_NORMAL)
+    {
+	text = rc->nrm1_tex;
+	unif = 8;
+    }
+    else if (buftype == OCTREE_GLC_BUFFER_STATIC_OCTREE)
+    {
+	text = rc->oct1_tex;
+	unif = 10;
+    }
+
+    glUseProgram(rc->octr_sha);
+    glActiveTexture(GL_TEXTURE0 + unif + 1);
+    glBindTexture(GL_TEXTURE_2D, text);
+    glUniform1i(rc->octr_unilocs[unif], unif + 1);
+
+    mt_log_debug("UPLOAD TEXBUFFER size %i itemsize %i type %i start %i end %i tex %i uniform %i", size, itemsize, type, start, end, text, unif);
+
+    int startindex = start / itemsize;
+    int endindex   = end / itemsize;
+    int starty     = startindex / 8192;
+    int startx     = startindex - starty * 8192;
+    int endy       = endindex / 8192;
+    int endx       = endindex - endy * 8192;
+
+    mt_log_debug("UPLOAD TEXBUFFER startindex %i endindex %i starty %i startx %i endy %i endx %i", startindex, endindex, starty, startx, endy, endx);
+
+    if (starty < endy)
+    {
+	// |-------xxxxxxxxx| top part
+	glTexSubImage2D(
+	    GL_TEXTURE_2D,
+	    0,
+	    startx,
+	    starty,
+	    8192 - startx,
+	    1,
+	    type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
+	    type,
+	    data + start);
+	mt_log_debug("TOP glTexSubImage startx %i starty %i width %i height %i dataindex %i", startx, starty, 8192 - startx, 1, start);
+	/* | xxxxxxxxxxxxxxxx | mid part if (endy - starty > 1) */
+	{
+	    glTexSubImage2D(
+		GL_TEXTURE_2D,
+		0,
+		0,
+		starty + 1,
+		8192,
+		endy - (starty + 1),
+		type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
+		type,
+		data + (starty + 1) * 8192 * itemsize);
+	    mt_log_debug("MID glTexSubImage startx %i starty %i width %i height %i dataindex %i", 0, starty + 1, 8192, endy - (starty + 1), (starty + 1) * 8192 * itemsize);
+	}
+	// |xxxxx-----------| bot part
+	glTexSubImage2D(
+	    GL_TEXTURE_2D,
+	    0,
+	    0,
+	    endy,
+	    endx,
+	    1,
+	    type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
+	    type,
+	    data + endy * 8192 * itemsize);
+	mt_log_debug("BOT glTexSubImage startx %i starty %i width %i height %i dataindex %i", 0, endy, endx, 1, endy * 8192 * itemsize);
+    }
+    else
+    {
+	// |-------xxxxxx---| single part
+	glTexSubImage2D(
+	    GL_TEXTURE_2D,
+	    0,
+	    startx,
+	    starty,
+	    endx - startx,
+	    1,
+	    type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
+	    type,
+	    data + start);
+
+	mt_log_debug("glTexSubImage startx %i starty %i width %i height %i dataindex %i", startx, starty, endx - startx, 1, start);
+    }
 }
 
 #endif
