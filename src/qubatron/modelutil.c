@@ -111,57 +111,45 @@ void modelutil_load_test(
 	    NULL);
     }
 
-    octree_glc_upload_texbuffer(
+    octree_glc_upload_texbuffer_data(
 	octrglc,
-	normals,
-	0,
-	0,
-	8192,
-	1,
-	GL_RGB32F,
-	GL_RGB,
-	GL_FLOAT,
-	octrglc->nrm1_tex,
-	8);
+	statmod->colors,                            // buffer
+	GL_FLOAT,                                   // data type
+	statmod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	statmod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
 
-    octree_glc_upload_texbuffer(
+    octree_glc_upload_texbuffer_data(
 	octrglc,
-	colors,
-	0,
-	0,
-	8192,
-	1,
-	GL_RGB32F,
-	GL_RGB,
-	GL_FLOAT,
-	octrglc->col1_tex,
-	6);
+	statmod->normals,                           // buffer
+	GL_FLOAT,                                   // data type
+	statmod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	statmod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_STATIC_NORMAL);           // buffer type
 
-    octree_glc_upload_texbuffer(
+    octree_glc_upload_texbuffer_data(
 	octrglc,
-	statoctr->octs,
-	0,
-	0,
-	statoctr->txwth,
-	statoctr->txhth,
-	GL_RGBA32I,
-	GL_RGBA_INTEGER,
-	GL_INT,
-	octrglc->oct1_tex,
-	10);
+	statoctr->octs,                     // buffer
+	GL_INT,                             // data type
+	statoctr->len * sizeof(GLint) * 12, // size
+	sizeof(GLint) * 4,                  // itemsize
+	0,                                  // start offset
+	statoctr->len * sizeof(GLint) * 12, // end offset
+	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
 
-    octree_glc_upload_texbuffer(
+    octree_glc_upload_texbuffer_data(
 	octrglc,
-	dynaoctr->octs,
-	0,
-	0,
-	dynaoctr->txwth,
-	dynaoctr->txhth,
-	GL_RGBA32I,
-	GL_RGBA_INTEGER,
-	GL_INT,
-	octrglc->oct2_tex,
-	11);
+	dynaoctr->octs,                     // buffer
+	GL_INT,                             // data type
+	dynaoctr->len * sizeof(GLint) * 12, // size
+	sizeof(GLint) * 4,                  // itemsize
+	0,                                  // start offset
+	dynaoctr->len * sizeof(GLint) * 12, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_OCTREE);  // buffer type
 }
 
 void modelutil_load_flat(
@@ -287,9 +275,35 @@ void modelutil_load_flat(
 
     // upload dynamic model
 
-    octree_glc_upload_texbuffer(octrglc, dynamod->colors, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col2_tex, 7);
-    octree_glc_upload_texbuffer(octrglc, dynamod->normals, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm2_tex, 9);
-    octree_glc_upload_texbuffer(octrglc, dynaoctr->octs, 0, 0, dynaoctr->txwth, dynaoctr->txhth, GL_RGBA32I, GL_RGBA_INTEGER, GL_INT, octrglc->oct2_tex, 11);
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	dynamod->colors,                            // buffer
+	GL_FLOAT,                                   // data type
+	dynamod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);           // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	dynamod->normals,                           // buffer
+	GL_FLOAT,                                   // data type
+	dynamod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);          // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	dynaoctr->octs,                     // buffer
+	GL_INT,                             // data type
+	dynaoctr->len * sizeof(GLint) * 12, // size
+	sizeof(GLint) * 4,                  // itemsize
+	0,                                  // start offset
+	dynaoctr->len * sizeof(GLint) * 12, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_OCTREE);  // buffer type
 
     // upload actor to skeleton modifier
 
@@ -437,9 +451,26 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
     memcpy(dynamod->vertexes + dynamod->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
     memcpy(dynamod->normals + dynamod->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
     memcpy(dynamod->colors + dynamod->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat));
-    // dynamod->point_count += partmod->point_count;
-    octree_glc_upload_texbuffer(glc, dynamod->colors, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, glc->col2_tex, 7);
-    octree_glc_upload_texbuffer(glc, dynamod->normals, 0, 0, dynamod->txwth, dynamod->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, glc->nrm2_tex, 9);
+
+    octree_glc_upload_texbuffer_data(
+	glc,
+	dynamod->colors,                            // buffer
+	GL_FLOAT,                                   // data type
+	dynamod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);           // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	glc,
+	dynamod->normals,                           // buffer
+	GL_FLOAT,                                   // data type
+	dynamod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);          // buffer type
 
     // add vertex, color and normal info to dynamic model temporarily
 
@@ -468,18 +499,15 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 	mt_log_debug("delete hole, updating textbuffer at sy %i ey %i si %i di %i", sy, ey, si, di);
 
-	octree_glc_upload_texbuffer(
+	octree_glc_upload_texbuffer_data(
 	    glc,
-	    data + di,
-	    0,
-	    sy,
-	    statoctr->txwth,
-	    ey - sy,
-	    GL_RGBA32I,
-	    GL_RGBA_INTEGER,
-	    GL_INT,
-	    glc->oct1_tex,
-	    10);
+	    statoctr->octs,                     // buffer
+	    GL_INT,                             // data type
+	    statoctr->len * sizeof(GLint) * 12, // size
+	    sizeof(GLint) * 4,                  // itemsize
+	    di,                                 // start offset
+	    statoctr->len * sizeof(GLint) * 12, // end offset
+	    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
 
 	// hole is created, push touched circle inside wall
 
@@ -572,59 +600,37 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 	mt_log_debug("updating model at sy %i ey %i si %i di %i", modsy, modey, modsi, moddi);
 
-	octree_glc_upload_texbuffer(
+	// TODO PARTIAL UPLOAD
+
+	octree_glc_upload_texbuffer_data(
 	    glc,
-	    statmod->colors + moddi,
-	    0,
-	    modsy,
-	    statmod->txwth,
-	    modey - modsy,
-	    GL_RGB32F,
-	    GL_RGB,
-	    GL_FLOAT,
-	    glc->col1_tex,
-	    6);
+	    statmod->colors,                            // buffer
+	    GL_FLOAT,                                   // data type
+	    statmod->point_count * sizeof(GLfloat) * 3, // size
+	    sizeof(GLfloat) * 3,                        // itemsize
+	    moddi,                                      // start offset
+	    statmod->point_count * sizeof(GLfloat) * 3, // end offset
+	    OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
 
-	octree_glc_upload_texbuffer(
+	octree_glc_upload_texbuffer_data(
 	    glc,
-	    statmod->normals + moddi,
-	    0,
-	    modsy,
-	    statmod->txwth,
-	    modey - modsy,
-	    GL_RGB32F,
-	    GL_RGB,
-	    GL_FLOAT,
-	    glc->nrm1_tex,
-	    8);
+	    statmod->normals,                           // buffer
+	    GL_FLOAT,                                   // data type
+	    statmod->point_count * sizeof(GLfloat) * 3, // size
+	    sizeof(GLfloat) * 3,                        // itemsize
+	    moddi,                                      // start offset
+	    statmod->point_count * sizeof(GLfloat) * 3, // end offset
+	    OCTREE_GLC_BUFFER_STATIC_NORMAL);           // buffer type
 
-	data = (GLint*) statoctr->octs;
-
-	octree_glc_upload_texbuffer(
+	octree_glc_upload_texbuffer_data(
 	    glc,
-	    data,
-	    0,
-	    0,
-	    statoctr->txwth,
-	    statoctr->txhth,
-	    GL_RGBA32I,
-	    GL_RGBA_INTEGER,
-	    GL_INT,
-	    glc->oct1_tex,
-	    10);
-
-	/* octree_glc_upload_texbuffer( */
-	/*     glc, */
-	/*     data + di, */
-	/*     0, */
-	/*     sy, */
-	/*     octree->txwth, */
-	/*     ey - sy, */
-	/*     GL_RGBA32I, */
-	/*     GL_RGBA_INTEGER, */
-	/*     GL_INT, */
-	/*     glc->oct1_tex, */
-	/*     10); */
+	    statoctr->octs,                     // buffer
+	    GL_INT,                             // data type
+	    statoctr->len * sizeof(GLint) * 12, // size
+	    sizeof(GLint) * 4,                  // itemsize
+	    0,                                  // start offset
+	    statoctr->len * sizeof(GLint) * 12, // end offset
+	    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
     }
 }
 
@@ -687,13 +693,32 @@ void modelutil_punch_hole_dyna(
     // setup particle output buffer
 
     particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
+
     memcpy(model->vertexes + model->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
     memcpy(model->normals + model->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
     memcpy(model->colors + model->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat));
 
-    // model->point_count += partmod->point_count;
-    octree_glc_upload_texbuffer(octrglc, model->colors, 0, 0, model->txwth, model->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->col2_tex, 7);
-    octree_glc_upload_texbuffer(octrglc, model->normals, 0, 0, model->txwth, model->txhth, GL_RGB32F, GL_RGB, GL_FLOAT, octrglc->nrm2_tex, 9);
+    /* model->point_count += partmod->point_count; */
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	model->colors,                            // buffer
+	GL_FLOAT,                                 // data type
+	model->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                      // itemsize
+	0,                                        // start offset
+	model->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);         // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	model->normals,                           // buffer
+	GL_FLOAT,                                 // data type
+	model->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                      // itemsize
+	0,                                        // start offset
+	model->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);        // buffer type
 }
 
 void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int levels, float basesize, uint32_t frames)
@@ -729,6 +754,7 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int le
 
 	if (fincount == partmod->point_count)
 	{
+	    /* dynamod->point_count -= partmod->point_count; */
 	    partmod->point_count = 0;
 	}
     }

@@ -332,34 +332,28 @@ bool main_loop(double time, void* userdata)
 
 	// update dynamic octree
 
-	octree_glc_upload_texbuffer(
+	octree_glc_upload_texbuffer_data(
 	    &quba.octrglc,
-	    quba.dynaoctr.octs,
-	    0,
-	    0,
-	    quba.dynaoctr.txwth,
-	    quba.dynaoctr.txhth,
-	    GL_RGBA32I,
-	    GL_RGBA_INTEGER,
-	    GL_INT,
-	    quba.octrglc.oct2_tex,
-	    11);
+	    quba.dynaoctr.octs,                     // buffer
+	    GL_INT,                                 // data type
+	    quba.dynaoctr.len * sizeof(GLint) * 12, // size
+	    sizeof(GLint) * 4,                      // itemsize
+	    0,                                      // start offset
+	    quba.dynaoctr.len * sizeof(GLint) * 12, // end offset
+	    OCTREE_GLC_BUFFER_DYNAMIC_OCTREE);      // buffer type
 
 	// update dynamic normals
 	// !!! in case of desktop opengl, leave modified normals on GPU and use glTexBuffer!!!
 
-	octree_glc_upload_texbuffer(
+	octree_glc_upload_texbuffer_data(
 	    &quba.octrglc,
-	    quba.skelglc.nrm_out,
-	    0,
-	    0,
-	    quba.dynamod.txwth,
-	    quba.dynamod.txhth,
-	    GL_RGB32F,
-	    GL_RGB,
-	    GL_FLOAT,
-	    quba.octrglc.nrm2_tex,
-	    9);
+	    quba.skelglc.nrm_out,                           // buffer
+	    GL_FLOAT,                                       // data type
+	    quba.dynamod.point_count * sizeof(GLfloat) * 3, // size
+	    sizeof(GLfloat) * 3,                            // itemsize
+	    0,                                              // start offset
+	    quba.dynamod.point_count * sizeof(GLfloat) * 3, // end offset
+	    OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);              // buffer type
 
 #endif
 

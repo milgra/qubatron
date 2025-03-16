@@ -58,7 +58,6 @@ typedef struct octree_glc_t
 
 octree_glc_t octree_glc_init(char* path);
 void         octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize);
-void         octree_glc_upload_texbuffer(octree_glc_t* rc, void* data, int x, int y, int width, int height, int internalformat, int format, int type, int texture, int uniform);
 void         octree_glc_upload_texbuffer_data(
 	    octree_glc_t*       rc,
 	    void*               data,
@@ -334,30 +333,6 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
     glDisable(GL_SCISSOR_TEST);
 }
 
-void octree_glc_upload_texbuffer(
-    octree_glc_t* rc,
-    void*         data,
-    int           x,
-    int           y,
-    int           width,
-    int           height,
-    int           internalformat,
-    int           format,
-    int           type,
-    int           texture,
-    int           uniform)
-{
-    glUseProgram(rc->octr_sha);
-    glActiveTexture(GL_TEXTURE0 + uniform + 1);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(rc->octr_unilocs[uniform], uniform + 1);
-
-    if (y == 0)
-	glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, type, data); // full upload
-    else
-	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, format, type, data); // partial upload
-}
-
 /* Upload buffer data as three subimages
  * |-------xxxxxxxxx| top part
  * |xxxxxxxxxxxxxxxx| mid part
@@ -392,6 +367,21 @@ void octree_glc_upload_texbuffer_data(
     {
 	text = rc->oct1_tex;
 	unif = 10;
+    }
+    else if (buftype == OCTREE_GLC_BUFFER_DYNAMIC_COLOR)
+    {
+	text = rc->col2_tex;
+	unif = 7;
+    }
+    else if (buftype == OCTREE_GLC_BUFFER_DYNAMIC_NORMAL)
+    {
+	text = rc->nrm2_tex;
+	unif = 9;
+    }
+    else if (buftype == OCTREE_GLC_BUFFER_DYNAMIC_OCTREE)
+    {
+	text = rc->oct2_tex;
+	unif = 11;
     }
 
     glUseProgram(rc->octr_sha);
