@@ -14,18 +14,13 @@
 typedef struct model_t
 {
     GLfloat* vertexes;
-    GLfloat* colors;
     GLfloat* normals;
+    GLfloat* colors;
     int*     ranges;
-    long     point_count;
-    long     ind;
-    long     cnt;
-    v3_t     offset;
 
-    int    txwth;
-    int    txhth;
-    size_t buffs;
-    int    comps;
+    int  comps;
+    long point_count;
+    long buffer_count;
 } model_t;
 
 model_t model_init();
@@ -34,9 +29,6 @@ void    model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color);
 
 void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path, char* range_path);
 void model_log_vertex_info(model_t* model, size_t index);
-int  model_data_index_for_point_index(model_t* model, int index);
-int  model_line_index_for_point_index(model_t* model, int index);
-int  model_point_index_for_line_index(model_t* model, int index);
 
 #endif
 
@@ -44,38 +36,34 @@ int  model_point_index_for_line_index(model_t* model, int index);
 
 model_t model_init()
 {
-    model_t model = {0};
-    model.txwth   = 8192;
-    model.txhth   = 1;
-    model.comps   = 3;
-    model.buffs   = model.txwth * model.txhth * model.comps * sizeof(GLfloat);
+    model_t model      = {0};
+    model.comps        = 3;
+    model.point_count  = 0;
+    model.buffer_count = 1;
 
-    model.vertexes = mt_memory_alloc(model.buffs, NULL, NULL);
-    model.normals  = mt_memory_alloc(model.buffs, NULL, NULL);
-    model.colors   = mt_memory_alloc(model.buffs, NULL, NULL);
+    model.vertexes = mt_memory_alloc(model.buffer_count * model.comps * sizeof(GLfloat), NULL, NULL);
+    model.normals  = mt_memory_alloc(model.buffer_count * model.comps * sizeof(GLfloat), NULL, NULL);
+    model.colors   = mt_memory_alloc(model.buffer_count * model.comps * sizeof(GLfloat), NULL, NULL);
 
     return model;
 }
 
 void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath, char* rngpath)
 {
-    // build up range array also ( x,y,z ranges)
-
     FILE* pntfile = fopen(pntpath, "rb");
     FILE* nrmfile = fopen(nrmpath, "rb");
     FILE* colfile = fopen(colpath, "rb");
 
     fseek(pntfile, 0, SEEK_END);
-    long float_count = ftell(pntfile) / sizeof(float);
+    long bytecount = ftell(pntfile);
     fseek(pntfile, 0, SEEK_SET);
 
-    model->point_count = float_count / 3;
-    model->txhth       = (int) ceilf((float) model->point_count / (float) model->txwth) + 10; // TODO check max height
-    model->buffs       = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
+    model->point_count  = bytecount / (model->comps * sizeof(GLfloat));
+    model->buffer_count = model->point_count;
 
-    model->vertexes = mt_memory_realloc(model->vertexes, model->buffs);
-    model->normals  = mt_memory_realloc(model->normals,model->buffs);
-    model->colors   = mt_memory_realloc(model->colors,model->buffs);
+    model->vertexes = mt_memory_realloc(model->vertexes, bytecount);
+    model->normals  = mt_memory_realloc(model->normals, bytecount);
+    model->colors   = mt_memory_realloc(model->colors, bytecount);
 
     if (!pntfile || !nrmfile || !colfile)
     {
@@ -83,9 +71,9 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
 	return;
     }
 
-    fread(model->vertexes, sizeof(float), float_count, pntfile);
-    fread(model->normals, sizeof(float), float_count, nrmfile);
-    fread(model->colors, sizeof(float), float_count, colfile);
+    fread(model->vertexes, sizeof(float), bytecount, pntfile);
+    fread(model->normals, sizeof(float), bytecount, nrmfile);
+    fread(model->colors, sizeof(float), bytecount, colfile);
 
     fclose(pntfile);
     fclose(nrmfile);
@@ -109,8 +97,7 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     fclose(rngfile);
 
     mt_log_debug("loading flat model data\n%s\n%s\n%s", pntpath, colpath, nrmpath);
-    mt_log_debug("point count %lu available point count %lu ", model->point_count, model->txwth * model->txhth);
-    mt_log_debug("buffer size %lu bytes, tex width %i tex height %i ", model->buffs, model->txwth, model->txhth);
+    mt_log_debug("point count %lu", model->point_count);
 
     /* for (int i = 0; i < 300; i += 3) */
     /* 	mt_log_debug("pt %f %f %f", model->vertexes[i], model->vertexes[i + 1], model->vertexes[i + 2]); */
@@ -151,23 +138,17 @@ void model_log_vertex_info(model_t* model, size_t index)
 
 void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
 {
-    int max_count = model->txwth * model->txhth;
-
-    if (model->point_count == max_count)
+    if (model->point_count == model->buffer_count)
     {
-	mt_log_debug("increasing model buffer size");
-
-	model->txhth += 1;
-	model->buffs    = model->txwth * model->txhth * model->comps * sizeof(GLfloat);
-	model->vertexes = mt_memory_realloc(model->vertexes, model->buffs);
-	model->normals  = mt_memory_realloc(model->normals, model->buffs);
-	model->colors   = mt_memory_realloc(model->colors, model->buffs);
-
-	mt_log_debug("point count %lu available point count %lu ", model->point_count, model->txwth * model->txhth);
-	mt_log_debug("buffer size %lu bytes, tex width %i tex height %i ", model->buffs, model->txwth, model->txhth);
+	model->buffer_count += 4096;
+	model->vertexes = mt_memory_realloc(model->vertexes, model->buffer_count * model->comps * sizeof(GLfloat));
+	model->normals  = mt_memory_realloc(model->normals, model->buffer_count * model->comps * sizeof(GLfloat));
+	model->colors   = mt_memory_realloc(model->colors, model->buffer_count * model->comps * sizeof(GLfloat));
     }
 
-    int index = model->point_count * 3;
+    mt_log_debug("point count %lu", model->point_count);
+
+    int index = model->point_count * model->comps;
 
     model->vertexes[index]     = vertex.x;
     model->vertexes[index + 1] = vertex.y;
@@ -182,21 +163,6 @@ void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
     model->colors[index + 2] = color.z;
 
     model->point_count += 1;
-}
-
-int model_data_index_for_point_index(model_t* model, int index)
-{
-    return index * 3;
-}
-
-int model_line_index_for_point_index(model_t* model, int index)
-{
-    return index / model->txwth;
-}
-
-int model_point_index_for_line_index(model_t* model, int index)
-{
-    return index * model->txwth;
 }
 
 #endif
