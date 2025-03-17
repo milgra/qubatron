@@ -486,12 +486,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     if (minind > 0)
     {
-	int sy = octree_line_index_for_octet_index(statoctr, minind);
-	int ey = octree_line_index_for_octet_index(statoctr, maxind) + 1;
-	int si = octree_octet_index_for_line_index(statoctr, sy);
-	int di = octree_rgba32idata_index_for_octet_index(statoctr, si);
-
-	mt_log_debug("delete hole, updating textbuffer at sy %i ey %i si %i di %i", sy, ey, si, di);
+	mt_log_debug("delete hole, updating textbuffer");
 
 	octree_glc_upload_texbuffer_data(
 	    glc,
@@ -499,7 +494,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	    GL_INT,                             // data type
 	    statoctr->len * sizeof(GLint) * 12, // size
 	    sizeof(GLint) * 4,                  // itemsize
-	    di,                                 // start offset
+	    0,                                  // start offset
 	    statoctr->len * sizeof(GLint) * 12, // end offset
 	    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
 

@@ -18,10 +18,7 @@ typedef struct octree_t
     octets_t* octs;
     size_t    size;
     size_t    len;
-
-    int txwth;
-    int txhth;
-    int levels;
+    int       levels;
 } octree_t;
 
 octree_t    octree_create(v4_t base, int maxlevel);
@@ -34,9 +31,6 @@ void        octree_remove_point(octree_t* tree, v3_t pnt, int* orind, int* octin
 void        octree_log_path(octets_t o, size_t index);
 void        octree_comp(octree_t* treea, octree_t* treeb);
 int         octree_trace_line(octree_t* tree, v3_t pos, v3_t dir, v4_t* tlf);
-int         octree_line_index_for_octet_index(octree_t* octree, int index);
-int         octree_octet_index_for_line_index(octree_t* octree, int index);
-int         octree_rgba32idata_index_for_octet_index(octree_t* octree, int index);
 
 #endif
 
@@ -61,9 +55,7 @@ octree_t octree_create(v4_t base, int maxlevel)
     octree_t tree;
     tree.basecube = base;
     tree.levels   = maxlevel;
-    tree.txwth    = 8192;
-    tree.txhth    = 1;
-    tree.size     = 8192 * 3;
+    tree.size     = 2;
     tree.octs     = mt_memory_calloc(sizeof(octets_t) * tree.size, NULL, NULL);
 
     tree.octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
@@ -77,8 +69,6 @@ octree_t octree_clone(octree_t* ptree)
     octree_t tree;
     tree.basecube = ptree->basecube;
     tree.levels   = ptree->levels;
-    tree.txwth    = ptree->txwth;
-    tree.txhth    = ptree->txhth;
     tree.size     = ptree->size;
     tree.octs     = mt_memory_calloc(sizeof(octets_t) * tree.size, NULL, NULL);
 
@@ -131,9 +121,8 @@ octets_t octree_insert_point(octree_t* tree, size_t index, size_t orind, v3_t pn
 
 	    if (tree->len == tree->size)
 	    {
-		tree->size += 8192 * 3;
-		tree->txhth = (tree->size * 3) / tree->txwth;
-		tree->octs  = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
+		tree->size += 8192;
+		tree->octs = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
 		if (tree->octs == NULL) mt_log_debug("not enough memory");
 		mt_log_debug("octree array size %lu\033[1A", tree->size * sizeof(octets_t));
 	    }
@@ -168,9 +157,8 @@ void octree_insert_path(octree_t* tree, size_t index, size_t orind, int* octs)
 
 	    if (tree->len == tree->size)
 	    {
-		tree->size += 8192 * 3;
-		tree->txhth = (tree->size * 3) / tree->txwth;
-		tree->octs  = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
+		tree->size += 8192;
+		tree->octs = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
 		if (tree->octs == NULL)
 		    mt_log_debug("not enough memory");
 	    }
@@ -503,21 +491,6 @@ int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir, v4_t* otlf)
     }
 
     return 0;
-}
-
-int octree_line_index_for_octet_index(octree_t* octree, int index)
-{
-    return (index * 3) / octree->txwth;
-}
-
-int octree_octet_index_for_line_index(octree_t* octree, int index)
-{
-    return index * octree->txwth;
-}
-
-int octree_rgba32idata_index_for_octet_index(octree_t* octree, int index)
-{
-    return index * 4;
 }
 
 #endif
