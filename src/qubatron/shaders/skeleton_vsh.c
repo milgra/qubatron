@@ -75,9 +75,10 @@ void main()
 
     vec3  corner_points[12];
     vec3  corner_normals[12];
-    float corner_dists[12];
+    float corner_tozerow[12]; // distance to zero weight from center
     int   corner_count  = 0;
     vec3  corner_center = position;
+    float tozerow_sum   = 0.0; // summary of to zero weight lengths from center
 
     // go through skeleton point pairs
 
@@ -122,10 +123,8 @@ void main()
 	    // calculate the new position of position base on current bone
 	    // get angle of original and current bone
 
-	    vec3  oldbone_norm  = normalize(oldbone);
-	    vec3  currbone_norm = normalize(currbone);
-	    float bones_angle   = acos(dot(oldbone_norm, currbone_norm));
-	    vec3  bones_axis    = cross(oldbone_norm, currbone_norm);
+	    vec3 oldbone_norm  = normalize(oldbone);
+	    vec3 currbone_norm = normalize(currbone);
 
 	    // rotate point_from_oldbone_v with rotation of bone
 
@@ -137,10 +136,17 @@ void main()
 
 	    /* vec3 point_on_currbone_v = point_on_oldbone_v * bone_ratio; */
 
-	    vec4 bonesangle_rot_quat = quat_from_axis_angle(normalize(bones_axis), bones_angle); // rotation quaternion
-	    point_on_currbone_v      = qrot(bonesangle_rot_quat, point_on_currbone_v);
-	    point_from_currbone_v    = qrot(bonesangle_rot_quat, point_from_currbone_v);
-	    currnormal               = qrot(bonesangle_rot_quat, currnormal);
+	    float bones_dot   = dot(oldbone_norm, currbone_norm);
+	    float bones_angle = acos(bones_dot);
+	    vec3  bones_axis  = cross(oldbone_norm, currbone_norm);
+
+	    if (length(bones_axis) > 0.000001)
+	    {
+		vec4 bonesangle_rot_quat = quat_from_axis_angle(normalize(bones_axis), bones_angle); // rotation quaternion
+		point_on_currbone_v      = qrot(bonesangle_rot_quat, point_on_currbone_v);
+		point_from_currbone_v    = qrot(bonesangle_rot_quat, point_from_currbone_v);
+		currnormal               = qrot(bonesangle_rot_quat, currnormal);
+	    }
 
 	    vec3 currpos = newbones[i].xyz + point_on_currbone_v + point_from_currbone_v;
 
@@ -148,35 +154,25 @@ void main()
 	    corner_center += (currpos - corner_center) / 2.0;
 	    corner_points[corner_count]  = currpos;
 	    corner_normals[corner_count] = currnormal;
-	    corner_dists[corner_count]   = remdist;
+	    corner_tozerow[corner_count] = remdist;
 	    corner_count++;
+	    tozerow_sum += remdist;
 	}
     }
 
-    // calculate final position of vertex
+    // calculate final position of vertex based on tozerow distances
 
     vec3 pnt = corner_center;
     vec3 nrm = corner_normals[0];
 
     if (corner_count > 1)
     {
-	for (int i = 0; i < corner_count; i += 2)
+	for (int i = 0; i < corner_count; i++)
 	{
-	    float len = corner_dists[i] + corner_dists[i + 1];
-
-	    float rat1 = corner_dists[i] / len;
-	    vec3  dir1 = corner_points[i] - corner_center;
-
-	    float rat2 = corner_dists[i + 1] / len;
-	    vec3  dir2 = corner_points[i + 1] - corner_center;
-
-	    /* if (i == 0) pnt = corner_points[i] */
-
-	    pnt += dir1 * rat1;
-	    pnt += dir2 * rat2;
-
+	    float rat = corner_tozerow[i] / tozerow_sum;
+	    vec3  dir = corner_points[i] - corner_center;
+	    pnt += dir * rat;
 	    nrm = (nrm + corner_normals[i]) / 2.0;
-	    nrm = (nrm + corner_normals[i + 1]) / 2.0;
 	}
     }
 
