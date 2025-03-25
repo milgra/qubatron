@@ -389,7 +389,7 @@ void octree_glc_upload_texbuffer_data(
     glBindTexture(GL_TEXTURE_2D, text);
     glUniform1i(rc->octr_unilocs[unif], unif + 1);
 
-    mt_log_debug("UPLOAD TEXBUFFER size %i itemsize %i type %i start %i end %i tex %i uniform %i", size, itemsize, type, start, end, text, unif);
+    /* mt_log_debug("UPLOAD TEXBUFFER size %i itemsize %i type %i start %i end %i tex %i uniform %i", size, itemsize, type, start, end, text, unif); */
 
     int startindex = start / itemsize;
     int endindex   = end / itemsize;
@@ -398,7 +398,7 @@ void octree_glc_upload_texbuffer_data(
     int endy       = endindex / 8192;
     int endx       = endindex - endy * 8192;
 
-    mt_log_debug("UPLOAD TEXBUFFER startindex %i endindex %i starty %i startx %i endy %i endx %i", startindex, endindex, starty, startx, endy, endx);
+    /* mt_log_debug("UPLOAD TEXBUFFER startindex %i endindex %i starty %i startx %i endy %i endx %i", startindex, endindex, starty, startx, endy, endx); */
 
     if (starty < endy)
     {
@@ -413,7 +413,7 @@ void octree_glc_upload_texbuffer_data(
 	    type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
 	    type,
 	    data + start);
-	mt_log_debug("TOP glTexSubImage startx %i starty %i width %i height %i dataindex %i", startx, starty, 8192 - startx, 1, start);
+	/* mt_log_debug("TOP glTexSubImage startx %i starty %i width %i height %i dataindex %i", startx, starty, 8192 - startx, 1, start); */
 	/* | xxxxxxxxxxxxxxxx | mid part if (endy - starty > 1) */
 	{
 	    glTexSubImage2D(
@@ -426,7 +426,7 @@ void octree_glc_upload_texbuffer_data(
 		type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
 		type,
 		data + (starty + 1) * 8192 * itemsize);
-	    mt_log_debug("MID glTexSubImage startx %i starty %i width %i height %i dataindex %i", 0, starty + 1, 8192, endy - (starty + 1), (starty + 1) * 8192 * itemsize);
+	    /* mt_log_debug("MID glTexSubImage startx %i starty %i width %i height %i dataindex %i", 0, starty + 1, 8192, endy - (starty + 1), (starty + 1) * 8192 * itemsize); */
 	}
 	// |xxxxx-----------| bot part
 	glTexSubImage2D(
@@ -439,7 +439,7 @@ void octree_glc_upload_texbuffer_data(
 	    type == GL_INT ? GL_RGBA_INTEGER : GL_RGB,
 	    type,
 	    data + endy * 8192 * itemsize);
-	mt_log_debug("BOT glTexSubImage startx %i starty %i width %i height %i dataindex %i", 0, endy, endx, 1, endy * 8192 * itemsize);
+	/* mt_log_debug("BOT glTexSubImage startx %i starty %i width %i height %i dataindex %i", 0, endy, endx, 1, endy * 8192 * itemsize); */
     }
     else
     {
@@ -455,7 +455,7 @@ void octree_glc_upload_texbuffer_data(
 	    type,
 	    data + start);
 
-	mt_log_debug("glTexSubImage startx %i starty %i width %i height %i dataindex %i", startx, starty, endx - startx, 1, start);
+	/* mt_log_debug("glTexSubImage startx %i starty %i width %i height %i dataindex %i", startx, starty, endx - startx, 1, start); */
     }
 }
 

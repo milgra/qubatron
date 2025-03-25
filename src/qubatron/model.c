@@ -25,6 +25,7 @@ typedef struct model_t
 
 model_t model_init();
 void    model_delete(model_t* model);
+void    model_append(model_t* model, model_t* other);
 void    model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color);
 
 void model_load_flat(model_t* model, char* vertex_path, char* color_path, char* normal_path, char* range_path);
@@ -108,6 +109,22 @@ void model_delete(model_t* model)
     REL(model->vertexes);
     REL(model->normals);
     REL(model->colors);
+}
+
+void model_append(model_t* model, model_t* other)
+{
+    int oldcount = model->point_count;
+
+    model->point_count += other->point_count;
+    model->buffer_count = model->point_count;
+
+    model->vertexes = mt_memory_realloc(model->vertexes, model->buffer_count * model->comps * sizeof(GLfloat));
+    model->normals  = mt_memory_realloc(model->normals, model->buffer_count * model->comps * sizeof(GLfloat));
+    model->colors   = mt_memory_realloc(model->colors, model->buffer_count * model->comps * sizeof(GLfloat));
+
+    memcpy(model->vertexes + oldcount * 3, other->vertexes, other->point_count * 3 * sizeof(GLfloat));
+    memcpy(model->normals + oldcount * 3, other->normals, other->point_count * 3 * sizeof(GLfloat));
+    memcpy(model->colors + oldcount * 3, other->colors, other->point_count * 3 * sizeof(GLfloat));
 }
 
 void model_log_vertex_info(model_t* model, size_t index)

@@ -44,15 +44,15 @@ void           zombie_update(zombie_t* zombie, float langle, float dir, v4_t pos
 
 zombie_parts_t zombie_parts = {
 
-    .head = (v4_t){54.0, 205.0, 22.0, 15.0},
-    .neck = (v4_t){54.0, 170.0, 22.0, 15.0},
-    .hip  = (v4_t){52.0, 120.0, 22.0, 22.0},
+    .head = (v4_t){54.0, 200.0, 26.0, 20.0},
+    .neck = (v4_t){54.0, 175.0, 26.0, 23.0},
+    .hip  = (v4_t){52.0, 120.0, 26.0, 22.0},
 
     .larm  = (v4_t){5.0, 170.0, 22.0, 10.0},
     .lhand = (v4_t){-10.0, 70.0, 22.0, 3.0},
 
-    .rarm  = (v4_t){105.0, 170.0, 22.0, 10.0},
-    .rhand = (v4_t){120.0, 70.0, 22.0, 3.0},
+    .rarm  = (v4_t){75.0, 170.0, 26.0, 14.0},
+    .rhand = (v4_t){120.0, 70.0, 26.0, 3.0},
 
     .lleg  = (v4_t){38.0, 120.0, 22.0, 6.0},
     .lfoot = (v4_t){8.0, -10.0, 22.0, 8.0},
@@ -110,15 +110,26 @@ void zombie_update(zombie_t* zombie, float lighta, float dir, v4_t pos)
 
     float feetdist = v3_length(v4_xyz(v4_sub(zombie->newparts.lfoot, zombie->newparts.rfoot))) / 10.0;
 
-    v4_t hipv  = (v4_t){0.0, 120.0 + sin(lighta) * 5.0, 0.0, dir};
-    v4_t headv = (v4_t){2.0, 86.0 - feetdist + cos(lighta) * 2.0, 0.0 + sin(lighta) * 3.0, 0.0};
-    v4_t neckv = (v4_t){2.0, 50.0 + cos(lighta) * 2.0, 0.0 - sin(lighta) * 3.0, 0.0};
+    v4_t hipv = (v4_t){0.0, 120.0 + sinf(lighta) * 2.0, 0.0, dir};
+    /* v4_t headv = (v4_t){2.0, 86.0 - feetdist + cos(lighta) * 2.0, 0.0 + sin(lighta) * 3.0, 0.0}; */
+    /* v4_t neckv = (v4_t){2.0, 50.0 + cos(lighta) * 2.0, 0.0 - sin(lighta) * 3.0, 0.0}; */
     v4_t larmv = v4_xyzw(quat_rotate(back_rot, (v3_t){-47.0, 50.0, 0.0}));
     v4_t lhndv = v4_xyzw(quat_rotate(back_rot, (v3_t){-62.0 + sin(lighta) * 15.0, -50.0, 30.0}));
     v4_t rarmv = v4_xyzw(quat_rotate(back_rot, (v3_t){53.0, 50.0, 0.0}));
     v4_t rhndv = v4_xyzw(quat_rotate(back_rot, (v3_t){68.0 + cos(lighta) * 15.0, -50.0, 30.0}));
     v4_t llegv = v4_xyzw(quat_rotate(back_rot, (v3_t){-20.0, 0.0, 1.0}));
     v4_t rlegv = v4_xyzw(quat_rotate(back_rot, (v3_t){20.0, 0.0, 1.0}));
+
+    v4_t headv = v4_sub(zombie_parts.head, zombie_parts.hip);
+    headv.w    = 0.0;
+    headv.z += sinf(lighta) * 5.0;
+    v4_t neckv = v4_sub(zombie_parts.neck, zombie_parts.hip);
+    neckv.w    = 0.0;
+    rarmv      = v4_sub(zombie_parts.rarm, zombie_parts.hip);
+
+    rarmv.w = 0.0;
+    /* v4_t rhndv = v4_sub(zombie_parts.rhand, zombie_parts.hip); */
+    /* rhndv.w    = 0.0; */
 
     zombie->newparts.hip   = v4_add(pos, hipv);
     zombie->newparts.head  = v4_add(zombie->newparts.hip, headv);
