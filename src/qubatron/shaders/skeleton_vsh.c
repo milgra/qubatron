@@ -82,7 +82,7 @@ void main()
 
     // go through skeleton point pairs
 
-    for (int i = 0; i < 6; i += 2)
+    for (int i = 0; i < 12; i += 2)
     {
 	vec3 oldbone               = oldbones[i + 1].xyz - oldbones[i].xyz; // bone vector
 	vec3 oldbone_midp          = oldbones[i].xyz + oldbone / 2.0;
@@ -94,7 +94,7 @@ void main()
 	vec3  point_from_center = position - oldbones[i].xyz;
 	float effect_distance   = oldbones[i].w;
 
-	float dist = 10000.0;
+	float dist = 0.0;
 	if (length(point_from_halfbone_v) < length(oldbone) / 2.0)
 	{
 	    dist = length(point_from_oldbone_v);
