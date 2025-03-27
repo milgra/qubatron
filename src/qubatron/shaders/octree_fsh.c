@@ -124,10 +124,10 @@ float random(vec3 pos)
 int oct_from_octets_for_index(int octi, int i, lowp isampler2D sampler, int level)
 {
     if (i == 0 && level > 0) return 0;
-    i *= 3; // octet is 12 byte long in octet texture
+    int elem = i * 3 + octi / 4; // octet is 12 byte long in octet texture
 
-    int cy = i / 8192;
-    int cx = i - cy * 8192 + octi / 4;
+    int cy = elem / 8192;
+    int cx = elem - cy * 8192;
 
     return texelFetch(sampler, ivec2(cx, cy), 0)[octi - (octi / 4) * 4];
 }

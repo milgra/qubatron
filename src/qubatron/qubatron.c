@@ -413,7 +413,7 @@ int main(int argc, char* argv[])
     int option       = 0;
     int option_index = 0;
 
-    while ((option = getopt_long(argc, argv, "vht", long_options, &option_index)) != -1)
+    while ((option = getopt_long(argc, argv, "vhl:", long_options, &option_index)) != -1)
     {
 	switch (option)
 	{
