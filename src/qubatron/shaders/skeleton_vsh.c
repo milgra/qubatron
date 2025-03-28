@@ -1,5 +1,7 @@
 #version 300 es
 
+#define POINT_COUNT 20
+
 precision highp float;
 
 in vec3 position;
@@ -8,8 +10,8 @@ in vec3 normal;
 flat out int  octets_out[12];
 flat out vec3 normal_out;
 
-uniform vec4 oldbones[12];
-uniform vec4 newbones[12];
+uniform vec4 oldbones[POINT_COUNT];
+uniform vec4 newbones[POINT_COUNT];
 
 uniform vec4 basecube;
 uniform int  maxlevel;
@@ -73,16 +75,16 @@ void main()
 
     // we will store corner points and ratios
 
-    vec3  corner_points[12];
-    vec3  corner_normals[12];
-    float corner_tozerow[12]; // distance to zero weight from center
+    vec3  corner_points[POINT_COUNT];
+    vec3  corner_normals[POINT_COUNT];
+    float corner_tozerow[POINT_COUNT]; // distance to zero weight from center
     int   corner_count  = 0;
     vec3  corner_center = position;
     float tozerow_sum   = 0.0; // summary of to zero weight lengths from center
 
     // go through skeleton point pairs
 
-    for (int i = 0; i < 12; i += 2)
+    for (int i = 0; i < POINT_COUNT; i += 2)
     {
 	vec3 oldbone               = oldbones[i + 1].xyz - oldbones[i].xyz; // bone vector
 	vec3 oldbone_midp          = oldbones[i].xyz + oldbone / 2.0;

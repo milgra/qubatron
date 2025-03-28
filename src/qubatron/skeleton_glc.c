@@ -220,8 +220,8 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 
     GLfloat basecubearr[4] = {0.0, basesize, basesize, basesize};
 
-    glUniform4fv(cc->defo_unilocs[0], 12, (GLfloat*) cc->zombie.oribones.arr);
-    glUniform4fv(cc->defo_unilocs[1], 12, (GLfloat*) cc->zombie.newbones.arr);
+    glUniform4fv(cc->defo_unilocs[0], POINT_COUNT, (GLfloat*) cc->zombie.oribones.arr);
+    glUniform4fv(cc->defo_unilocs[1], POINT_COUNT, (GLfloat*) cc->zombie.newbones.arr);
     glUniform4fv(cc->defo_unilocs[2], 1, basecubearr);
     glUniform1i(cc->defo_unilocs[3], maxlevel);
 
