@@ -50,7 +50,7 @@ typedef struct skeleton_glc_t
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
-void           skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize);
+void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, size_t size);
 void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t octsize, size_t nrmsize);
 
@@ -141,7 +141,7 @@ v3_t skeleton_glc_project_point(v3_t A, v3_t B, v3_t C)
     return v3_add(A, v3_scale(AB, dotACAB / dotABAB));
 }
 
-void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int maxlevel, float basesize)
+void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, int model_count, int maxlevel, float basesize)
 {
     // update body parts
 
@@ -206,7 +206,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, float lighta, int model_count, int 
 	}
     }
 
-    zombie_update(&cc->zombie, lighta, cc->angle, cc->pos);
+    zombie_update(&cc->zombie, statoctr, lighta, cc->angle, cc->pos);
 
     // switch off fragment stage
 

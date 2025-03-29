@@ -36,9 +36,9 @@ struct _dres_t
     float ratio_b;
 };
 
-dres_t*    dres_alloc(mass_t* mass_a, mass_t* mass_b, float distance, float elasticity);
+dres_t*    dres_alloc(mass_t* mass_a, mass_t* mass_b, float elasticity);
 void       dres_resetdistance(dres_t* dguard);
-void       dres_new(dres_t* dguard, float delta);
+void       dres_update(dres_t* dguard, float delta);
 
 #endif
 
@@ -77,7 +77,7 @@ mass_t* mass_alloc(v3_t position, float radius, float weight, float elasticity)
 
 /* creates distance resolver */
 
-dres_t* dres_alloc(mass_t* mass_a, mass_t* mass_b, float distance, float elasticity)
+dres_t* dres_alloc(mass_t* mass_a, mass_t* mass_b, float elasticity)
 {
     float sumweight = mass_a->weight + mass_b->weight;
 
@@ -85,7 +85,7 @@ dres_t* dres_alloc(mass_t* mass_a, mass_t* mass_b, float distance, float elastic
 
     dguard->mass_a     = mass_a;
     dguard->mass_b     = mass_b;
-    dguard->distance   = distance;
+    dguard->distance   = v3_length(v3_sub(mass_a->trans, mass_b->trans));
     dguard->elasticity = elasticity;
     dguard->ratio_a    = mass_b->weight / sumweight;
     dguard->ratio_b    = mass_a->weight / sumweight;
@@ -103,7 +103,7 @@ void dres_resetdistance(dres_t* dguard)
 
 /* adds forces to masses in dguard to keep up distance */
 
-void dres_new(dres_t* dguard, float ratio)
+void dres_update(dres_t* dguard, float ratio)
 {
 
     v3_t massabasis = v3_scale(dguard->mass_a->basis, ratio);
