@@ -2,7 +2,7 @@
 #define physics_h
 
 #include "mt_vector.c"
-#include "mt_vector_2d.c"
+#include "mt_vector_3d.c"
 #include <math.h>
 #include <stdio.h>
 
@@ -11,15 +11,15 @@
 typedef struct _mass_t mass_t;
 struct _mass_t
 {
-    v2_t trans;
-    v2_t basis;
+    v3_t trans;
+    v3_t basis;
 
     float weight;
     float radius;
     float elasticity;
 };
 
-mass_t* mass_alloc(v2_t position, float radius, float weight, float elasticity);
+mass_t* mass_alloc(v3_t position, float radius, float weight, float elasticity);
 
 // distance resolver
 
@@ -61,12 +61,12 @@ void mass_dealloc(void* pointer)
 
 /* creates mass point */
 
-mass_t* mass_alloc(v2_t position, float radius, float weight, float elasticity)
+mass_t* mass_alloc(v3_t position, float radius, float weight, float elasticity)
 {
     mass_t* result = CAL(sizeof(mass_t), mass_dealloc, NULL);
 
     result->trans = position;
-    result->basis = v2_init(0.0, 0.0);
+    result->basis = v3_init(0.0, 0.0, 0.0);
 
     result->radius     = radius;
     result->weight     = weight;
@@ -97,8 +97,8 @@ dres_t* dres_alloc(mass_t* mass_a, mass_t* mass_b, float distance, float elastic
 
 void dres_resetdistance(dres_t* dguard)
 {
-    v2_t vector      = v2_sub(dguard->mass_b->trans, dguard->mass_a->trans);
-    dguard->distance = v2_length(vector);
+    v3_t vector      = v3_sub(dguard->mass_b->trans, dguard->mass_a->trans);
+    dguard->distance = v3_length(vector);
 }
 
 /* adds forces to masses in dguard to keep up distance */
@@ -106,15 +106,15 @@ void dres_resetdistance(dres_t* dguard)
 void dres_new(dres_t* dguard, float ratio)
 {
 
-    v2_t massabasis = v2_scale(dguard->mass_a->basis, ratio);
-    v2_t massbbasis = v2_scale(dguard->mass_b->basis, ratio);
+    v3_t massabasis = v3_scale(dguard->mass_a->basis, ratio);
+    v3_t massbbasis = v3_scale(dguard->mass_b->basis, ratio);
 
-    v2_t transa = v2_add(dguard->mass_a->trans, massabasis);
-    v2_t transb = v2_add(dguard->mass_b->trans, massbbasis);
+    v3_t transa = v3_add(dguard->mass_a->trans, massabasis);
+    v3_t transb = v3_add(dguard->mass_b->trans, massbbasis);
 
-    v2_t connector = v2_sub(transa, transb);
+    v3_t connector = v3_sub(transa, transb);
 
-    float delta = v2_length(connector) - dguard->distance;
+    float delta = v3_length(connector) - dguard->distance;
 
     if (dguard->elasticity > 0.0) delta /= dguard->elasticity;
 
@@ -122,10 +122,10 @@ void dres_new(dres_t* dguard, float ratio)
 
     if (fabs(delta) > 0.01)
     {
-	v2_t a                = v2_resize(connector, -delta * dguard->ratio_a);
-	v2_t b                = v2_resize(connector, delta * dguard->ratio_b);
-	dguard->mass_a->basis = v2_add(dguard->mass_a->basis, a);
-	dguard->mass_b->basis = v2_add(dguard->mass_b->basis, b);
+	v3_t a                = v3_resize(connector, -delta * dguard->ratio_a);
+	v3_t b                = v3_resize(connector, delta * dguard->ratio_b);
+	dguard->mass_a->basis = v3_add(dguard->mass_a->basis, a);
+	dguard->mass_b->basis = v3_add(dguard->mass_b->basis, b);
     }
 }
 

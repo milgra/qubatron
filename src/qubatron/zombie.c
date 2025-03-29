@@ -3,6 +3,7 @@
 
 #include "mt_quat.c"
 #include "mt_vector_4d.c"
+#include "physics.c"
 #include <string.h>
 
 #define POINT_COUNT 20
@@ -47,6 +48,9 @@ void           zombie_update(zombie_t* zombie, float langle, float dir, v4_t pos
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
+
+// points on original model
+// x y z weight
 
 zombie_parts_t zombie_parts = {
 
@@ -99,106 +103,78 @@ zombie_t zombie_init()
 	    zombie_parts.lknee,
 	    zombie_parts.lfoot}};
 
+    res.newbones = res.oribones;
     res.newparts = zombie_parts;
-
-    res.newparts.hip   = v4_add(res.newparts.hip, (v4_t){250.0, 0.0, 600.0, 0.0});
-    res.newparts.head  = v4_add(res.newparts.hip, (v4_t){2.0, 86.0, 0.0, 0.0});
-    res.newparts.neck  = v4_add(res.newparts.hip, (v4_t){2.0, 50.0, 0.0, 0.0});
-    res.newparts.lshol = v4_add(res.newparts.hip, (v4_t){-47.0, 50.0, 0.0, 0.0});
-    res.newparts.lhand = v4_add(res.newparts.hip, (v4_t){-62.0, -50.0, 0.0, 0.0});
-    res.newparts.rshol = v4_add(res.newparts.hip, (v4_t){53.0, 50.0, 0.0, 0.0});
-    res.newparts.rhand = v4_add(res.newparts.hip, (v4_t){68.0, -50.0, 0.0, 0.0});
-    res.newparts.lleg  = v4_add(res.newparts.hip, (v4_t){-20.0, 0.0, 1.0, 0.0});
-    res.newparts.lfoot = v4_add(res.newparts.hip, (v4_t){-45.0, -130.0, 31.0, 0.0});
-    res.newparts.rleg  = v4_add(res.newparts.hip, (v4_t){20.0, 0.0, 1.0, 0.0});
-    res.newparts.rfoot = v4_add(res.newparts.hip, (v4_t){45.0, -130.0, 1.0, 0.0});
-
-    res.lfp = res.newparts.lfoot;
-    res.rfp = res.newparts.rfoot;
 
     return res;
 }
 
 void zombie_update(zombie_t* zombie, float lighta, float dir, v4_t pos)
 {
-    v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(zombie->newparts.hip), v4_xyz(zombie->newparts.neck))), dir);
+    v4_t rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(zombie->newparts.hip), v4_xyz(zombie->newparts.neck))), dir);
 
     v4_t ldir = v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.2);
     v4_t rdir = v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.2);
 
-    float feetdist = v3_length(v4_xyz(v4_sub(zombie->newparts.lfoot, zombie->newparts.rfoot))) / 10.0;
+    v4_t hipv  = (v4_t){0.0, 120.0, 0.0, dir};
+    v3_t headv = v4_xyz(v4_sub(zombie_parts.head, zombie_parts.hip));
+    v3_t neckv = v4_xyz(v4_sub(zombie_parts.neck, zombie_parts.hip));
 
-    v4_t hipv = (v4_t){0.0, 120.0, 0.0, dir};
+    v3_t rsholv = v4_xyz(v4_sub(zombie_parts.rshol, zombie_parts.hip));
+    v3_t relbov = v4_xyz(v4_sub(zombie_parts.relbo, zombie_parts.hip));
+    v3_t rhndv  = v4_xyz(v4_sub(zombie_parts.rhand, zombie_parts.hip));
 
-    v4_t headv = v4_sub(zombie_parts.head, zombie_parts.hip);
+    v3_t lhndv  = v4_xyz(v4_sub(zombie_parts.lhand, zombie_parts.hip));
+    v3_t lsholv = v4_xyz(v4_sub(zombie_parts.lshol, zombie_parts.hip));
+    v3_t lelbov = v4_xyz(v4_sub(zombie_parts.lelbo, zombie_parts.hip));
 
-    headv.w = 0.0;
+    v3_t rlegv  = v4_xyz(v4_sub(zombie_parts.rleg, zombie_parts.hip));
+    v3_t rkneev = v4_xyz(v4_sub(zombie_parts.rknee, zombie_parts.hip));
+
+    v3_t llegv  = v4_xyz(v4_sub(zombie_parts.lleg, zombie_parts.hip));
+    v3_t lkneev = v4_xyz(v4_sub(zombie_parts.lknee, zombie_parts.hip));
+
     headv.z += sinf(lighta) * 5.0;
-
-    v4_t neckv = v4_sub(zombie_parts.neck, zombie_parts.hip);
     neckv.z += cosf(lighta) * 5.0;
-    neckv.w = 0.0;
 
-    v4_t rsholv = v4_sub(zombie_parts.rshol, zombie_parts.hip);
-    rsholv      = v4_xyzw(quat_rotate(back_rot, v4_xyz(rsholv)));
+    rsholv = quat_rotate(rot, rsholv);
     rsholv.z += cosf(lighta) * 5.0;
-    rsholv.w = 0.0;
-
-    v4_t relbov = v4_sub(zombie_parts.relbo, zombie_parts.hip);
-    relbov      = v4_xyzw(quat_rotate(back_rot, v4_xyz(relbov)));
-    relbov.w    = 0.0;
-
-    v4_t rhndv = v4_sub(zombie_parts.rhand, zombie_parts.hip);
+    relbov = quat_rotate(rot, relbov);
     rhndv.z += sinf(lighta) * 20.0;
     rhndv.y += sinf(lighta) * 20.0;
-    rhndv.w = 0.0;
 
-    v4_t lhndv = v4_sub(zombie_parts.lhand, zombie_parts.hip);
+    lsholv = quat_rotate(rot, lsholv);
+    lsholv.z += cosf(lighta) * 5.0;
+    lelbov = quat_rotate(rot, lelbov);
+    lelbov.z += cosf(lighta) * 5.0;
     lhndv.z += sinf(lighta) * 20.0;
     lhndv.y += sinf(lighta) * 20.0;
-    lhndv.w = 0.0;
 
-    v4_t lsholv = v4_sub(zombie_parts.lshol, zombie_parts.hip);
-    lsholv      = v4_xyzw(quat_rotate(back_rot, v4_xyz(lsholv)));
-    lsholv.z += cosf(lighta) * 5.0;
-    lsholv.w = 0.0;
+    rlegv  = quat_rotate(rot, rlegv);
+    rkneev = quat_rotate(rot, rkneev);
 
-    v4_t lelbov = v4_sub(zombie_parts.lelbo, zombie_parts.hip);
-    lelbov      = v4_xyzw(quat_rotate(back_rot, v4_xyz(lelbov)));
-    lelbov.z += cosf(lighta) * 5.0;
-    lelbov.w = 0.0;
+    llegv  = quat_rotate(rot, llegv);
+    lkneev = quat_rotate(rot, lkneev);
 
-    v4_t rlegv = v4_sub(zombie_parts.rleg, zombie_parts.hip);
-    rlegv      = v4_xyzw(quat_rotate(back_rot, v4_xyz(rlegv)));
-    rlegv.w    = 0.0;
+    zombie->newparts.hip  = v4_add(pos, hipv);
+    zombie->newparts.head = v4_add(zombie->newparts.hip, v4_xyzw(headv));
+    zombie->newparts.neck = v4_add(zombie->newparts.hip, v4_xyzw(neckv));
 
-    v4_t rkneev = v4_sub(zombie_parts.rknee, zombie_parts.hip);
-    rkneev      = v4_xyzw(quat_rotate(back_rot, v4_xyz(rkneev)));
-    rkneev.w    = 0.0;
+    zombie->newparts.rshol = v4_add(zombie->newparts.hip, v4_xyzw(rsholv));
+    zombie->newparts.relbo = v4_add(zombie->newparts.hip, v4_xyzw(relbov));
+    zombie->newparts.rhand = v4_add(zombie->newparts.hip, v4_xyzw(rhndv));
 
-    v4_t llegv = v4_sub(zombie_parts.lleg, zombie_parts.hip);
-    llegv      = v4_xyzw(quat_rotate(back_rot, v4_xyz(llegv)));
-    llegv.w    = 0.0;
+    zombie->newparts.lshol = v4_add(zombie->newparts.hip, v4_xyzw(lsholv));
+    zombie->newparts.lelbo = v4_add(zombie->newparts.hip, v4_xyzw(lelbov));
+    zombie->newparts.lhand = v4_add(zombie->newparts.hip, v4_xyzw(lhndv));
 
-    v4_t lkneev = v4_sub(zombie_parts.lknee, zombie_parts.hip);
-    lkneev      = v4_xyzw(quat_rotate(back_rot, v4_xyz(lkneev)));
-    lkneev.w    = 0.0;
-
-    zombie->newparts.hip   = v4_add(pos, hipv);
-    zombie->newparts.head  = v4_add(zombie->newparts.hip, headv);
-    zombie->newparts.neck  = v4_add(zombie->newparts.hip, neckv);
-    zombie->newparts.lshol = v4_add(zombie->newparts.hip, lsholv);
-    zombie->newparts.lelbo = v4_add(zombie->newparts.hip, lelbov);
-    zombie->newparts.lhand = v4_add(zombie->newparts.hip, lhndv);
-    zombie->newparts.rshol = v4_add(zombie->newparts.hip, rsholv);
-    zombie->newparts.relbo = v4_add(zombie->newparts.hip, relbov);
-    zombie->newparts.rhand = v4_add(zombie->newparts.hip, rhndv);
-    zombie->newparts.lleg  = v4_add(zombie->newparts.hip, llegv);
-    zombie->newparts.rleg  = v4_add(zombie->newparts.hip, rlegv);
-    zombie->newparts.lknee = v4_add(zombie->newparts.hip, lkneev);
-    zombie->newparts.rknee = v4_add(zombie->newparts.hip, rkneev);
-    zombie->newparts.lfoot = v4_add(zombie->newparts.lfoot, ldir);
+    zombie->newparts.rleg  = v4_add(zombie->newparts.hip, v4_xyzw(rlegv));
+    zombie->newparts.rknee = v4_add(zombie->newparts.hip, v4_xyzw(rkneev));
     zombie->newparts.rfoot = v4_add(zombie->newparts.rfoot, rdir);
+
+    zombie->newparts.lleg  = v4_add(zombie->newparts.hip, v4_xyzw(llegv));
+    zombie->newparts.lknee = v4_add(zombie->newparts.hip, v4_xyzw(lkneev));
+    zombie->newparts.lfoot = v4_add(zombie->newparts.lfoot, ldir);
 
     // move lfoot and rfoot towards pivots, move other points according to these positions
 
@@ -226,9 +202,25 @@ void zombie_update(zombie_t* zombie, float lighta, float dir, v4_t pos)
 	    zombie->newparts.lfoot}};
 }
 
-void zombie_ragdoll()
+void zombie_ragdoll(zombie_t* zombie)
 {
-    // setup distance resolvers according to current positions
+    // crate mass points from model points
+
+    int      point_count = sizeof(zombie_parts) / sizeof(v4_t);
+    v4_t*    points      = (v4_t*) &zombie->newparts;
+    mass_t** masses      = mt_memory_calloc(sizeof(mass_t*) * point_count, NULL, NULL);
+
+    for (int i = 0; i < point_count; i++)
+    {
+	v4_t point = points[i];
+	masses[i]  = mass_alloc(v4_xyz(point), 5.0, 1.0, 1.0);
+    }
+
+    // create distance resolvers
+
+    dres_t** dresarr = mt_memory_calloc(sizeof(dres_t*) * 12, NULL, NULL);
+
+    dresarr[0] = dres_alloc(masses[0], masses[1], v3_length(v4_xyz(v4_sub(points[1], points[0]))), 1.0);
 }
 
 #endif
