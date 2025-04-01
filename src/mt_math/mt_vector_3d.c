@@ -30,6 +30,7 @@ void  v3_toarray(v3_t* vector, float* result);
 float v3_distance(v3_t vectorA, v3_t vectorB);
 
 float v3_distance_line(v3_t vector, v3_t lineA, v3_t lineB);
+void  v3_log(v3_t a);
 
 #endif
 #if __INCLUDE_LEVEL__ == 0
@@ -297,6 +298,11 @@ float v3_distance_line(v3_t vector, v3_t lineA, v3_t lineB)
     v3_t cross = v3_cross(ba, bc);
     // printf("cross %.2f %.2f %.2f %f %f\n", cross.x, cross.y, cross.z, v3_length(cross), v3_length(bc));
     return v3_length(cross) / v3_length(bc);
+}
+
+void v3_log(v3_t a)
+{
+    printf("%.3f %.3f %.3f\n", a.x, a.y, a.z);
 }
 
 #endif

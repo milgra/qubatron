@@ -56,9 +56,11 @@ struct stck_t
     int  docti;   // dynamic cube octets index for stack level
 };
 
+#define FLT_MAX 3.402823466e+38
+
 vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
 {
-    vec4 r = vec4(0.0);
+    vec4 r = vec4(FLT_MAX);
     if (lv.x != 0.0)
     {
 	r.w = (x - lp.x) / lv.x;
@@ -71,7 +73,7 @@ vec4 is_cube_xplane(float x, vec3 lp, vec3 lv)
 
 vec4 is_cube_yplane(float y, vec3 lp, vec3 lv)
 {
-    vec4 r = vec4(0.0);
+    vec4 r = vec4(FLT_MAX);
     if (lv.y != 0.0)
     {
 	r.w = (y - lp.y) / lv.y;
@@ -84,7 +86,7 @@ vec4 is_cube_yplane(float y, vec3 lp, vec3 lv)
 
 vec4 is_cube_zplane(float z, vec3 lp, vec3 lv)
 {
-    vec4 r = vec4(0.0);
+    vec4 r = vec4(FLT_MAX);
     if (lv.z != 0.0)
     {
 	r.w = (z - lp.z) / lv.z;

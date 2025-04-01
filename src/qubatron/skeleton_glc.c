@@ -50,6 +50,7 @@ typedef struct skeleton_glc_t
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
+void           skeleton_glc_init_ragdoll(skeleton_glc_t* cc);
 void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, size_t size);
 void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t octsize, size_t nrmsize);
@@ -301,6 +302,11 @@ void skeleton_glc_move(skeleton_glc_t* cc, int dir)
     {
 	cc->back = 1;
     }
+}
+
+void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
+{
+    zombie_init_ragdoll(&cc->zombie);
 }
 
 #endif

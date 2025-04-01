@@ -49,6 +49,7 @@ typedef struct _zombie_t
 
 zombie_t       zombie_init();
 void           zombie_update(zombie_t* zombie, octree_t* statoctr, float langle, float dir, v4_t pos);
+void           zombie_init_ragdoll(zombie_t* zombie);
 
 #endif
 
@@ -73,11 +74,11 @@ zombie_parts_t zombie_parts = {
 
     .rleg  = (v4_t){68.0, 110.0, 26.0, 20.0},
     .rknee = (v4_t){80.0, 60.0, 26.0, 26.0},
-    .rfoot = (v4_t){92.0, -10.0, 17.0, 8.0},
+    .rfoot = (v4_t){92.0, 10.0, 17.0, 8.0},
 
     .lleg  = (v4_t){45.0, 120.0, 26.0, 20.0},
     .lknee = (v4_t){25.0, 60.0, 26.0, 26.0},
-    .lfoot = (v4_t){19.0, -10.0, 17.0, 8.0}
+    .lfoot = (v4_t){19.0, 10.0, 17.0, 8.0}
 
 };
 
@@ -123,7 +124,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 	v4_t ldir = v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.2);
 	v4_t rdir = v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.2);
 
-	v4_t hipv  = (v4_t){0.0, 120.0, 0.0, dir};
+	v4_t hipv  = (v4_t){0.0, 140.0, 0.0, dir};
 	v3_t headv = v4_xyz(v4_sub(zombie_parts.head, zombie_parts.hip));
 	v3_t neckv = v4_xyz(v4_sub(zombie_parts.neck, zombie_parts.hip));
 
@@ -188,6 +189,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 	// update masses
 
 	int point_count = sizeof(zombie_parts) / sizeof(v4_t);
+	point_count     = 1;
 
 	for (int i = 0; i < point_count; i++)
 	{
@@ -197,23 +199,53 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 
 	// update distance resolvers
 
-	for (int i = 0; i < 14; i++)
-	{
-	    dres_update(zombie->dreses[i], 1.0);
-	}
+	/* for (int i = 0; i < 14; i++) */
+	/* { */
+	/*     dres_update(zombie->dreses[i], 1.0); */
+	/* } */
 
 	// check collosion
 
 	for (int i = 0; i < point_count; i++)
 	{
-	    // get intersection point of level and mass point trajectory
-	    v4_t topleft;
-	    int  orind = octree_trace_line(statoctr, zombie->masses[i]->trans, zombie->masses[i]->basis, &topleft);
+	    // first check if movement vector crosses the level somewhere
+	    v4_t topleft = {0};
+	    int  orind   = octree_trace_line(statoctr, zombie->masses[i]->trans, zombie->masses[i]->basis, &topleft);
 
 	    if (orind > 0)
 	    {
-		// check if intersection happens in this step
+		// move back mass to intersection point and mirror
 	    }
+	    else
+	    {
+		// no intersection of movement
+		// check proximity of level voxels from mass center
+
+		// check all three axises
+		int xind = octree_trace_line(statoctr, zombie->masses[i]->trans, (v3_t){1.0, 0.0, 0.0}, &topleft);
+		int yind = octree_trace_line(statoctr, zombie->masses[i]->trans, (v3_t){0.0, 1.0, 0.0}, &topleft);
+		int zind = octree_trace_line(statoctr, zombie->masses[i]->trans, (v3_t){0.0, 0.0, 1.0}, &topleft);
+
+		// in case of intersection move back mass to intersection point and mirror
+	    }
+
+	    /* v3_t ptoi = v3_sub(v4_xyz(topleft), zombie->masses[i]->trans); */
+	    /* float dot  = v3_dot(v3_normalize(zombie->masses[i]->basis), v3_normalize(ptoi)); */
+
+	    /* v3_log(zombie->masses[i]->basis); */
+	    /* v3_log(ptoi); */
+	    /* mt_log_debug("dot %f", dot); */
+
+	    /* if (dot > 0.0) */
+	    /* { */
+	    /*     float dist = v3_length(ptoi); */
+
+	    /*     /\* mt_log_debug("ORI %i DST %f", orind, dist); *\/ */
+	    /*     if (dist < 10.0) */
+	    /*     { */
+	    /* 	zombie->masses[i]->basis.y = 11.0; */
+	    /*     } */
+	    /* } */
 	}
 
 	// finally do movement
@@ -261,6 +293,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 
 void zombie_init_ragdoll(zombie_t* zombie)
 {
+    zombie->mode = 1;
     // crate mass points from model points
 
     int      point_count = sizeof(zombie_parts) / sizeof(v4_t);
@@ -270,31 +303,31 @@ void zombie_init_ragdoll(zombie_t* zombie)
     for (int i = 0; i < point_count; i++)
     {
 	v4_t point = points[i];
-	masses[i]  = mass_alloc(v4_xyz(point), 5.0, 1.0, 1.0);
+	masses[i]  = mass_alloc(v4_xyz(point), 15.0, 1.0, 0.95);
     }
 
     // create distance resolvers
 
     dres_t** dreses = mt_memory_calloc(sizeof(dres_t*) * 14, NULL, NULL);
 
-    dreses[0] = dres_alloc(masses[0], masses[1], 1.0); // head to neck
-    dreses[1] = dres_alloc(masses[1], masses[2], 1.0); // neck to hip
+    dreses[0] = dres_alloc(masses[0], masses[1], 0.9); // head to neck
+    dreses[1] = dres_alloc(masses[1], masses[2], 0.9); // neck to hip
 
-    dreses[2] = dres_alloc(masses[1], masses[3], 1.0); // neck to rshoulder
-    dreses[3] = dres_alloc(masses[3], masses[4], 1.0); // rshoulder to relbow
-    dreses[4] = dres_alloc(masses[4], masses[5], 1.0); // relbow to rhand
+    dreses[2] = dres_alloc(masses[1], masses[3], 0.9); // neck to rshoulder
+    dreses[3] = dres_alloc(masses[3], masses[4], 0.9); // rshoulder to relbow
+    dreses[4] = dres_alloc(masses[4], masses[5], 0.9); // relbow to rhand
 
-    dreses[5] = dres_alloc(masses[1], masses[6], 1.0); // neck to lshoulder
-    dreses[6] = dres_alloc(masses[6], masses[7], 1.0); // lshoulder to lelbow
-    dreses[7] = dres_alloc(masses[7], masses[8], 1.0); // lelbow to rhand
+    dreses[5] = dres_alloc(masses[1], masses[6], 0.9); // neck to lshoulder
+    dreses[6] = dres_alloc(masses[6], masses[7], 0.9); // lshoulder to lelbow
+    dreses[7] = dres_alloc(masses[7], masses[8], 0.9); // lelbow to rhand
 
-    dreses[8]  = dres_alloc(masses[2], masses[9], 1.0);   // hip to rleg
-    dreses[9]  = dres_alloc(masses[9], masses[10], 1.0);  // rleg to rknee
-    dreses[10] = dres_alloc(masses[10], masses[11], 1.0); // rknee to rfoot
+    dreses[8]  = dres_alloc(masses[2], masses[9], 0.9);   // hip to rleg
+    dreses[9]  = dres_alloc(masses[9], masses[10], 0.9);  // rleg to rknee
+    dreses[10] = dres_alloc(masses[10], masses[11], 0.9); // rknee to rfoot
 
-    dreses[11] = dres_alloc(masses[2], masses[12], 1.0);  // hip to lleg
-    dreses[12] = dres_alloc(masses[12], masses[13], 1.0); // lleg to lknee
-    dreses[13] = dres_alloc(masses[13], masses[14], 1.0); // lknee to lfoot
+    dreses[11] = dres_alloc(masses[2], masses[12], 0.9);  // hip to lleg
+    dreses[12] = dres_alloc(masses[12], masses[13], 0.9); // lleg to lknee
+    dreses[13] = dres_alloc(masses[13], masses[14], 0.9); // lknee to lfoot
 
     zombie->masses = masses;
     zombie->dreses = dreses;

@@ -6,6 +6,7 @@
 #include "mt_vector_3d.c"
 #include "mt_vector_4d.c"
 #include <GL/glew.h>
+#include <float.h>
 
 typedef struct octets_t
 {
@@ -258,7 +259,7 @@ typedef struct _stck_t
 
 v4_t is_cube_xplane(float x, v3_t lp, v3_t lv)
 {
-    v4_t r = (v4_t){0.0};
+    v4_t r = (v4_t){0.0, 0.0, 0.0, FLT_MAX};
     if (lv.x != 0.0)
     {
 	r.w = (x - lp.x) / lv.x;
@@ -271,7 +272,7 @@ v4_t is_cube_xplane(float x, v3_t lp, v3_t lv)
 
 v4_t is_cube_yplane(float y, v3_t lp, v3_t lv)
 {
-    v4_t r = (v4_t){0.0};
+    v4_t r = (v4_t){0.0, 0.0, 0.0, FLT_MAX};
     if (lv.y != 0.0)
     {
 	r.w = (y - lp.y) / lv.y;
@@ -284,7 +285,7 @@ v4_t is_cube_yplane(float y, v3_t lp, v3_t lv)
 
 v4_t is_cube_zplane(float z, v3_t lp, v3_t lv)
 {
-    v4_t r = (v4_t){0.0};
+    v4_t r = (v4_t){0.0, 0.0, 0.0, FLT_MAX};
     if (lv.z != 0.0)
     {
 	r.w = (z - lp.z) / lv.z;
@@ -314,32 +315,32 @@ int octree_trace_line(octree_t* tree, v3_t pos, v3_t dir, v4_t* otlf)
 
     // front side
     act = is_cube_zplane(tlf.z, pos, dir);
-    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
+    if (act.w < FLT_MAX && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
 	hitp[hitc++] = act;
 
     // back side
     act = is_cube_zplane(brb.z, pos, dir);
-    if (tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
+    if (act.w < FLT_MAX && tlf.x < act.x && act.x <= brb.x && tlf.y > act.y && act.y >= brb.y)
 	hitp[hitc++] = act;
 
     // left side
     act = is_cube_xplane(tlf.x, pos, dir);
-    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
+    if (act.w < FLT_MAX && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
 	hitp[hitc++] = act;
 
     // right side
     act = is_cube_xplane(brb.x, pos, dir);
-    if (tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
+    if (act.w < FLT_MAX && tlf.y > act.y && act.y >= brb.y && tlf.z > act.z && act.z >= brb.z)
 	hitp[hitc++] = act;
 
     // top side
     act = is_cube_yplane(tlf.y, pos, dir);
-    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
+    if (act.w < FLT_MAX && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
 	hitp[hitc++] = act;
 
     // bottom side
     act = is_cube_yplane(brb.y, pos, dir);
-    if (tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
+    if (act.w < FLT_MAX && tlf.x < act.x && act.x <= brb.x && tlf.z > act.z && act.z >= brb.z)
 	hitp[hitc++] = act;
 
     // we don't deal with the outside world
