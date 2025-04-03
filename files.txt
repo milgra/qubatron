@@ -20,6 +20,7 @@ src/qubatron/renderconn.c
 src/qubatron/model.c
 src/mt_math/mt_vector_2d.c
 src/mt_math/mt_math_2d.c
+src/mt_math/mt_line_3d.c
 src/mt_math/mt_matrix_4d.c
 src/mt_math/mt_vector_4d.c
 src/mt_math/mt_math_3d.c

@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "model.c"
+#include "mt_line_3d.c"
 #include "mt_memory.c"
 #include "mt_quat.c"
 #include "mt_vector_4d.c"
@@ -47,11 +49,12 @@ typedef struct skeleton_glc_t
     float angle;
 
     int frontleg;
+    int ragdoll;
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
 void           skeleton_glc_init_ragdoll(skeleton_glc_t* cc);
-void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, int model_count, int maxlevel, float basesize);
+void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, size_t size);
 void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t octsize, size_t nrmsize);
 
@@ -129,20 +132,7 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     return cc;
 }
 
-// A line point 0
-// B line point 1
-// C point to project
-
-v3_t skeleton_glc_project_point(v3_t A, v3_t B, v3_t C)
-{
-    v3_t  AC      = v3_sub(C, A);
-    v3_t  AB      = v3_sub(B, A);
-    float dotACAB = v3_dot(AC, AB);
-    float dotABAB = v3_dot(AB, AB);
-    return v3_add(A, v3_scale(AB, dotACAB / dotABAB));
-}
-
-void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, int model_count, int maxlevel, float basesize)
+void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize)
 {
     // update body parts
 
@@ -165,8 +155,8 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, i
 
     // project left foot and right foot onto direction vector, if dir vector surpasses the active foot, step
 
-    v3_t lfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.lfp));
-    v3_t rfoot_prjp = skeleton_glc_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.rfp));
+    v3_t lfoot_prjp = l3_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.lfp));
+    v3_t rfoot_prjp = l3_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.rfp));
 
     v3_t lfd = v3_sub(lfoot_prjp, v4_xyz(front_piv)); // left foot distance
     v3_t rfd = v3_sub(rfoot_prjp, v4_xyz(front_piv)); // right foot distance
@@ -207,7 +197,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, float lighta, i
 	}
     }
 
-    zombie_update(&cc->zombie, statoctr, lighta, cc->angle, cc->pos);
+    zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos);
 
     // switch off fragment stage
 
@@ -306,7 +296,16 @@ void skeleton_glc_move(skeleton_glc_t* cc, int dir)
 
 void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
 {
-    zombie_init_ragdoll(&cc->zombie);
+    if (cc->ragdoll == 0)
+    {
+	zombie_init_ragdoll(&cc->zombie);
+    }
+    else
+    {
+	zombie_init_walk(&cc->zombie);
+    }
+
+    cc->ragdoll = 1 - cc->ragdoll;
 }
 
 #endif

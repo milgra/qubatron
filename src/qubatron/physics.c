@@ -116,7 +116,7 @@ void dres_update(dres_t* dguard, float ratio)
 
     float delta = v3_length(connector) - dguard->distance;
 
-    if (dguard->elasticity > 0.0) delta /= dguard->elasticity;
+    if (dguard->elasticity > 0.0) delta *= dguard->elasticity;
 
     assert(!isinf(delta));
 

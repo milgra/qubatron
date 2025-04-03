@@ -1,6 +1,8 @@
 #ifndef zombie_h
 #define zombie_h
 
+#include "model.c"
+#include "mt_line_3d.c"
 #include "mt_quat.c"
 #include "mt_vector_4d.c"
 #include "octree.c"
@@ -48,8 +50,9 @@ typedef struct _zombie_t
 } zombie_t;
 
 zombie_t       zombie_init();
-void           zombie_update(zombie_t* zombie, octree_t* statoctr, float langle, float dir, v4_t pos);
+void           zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float dir, v4_t pos);
 void           zombie_init_ragdoll(zombie_t* zombie);
+void           zombie_init_walk(zombie_t* zombie);
 
 #endif
 
@@ -115,7 +118,7 @@ zombie_t zombie_init()
     return res;
 }
 
-void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir, v4_t pos)
+void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float dir, v4_t pos)
 {
     if (zombie->mode == 0) // walk
     {
@@ -124,7 +127,10 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 	v4_t ldir = v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.2);
 	v4_t rdir = v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.2);
 
-	v4_t hipv  = (v4_t){0.0, 140.0, 0.0, dir};
+	ldir.y += 2.0;
+	rdir.y += 2.0;
+
+	v4_t hipv  = (v4_t){0.0, 120.0, 0.0, dir};
 	v3_t headv = v4_xyz(v4_sub(zombie_parts.head, zombie_parts.hip));
 	v3_t neckv = v4_xyz(v4_sub(zombie_parts.neck, zombie_parts.hip));
 
@@ -189,70 +195,104 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 	// update masses
 
 	int point_count = sizeof(zombie_parts) / sizeof(v4_t);
-	point_count     = 1;
+
+	// add gravity to basis
 
 	for (int i = 0; i < point_count; i++)
-	{
-	    // add gravity to basis
 	    zombie->masses[i]->basis = v3_add(zombie->masses[i]->basis, (v3_t){0.0, -1.0, 0.0});
-	}
 
 	// update distance resolvers
 
-	/* for (int i = 0; i < 14; i++) */
-	/* { */
-	/*     dres_update(zombie->dreses[i], 1.0); */
-	/* } */
+	for (int i = 0; i < 18; i++)
+	    dres_update(zombie->dreses[i], 1.0);
 
 	// check collosion
 
 	for (int i = 0; i < point_count; i++)
 	{
-	    // first check if movement vector crosses the level somewhere
-	    v4_t topleft = {0};
-	    int  orind   = octree_trace_line(statoctr, zombie->masses[i]->trans, zombie->masses[i]->basis, &topleft);
+	    v4_t  batl, x1tl, x2tl, y1tl, y2tl, z1tl, z2tl;
+	    float balen = 100.0, x1len = 100.0, x2len = 100.0, y1len = 100.0, y2len = 100.0, z1len = 100.0, z2len = 100.0;
 
-	    if (orind > 0)
+	    v3_t currtrans = zombie->masses[i]->trans;
+	    v3_t nexttrans = v3_add(currtrans, zombie->masses[i]->basis);
+
+	    int baind = octree_trace_line(statoctr, currtrans, zombie->masses[i]->basis, &batl); // basis intersection
+
+	    int x1ind = octree_trace_line(statoctr, nexttrans, (v3_t){10.0, 0.0, 0.0}, &x1tl); // horizotnal dirs
+	    int x2ind = octree_trace_line(statoctr, nexttrans, (v3_t){-10.0, 0.0, 0.0}, &x2tl);
+
+	    int y1ind = octree_trace_line(statoctr, nexttrans, (v3_t){0.0, 10.0, 0.0}, &y1tl); // vertical dirs
+	    int y2ind = octree_trace_line(statoctr, nexttrans, (v3_t){0.0, -10.0, 0.0}, &y2tl);
+
+	    int z1ind = octree_trace_line(statoctr, nexttrans, (v3_t){0.0, 0.0, 10.0}, &z1tl); // depth dirs
+	    int z2ind = octree_trace_line(statoctr, nexttrans, (v3_t){0.0, 0.0, -10.0}, &z2tl);
+
+	    if (baind > 0) balen = v3_length(v3_sub(v4_xyz(batl), currtrans));
+	    if (x1ind > 0) x1len = v3_length(v3_sub(v4_xyz(x1tl), nexttrans));
+	    if (x2ind > 0) x2len = v3_length(v3_sub(v4_xyz(x2tl), nexttrans));
+	    if (y1ind > 0) y1len = v3_length(v3_sub(v4_xyz(y1tl), nexttrans));
+	    if (y2ind > 0) y2len = v3_length(v3_sub(v4_xyz(y2tl), nexttrans));
+	    if (z1ind > 0) z1len = v3_length(v3_sub(v4_xyz(z1tl), nexttrans));
+	    if (z2ind > 0) z2len = v3_length(v3_sub(v4_xyz(z2tl), nexttrans));
+
+	    int collosion = 0;
+
+	    if (balen < v3_length(zombie->masses[i]->basis)) // movement bases goes through obstacle
 	    {
-		// move back mass to intersection point and mirror
+		// mirror basis on normal
+
+		v3_t normal = (v3_t){
+		    statmod->normals[baind * 3],
+		    statmod->normals[baind * 3 + 1],
+		    statmod->normals[baind * 3 + 2]};
+
+		// project basis negate onto normal
+
+		v3_t newbasis            = v3_scale(zombie->masses[i]->basis, -1.0);
+		v3_t onnormal            = l3_project_point((v3_t){0.0, 0.0, 0.0}, normal, newbasis);
+		newbasis                 = v3_add(onnormal, v3_sub(onnormal, newbasis));
+		zombie->masses[i]->basis = v3_scale(newbasis, 0.8);
+		collosion                = 1;
 	    }
-	    else
+	    else if (x1len < 20.0 || x2len < 20.0 || y1len < 20.0 || y2len < 20.0 || z1len < 20.0 || z2len < 20.0) // radius intersection
 	    {
-		// no intersection of movement
-		// check proximity of level voxels from mass center
+		/* mt_log_debug("RADIUS IS %.2f %.2f %.2f %.2f %.2f %.2f", x1len, x2len, y1len, y2len, z1len, z2len); */
 
-		// check all three axises
-		int xind = octree_trace_line(statoctr, zombie->masses[i]->trans, (v3_t){1.0, 0.0, 0.0}, &topleft);
-		int yind = octree_trace_line(statoctr, zombie->masses[i]->trans, (v3_t){0.0, 1.0, 0.0}, &topleft);
-		int zind = octree_trace_line(statoctr, zombie->masses[i]->trans, (v3_t){0.0, 0.0, 1.0}, &topleft);
+		int   indarr[6] = {x1ind, x2ind, y1ind, y2ind, z1ind, z2ind};
+		float lenarr[6] = {x1len, x2len, y1len, y2len, z1len, z2len};
 
-		// in case of intersection move back mass to intersection point and mirror
+		v3_t newbasis = (v3_t){0.0, 0.0, 0.0};
+
+		for (int j = 0; j < 6; j++)
+		{
+		    if (lenarr[j] < 20.0)
+		    {
+			// mirror basis on normal
+
+			v3_t normal = (v3_t){
+			    statmod->normals[indarr[j] * 3],
+			    statmod->normals[indarr[j] * 3 + 1],
+			    statmod->normals[indarr[j] * 3 + 2]};
+
+			// project basis negate onto normal
+
+			v3_t antibasis = v3_scale(zombie->masses[i]->basis, -1.0);
+			v3_t onnormal  = l3_project_point((v3_t){0.0, 0.0, 0.0}, normal, antibasis);
+			if (newbasis.x == 0.0 && newbasis.y == 0.0 && newbasis.z == 0.0)
+			    newbasis = v3_add(onnormal, v3_sub(onnormal, antibasis));
+			else
+			    newbasis = v3_scale(v3_add(newbasis, v3_add(onnormal, v3_sub(onnormal, antibasis))), 0.5);
+		    }
+		}
+
+		zombie->masses[i]->basis = v3_scale(newbasis, 0.6);
+		collosion                = 1;
 	    }
 
-	    /* v3_t ptoi = v3_sub(v4_xyz(topleft), zombie->masses[i]->trans); */
-	    /* float dot  = v3_dot(v3_normalize(zombie->masses[i]->basis), v3_normalize(ptoi)); */
+	    // do movement if no collosion
 
-	    /* v3_log(zombie->masses[i]->basis); */
-	    /* v3_log(ptoi); */
-	    /* mt_log_debug("dot %f", dot); */
-
-	    /* if (dot > 0.0) */
-	    /* { */
-	    /*     float dist = v3_length(ptoi); */
-
-	    /*     /\* mt_log_debug("ORI %i DST %f", orind, dist); *\/ */
-	    /*     if (dist < 10.0) */
-	    /*     { */
-	    /* 	zombie->masses[i]->basis.y = 11.0; */
-	    /*     } */
-	    /* } */
-	}
-
-	// finally do movement
-
-	for (int i = 0; i < point_count; i++)
-	{
-	    zombie->masses[i]->trans = v3_add(zombie->masses[i]->trans, zombie->masses[i]->basis);
+	    if (collosion == 0)
+		zombie->masses[i]->trans = v3_add(zombie->masses[i]->trans, zombie->masses[i]->basis);
 	}
 
 	// update newparts based on masspoints
@@ -261,8 +301,14 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, float lighta, float dir
 
 	for (int i = 0; i < point_count; i++)
 	{
-	    points[i] = v4_xyzw(zombie->masses[i]->trans);
+	    points[i]   = v4_xyzw(zombie->masses[i]->trans);
+	    points[i].w = dir;
 	}
+
+	points[1]   = v4_add(points[3], v4_scale(v4_sub(points[4], points[3]), 0.5));  // static neck
+	points[2]   = v4_add(points[9], v4_scale(v4_sub(points[10], points[9]), 0.5)); // static hip
+	points[1].w = dir;
+	points[2].w = dir;
     }
 
     // move lfoot and rfoot towards pivots, move other points according to these positions
@@ -303,34 +349,47 @@ void zombie_init_ragdoll(zombie_t* zombie)
     for (int i = 0; i < point_count; i++)
     {
 	v4_t point = points[i];
-	masses[i]  = mass_alloc(v4_xyz(point), 15.0, 1.0, 0.95);
+	masses[i]  = mass_alloc(v4_xyz(point), 20.0, 1.0, 0.8);
     }
 
     // create distance resolvers
 
-    dres_t** dreses = mt_memory_calloc(sizeof(dres_t*) * 14, NULL, NULL);
+    dres_t** dreses = mt_memory_calloc(sizeof(dres_t*) * 18, NULL, NULL);
 
-    dreses[0] = dres_alloc(masses[0], masses[1], 0.9); // head to neck
-    dreses[1] = dres_alloc(masses[1], masses[2], 0.9); // neck to hip
+    dreses[0] = dres_alloc(masses[3], masses[4], 0.99);  // rshoulder to llshoulder
+    dreses[1] = dres_alloc(masses[9], masses[10], 0.99); // rleg to lleg
 
-    dreses[2] = dres_alloc(masses[1], masses[3], 0.9); // neck to rshoulder
-    dreses[3] = dres_alloc(masses[3], masses[4], 0.9); // rshoulder to relbow
-    dreses[4] = dres_alloc(masses[4], masses[5], 0.9); // relbow to rhand
+    dreses[2] = dres_alloc(masses[3], masses[9], 0.99);  // rshoulder to rleg
+    dreses[3] = dres_alloc(masses[4], masses[10], 0.99); // lshoulder to lleg
 
-    dreses[5] = dres_alloc(masses[1], masses[6], 0.9); // neck to lshoulder
-    dreses[6] = dres_alloc(masses[6], masses[7], 0.9); // lshoulder to lelbow
-    dreses[7] = dres_alloc(masses[7], masses[8], 0.9); // lelbow to rhand
+    dreses[4] = dres_alloc(masses[3], masses[10], 0.99); // rshoulder to lleg
+    dreses[5] = dres_alloc(masses[4], masses[9], 0.99);  // lshoulder to rleg
 
-    dreses[8]  = dres_alloc(masses[2], masses[9], 0.9);   // hip to rleg
-    dreses[9]  = dres_alloc(masses[9], masses[10], 0.9);  // rleg to rknee
-    dreses[10] = dres_alloc(masses[10], masses[11], 0.9); // rknee to rfoot
+    dreses[6] = dres_alloc(masses[4], masses[6], 0.99); // rshoulder to relbow
+    dreses[7] = dres_alloc(masses[6], masses[8], 0.99); // relbow to rhand
 
-    dreses[11] = dres_alloc(masses[2], masses[12], 0.9);  // hip to lleg
-    dreses[12] = dres_alloc(masses[12], masses[13], 0.9); // lleg to lknee
-    dreses[13] = dres_alloc(masses[13], masses[14], 0.9); // lknee to lfoot
+    dreses[8] = dres_alloc(masses[3], masses[5], 0.99); // lshoulder to lelbow
+    dreses[9] = dres_alloc(masses[5], masses[7], 0.99); // lelbow to lhand
+
+    dreses[10] = dres_alloc(masses[3], masses[0], 0.99); // lshoulder to head
+    dreses[11] = dres_alloc(masses[4], masses[0], 0.99); // rshoulder to head
+
+    dreses[12] = dres_alloc(masses[9], masses[0], 0.99);  // lleg to head
+    dreses[13] = dres_alloc(masses[10], masses[0], 0.99); // rleg to head
+
+    dreses[14] = dres_alloc(masses[9], masses[11], 0.99);  // lleg to lknee
+    dreses[15] = dres_alloc(masses[11], masses[13], 0.99); // lknee to lfoot
+
+    dreses[16] = dres_alloc(masses[10], masses[12], 0.99); // rleg to rknee
+    dreses[17] = dres_alloc(masses[12], masses[14], 0.99); // rknee to rfoot
 
     zombie->masses = masses;
     zombie->dreses = dreses;
+}
+
+void zombie_init_walk(zombie_t* zombie)
+{
+    zombie->mode = 0;
 }
 
 #endif

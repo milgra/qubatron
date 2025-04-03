@@ -289,6 +289,7 @@ bool main_loop(double time, void* userdata)
 	skeleton_glc_update(
 	    &quba.skelglc,
 	    &quba.statoctr,
+	    &quba.statmod,
 	    quba.lightangle,
 	    quba.dynamod.point_count,
 	    quba.dynaoctr.levels,
