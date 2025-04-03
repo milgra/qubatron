@@ -403,12 +403,12 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 		    if (octind > 0)
 		    {
-			v3_t npnt = (v3_t){statmod->vertexes[orind * 3], statmod->vertexes[orind * 3 + 1], statmod->vertexes[orind * 3 + 2]};
-			v3_t nnrm = (v3_t){statmod->normals[orind * 3], statmod->normals[orind * 3 + 1], statmod->normals[orind * 3 + 2]};
-			// v3_t ncol = (v3_t){statmod->colors[orind * 3], statmod->colors[orind * 3 + 1], statmod->colors[orind * 3 + 2]};
+			/* 	v3_t npnt = (v3_t){statmod->vertexes[orind * 3], statmod->vertexes[orind * 3 + 1], statmod->vertexes[orind * 3 + 2]}; */
+			/* 	v3_t nnrm = (v3_t){statmod->normals[orind * 3], statmod->normals[orind * 3 + 1], statmod->normals[orind * 3 + 2]}; */
+			/* 	// v3_t ncol = (v3_t){statmod->colors[orind * 3], statmod->colors[orind * 3 + 1], statmod->colors[orind * 3 + 2]}; */
 
-			cubes.arr[cx + size][cy + size][cz + size] = 2;
-			if (dx * dx + dy * dy + dz * dz > ((size - 2) * step) * ((size - 2) * step)) cubes.arr[cx + size][cy + size][cz + size] = 3;
+			/* 	cubes.arr[cx + size][cy + size][cz + size] = 2; */
+			/* 	if (dx * dx + dy * dy + dz * dz > ((size - 2) * step) * ((size - 2) * step)) cubes.arr[cx + size][cy + size][cz + size] = 3; */
 
 			if (minind == 0) minind = octind;
 			if (maxind == 0) maxind = octind;
@@ -416,25 +416,25 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 			if (octind < minind) minind = octind;
 			if (octind > maxind) maxind = octind;
 
-			// add particle to particle model
+			/* 	// add particle to particle model */
 
-			v3_t speed = (v3_t){
-			    nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-			    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-			    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-			};
-			speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+			/* 	v3_t speed = (v3_t){ */
+			/* 	    nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+			/* 	    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+			/* 	    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+			/* 	}; */
+			/* 	speed = v3_scale(speed, (float) (rand() % 1000) / 20.0); */
 
-			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
+			/* 	model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0}); */
 
-			speed = (v3_t){
-			    nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-			    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-			    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-			};
-			speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+			/* 	speed = (v3_t){ */
+			/* 	    nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+			/* 	    nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+			/* 	    nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+			/* 	}; */
+			/* 	speed = v3_scale(speed, (float) (rand() % 1000) / 20.0); */
 
-			model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0});
+			/* 	model_add_point(partmod, npnt, speed, (v3_t){1.0, 1.0, 1.0}); */
 		    }
 		}
 	    }
@@ -443,30 +443,30 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     // setup particle output buffer
 
-    particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
-    memcpy(dynamod->vertexes + dynamod->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
-    memcpy(dynamod->normals + dynamod->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
-    memcpy(dynamod->colors + dynamod->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat));
+    /* particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat)); */
+    /* memcpy(dynamod->vertexes + dynamod->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat)); */
+    /* memcpy(dynamod->normals + dynamod->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat)); */
+    /* memcpy(dynamod->colors + dynamod->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat)); */
 
-    octree_glc_upload_texbuffer_data(
-	glc,
-	dynamod->colors,                            // buffer
-	GL_FLOAT,                                   // data type
-	dynamod->point_count * sizeof(GLfloat) * 3, // size
-	sizeof(GLfloat) * 3,                        // itemsize
-	0,                                          // start offset
-	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
-	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);           // buffer type
+    /* octree_glc_upload_texbuffer_data( */
+    /* 	glc, */
+    /* 	dynamod->colors,                            // buffer */
+    /* 	GL_FLOAT,                                   // data type */
+    /* 	dynamod->point_count * sizeof(GLfloat) * 3, // size */
+    /* 	sizeof(GLfloat) * 3,                        // itemsize */
+    /* 	0,                                          // start offset */
+    /* 	dynamod->point_count * sizeof(GLfloat) * 3, // end offset */
+    /* 	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);           // buffer type */
 
-    octree_glc_upload_texbuffer_data(
-	glc,
-	dynamod->normals,                           // buffer
-	GL_FLOAT,                                   // data type
-	dynamod->point_count * sizeof(GLfloat) * 3, // size
-	sizeof(GLfloat) * 3,                        // itemsize
-	0,                                          // start offset
-	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
-	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);          // buffer type
+    /* octree_glc_upload_texbuffer_data( */
+    /* 	glc, */
+    /* 	dynamod->normals,                           // buffer */
+    /* 	GL_FLOAT,                                   // data type */
+    /* 	dynamod->point_count * sizeof(GLfloat) * 3, // size */
+    /* 	sizeof(GLfloat) * 3,                        // itemsize */
+    /* 	0,                                          // start offset */
+    /* 	dynamod->point_count * sizeof(GLfloat) * 3, // end offset */
+    /* 	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);          // buffer type */
 
     // add vertex, color and normal info to dynamic model temporarily
 
@@ -486,7 +486,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     if (minind > 0)
     {
-	mt_log_debug("delete hole, updating textbuffer");
+	mt_log_debug("delete hole, updating textbuffer, minind %i maxind %i", minind, maxind);
 
 	octree_glc_upload_texbuffer_data(
 	    glc,
@@ -494,115 +494,114 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	    GL_INT,                             // data type
 	    statoctr->len * sizeof(GLint) * 12, // size
 	    sizeof(GLint) * 4,                  // itemsize
-	    0,                                  // start offset
-	    statoctr->len * sizeof(GLint) * 12, // end offset
+	    minind * sizeof(GLint) * 12,        // start offset
+	    maxind * sizeof(GLint) * 12,        // end offset
 	    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
 
 	// hole is created, push touched circle inside wall
 
-	int minind = 0;
-	int maxind = 0;
+	/* int minind = 0; */
+	/* int maxind = 0; */
 
-	for (int cx = -size; cx < size; cx++)
-	{
-	    for (int cy = -size; cy < size; cy++)
-	    {
-		for (int cz = -size; cz < size; cz++)
-		{
-		    float dx = cx * step;
-		    float dy = cy * step;
-		    float dz = cz * step;
+	/* for (int cx = -size; cx < size; cx++) */
+	/* { */
+	/*     for (int cy = -size; cy < size; cy++) */
+	/*     { */
+	/* 	for (int cz = -size; cz < size; cz++) */
+	/* 	{ */
+	/* 	    float dx = cx * step; */
+	/* 	    float dy = cy * step; */
+	/* 	    float dz = cz * step; */
 
-		    if (cubes.arr[cx + size][cy + size][cz + size] > 1)
-		    {
-			v3_t cp = (v3_t){
-			    pnt.x + dx + nrm.x * -10.0 * step,
-			    pnt.y + dy + nrm.y * -10.0 * step,
-			    pnt.z + dz + nrm.z * -10.0 * step};
+	/* 	    if (cubes.arr[cx + size][cy + size][cz + size] > 1) */
+	/* 	    { */
+	/* 		v3_t cp = (v3_t){ */
+	/* 		    pnt.x + dx + nrm.x * -10.0 * step, */
+	/* 		    pnt.y + dy + nrm.y * -10.0 * step, */
+	/* 		    pnt.z + dz + nrm.z * -10.0 * step}; */
 
-			model_add_point(statmod, cp, nrm, col);
+	/* 		model_add_point(statmod, cp, nrm, col); */
 
-			int modind = -1;
-			octree_insert_point(
-			    statoctr,
-			    0,
-			    statmod->point_count - 1,
-			    cp,
-			    &modind);
+	/* 		int modind = -1; */
+	/* 		octree_insert_point( */
+	/* 		    statoctr, */
+	/* 		    0, */
+	/* 		    statmod->point_count - 1, */
+	/* 		    cp, */
+	/* 		    &modind); */
 
-			if (modind > -1)
-			{
-			    if (minind == 0) minind = modind;
-			    if (maxind == 0) maxind = modind;
+	/* 		if (modind > -1) */
+	/* 		{ */
+	/* 		    if (minind == 0) minind = modind; */
+	/* 		    if (maxind == 0) maxind = modind; */
 
-			    if (modind < minind) minind = modind;
-			    if (modind > maxind) maxind = modind;
-			}
+	/* 		    if (modind < minind) minind = modind; */
+	/* 		    if (modind > maxind) maxind = modind; */
+	/* 		} */
 
-			if (cubes.arr[cx + size][cy + size][cz + size] == 3)
-			{
-			    // create another layer of points
-			    v3_t cp = (v3_t){
-				pnt.x + dx + nrm.x * -5.0 * step,
-				pnt.y + dy + nrm.y * -5.0 * step,
-				pnt.z + dz + nrm.z * -5.0 * step};
+	/* 		if (cubes.arr[cx + size][cy + size][cz + size] == 3) */
+	/* 		{ */
+	/* 		    // create another layer of points */
+	/* 		    v3_t cp = (v3_t){ */
+	/* 			pnt.x + dx + nrm.x * -5.0 * step, */
+	/* 			pnt.y + dy + nrm.y * -5.0 * step, */
+	/* 			pnt.z + dz + nrm.z * -5.0 * step}; */
 
-			    model_add_point(statmod, cp, nrm, col);
+	/* 		    model_add_point(statmod, cp, nrm, col); */
 
-			    int modind = -1;
-			    octree_insert_point(
-				statoctr,
-				0,
-				statmod->point_count - 1,
-				cp,
-				&modind);
+	/* 		    int modind = -1; */
+	/* 		    octree_insert_point( */
+	/* 			statoctr, */
+	/* 			0, */
+	/* 			statmod->point_count - 1, */
+	/* 			cp, */
+	/* 			&modind); */
 
-			    if (modind > -1)
-			    {
-				if (minind == 0) minind = modind;
-				if (maxind == 0) maxind = modind;
+	/* 		    if (modind > -1) */
+	/* 		    { */
+	/* 			if (minind == 0) minind = modind; */
+	/* 			if (maxind == 0) maxind = modind; */
 
-				if (modind < minind) minind = modind;
-				if (modind > maxind) maxind = modind;
-			    }
-			}
-		    }
-		}
-	    }
-	}
-
-	// TODO PARTIAL UPLOAD
-
-	octree_glc_upload_texbuffer_data(
-	    glc,
-	    statmod->colors,                            // buffer
-	    GL_FLOAT,                                   // data type
-	    statmod->point_count * sizeof(GLfloat) * 3, // size
-	    sizeof(GLfloat) * 3,                        // itemsize
-	    0,                                          // start offset
-	    statmod->point_count * sizeof(GLfloat) * 3, // end offset
-	    OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
-
-	octree_glc_upload_texbuffer_data(
-	    glc,
-	    statmod->normals,                           // buffer
-	    GL_FLOAT,                                   // data type
-	    statmod->point_count * sizeof(GLfloat) * 3, // size
-	    sizeof(GLfloat) * 3,                        // itemsize
-	    0,                                          // start offset
-	    statmod->point_count * sizeof(GLfloat) * 3, // end offset
-	    OCTREE_GLC_BUFFER_STATIC_NORMAL);           // buffer type
-
-	octree_glc_upload_texbuffer_data(
-	    glc,
-	    statoctr->octs,                     // buffer
-	    GL_INT,                             // data type
-	    statoctr->len * sizeof(GLint) * 12, // size
-	    sizeof(GLint) * 4,                  // itemsize
-	    0,                                  // start offset
-	    statoctr->len * sizeof(GLint) * 12, // end offset
-	    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
+	/* 			if (modind < minind) minind = modind; */
+	/* 			if (modind > maxind) maxind = modind; */
+	/* 		    } */
+	/* 		} */
+	/* 	    } */
+	/* 	} */
+	/*     } */
     }
+
+    // TODO PARTIAL UPLOAD
+
+    /* octree_glc_upload_texbuffer_data( */
+    /* 	glc, */
+    /* 	statmod->colors,                            // buffer */
+    /* 	GL_FLOAT,                                   // data type */
+    /* 	statmod->point_count * sizeof(GLfloat) * 3, // size */
+    /* 	sizeof(GLfloat) * 3,                        // itemsize */
+    /* 	0,                                          // start offset */
+    /* 	statmod->point_count * sizeof(GLfloat) * 3, // end offset */
+    /* 	OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type */
+
+    /* octree_glc_upload_texbuffer_data( */
+    /* 	glc, */
+    /* 	statmod->normals,                           // buffer */
+    /* 	GL_FLOAT,                                   // data type */
+    /* 	statmod->point_count * sizeof(GLfloat) * 3, // size */
+    /* 	sizeof(GLfloat) * 3,                        // itemsize */
+    /* 	0,                                          // start offset */
+    /* 	statmod->point_count * sizeof(GLfloat) * 3, // end offset */
+    /* 	OCTREE_GLC_BUFFER_STATIC_NORMAL);           // buffer type */
+
+    /* octree_glc_upload_texbuffer_data( */
+    /* 	glc, */
+    /* 	statoctr->octs,                     // buffer */
+    /* 	GL_INT,                             // data type */
+    /* 	statoctr->len * sizeof(GLint) * 12, // size */
+    /* 	sizeof(GLint) * 4,                  // itemsize */
+    /* 	0,                                  // start offset */
+    /* 	statoctr->len * sizeof(GLint) * 12, // end offset */
+    /* 	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type */
 }
 
 void modelutil_punch_hole_dyna(
@@ -620,6 +619,9 @@ void modelutil_punch_hole_dyna(
     float oy = model->vertexes[index * 3 + 1];
     float oz = model->vertexes[index * 3 + 2];
 
+    int minind = 0;
+    int maxind = 0;
+
     int cnt = 0;
     for (int i = 0; i < model->point_count * 3; i += 3)
     {
@@ -633,22 +635,28 @@ void modelutil_punch_hole_dyna(
 
 	if (dx * dx + dy * dy + dz * dz < 10.0)
 	{
+	    if (minind == 0) minind = i;
+	    if (maxind == 0) maxind = i;
+
+	    if (i < minind) minind = i;
+	    if (i > maxind) maxind = i;
+
 	    v3_t npnt = (v3_t){tlf.x + dx, tlf.y + dy, tlf.z + dz};
 	    v3_t nnrm = (v3_t){model->normals[i], model->normals[i + 1], model->normals[i + 2]};
 	    /* v3_t ncol = (v3_t){model->colors[i], model->colors[i + 1], model->colors[i + 2]}; */
 
 	    // add particle to particle model
 
-	    v3_t speed = (v3_t){
-		nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-		nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-		nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-	    };
-	    speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+	    /* v3_t speed = (v3_t){ */
+	    /* 	nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+	    /* 	nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+	    /* 	nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0, */
+	    /* }; */
+	    /* speed = v3_scale(speed, (float) (rand() % 1000) / 20.0); */
 
-	    mt_log_debug("adding %f %f %f norm %f %f %f", npnt.x, npnt.y, npnt.z, speed.x, speed.y, speed.z);
+	    /* mt_log_debug("adding %f %f %f norm %f %f %f", npnt.x, npnt.y, npnt.z, speed.x, speed.y, speed.z); */
 
-	    model_add_point(partmod, npnt, speed, (v3_t){1.0, 0.0, 0.0});
+	    /* model_add_point(partmod, npnt, speed, (v3_t){1.0, 0.0, 0.0}); */
 
 	    model->vertexes[i]     = 0.0;
 	    model->vertexes[i + 1] = 0.0;
@@ -663,13 +671,15 @@ void modelutil_punch_hole_dyna(
 
     // setup particle output buffer
 
-    particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat));
+    /* particle_glc_alloc_out(partglc, NULL, partmod->point_count * 3 * sizeof(GLfloat)); */
 
-    memcpy(model->vertexes + model->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat));
-    memcpy(model->normals + model->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat));
-    memcpy(model->colors + model->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat));
+    /* memcpy(model->vertexes + model->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat)); */
+    /* memcpy(model->normals + model->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat)); */
+    /* memcpy(model->colors + model->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat)); */
 
     /* model->point_count += partmod->point_count; */
+
+    mt_log_debug("delete hole, updating textbuffer, minind %i maxind %i", minind, maxind);
 
     octree_glc_upload_texbuffer_data(
 	octrglc,
@@ -677,8 +687,8 @@ void modelutil_punch_hole_dyna(
 	GL_FLOAT,                                 // data type
 	model->point_count * sizeof(GLfloat) * 3, // size
 	sizeof(GLfloat) * 3,                      // itemsize
-	0,                                        // start offset
-	model->point_count * sizeof(GLfloat) * 3, // end offset
+	minind * sizeof(GLfloat) * 3,             // start offset
+	maxind * sizeof(GLfloat) * 3,             // end offset
 	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);         // buffer type
 
     octree_glc_upload_texbuffer_data(
@@ -687,8 +697,8 @@ void modelutil_punch_hole_dyna(
 	GL_FLOAT,                                 // data type
 	model->point_count * sizeof(GLfloat) * 3, // size
 	sizeof(GLfloat) * 3,                      // itemsize
-	0,                                        // start offset
-	model->point_count * sizeof(GLfloat) * 3, // end offset
+	minind * sizeof(GLfloat) * 3,             // start offset
+	maxind * sizeof(GLfloat) * 3,             // end offset
 	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);        // buffer type
 }
 

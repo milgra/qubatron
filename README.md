@@ -89,10 +89,8 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- dynamic model flickering
+- animated standup
+- combined model
 - bigger building
-- ragdoll
-- real contact with voxels
-- combined model, static octree upload speedup, handle texture sizes in glcs?
 - separate orind array for octree
 - webgl fencing
