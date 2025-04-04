@@ -430,9 +430,9 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	    // add particle to particle model
 
 	    v3_t speed = (v3_t){
-		nnrm.x + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-		nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
-		nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
+		nnrm.x + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+		nnrm.y + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+		nnrm.z + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
 	    };
 	    speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
 
@@ -509,6 +509,7 @@ void modelutil_punch_hole_dyna(
 	    if (i < minind) minind = i;
 	    if (i > maxind) maxind = i;
 
+	    v3_t npnt = (v3_t){tlf.x + dx, tlf.y + dy, tlf.z + dz};
 	    v3_t nnrm = (v3_t){model->normals[i], model->normals[i + 1], model->normals[i + 2]};
 	    v3_t ncol = (v3_t){model->colors[i], model->colors[i + 1], model->colors[i + 2]};
 
@@ -533,7 +534,7 @@ void modelutil_punch_hole_dyna(
 	    };
 	    speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
 
-	    model_add_point(partmod, (v3_t){x, y, z}, speed, ncol);
+	    model_add_point(partmod, npnt, speed, ncol);
 	}
     }
 
