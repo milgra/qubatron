@@ -163,8 +163,6 @@ void model_add_point(model_t* model, v3_t vertex, v3_t normal, v3_t color)
 	model->colors   = mt_memory_realloc(model->colors, model->buffer_count * model->comps * sizeof(GLfloat));
     }
 
-    mt_log_debug("point count %lu", model->point_count);
-
     int index = model->point_count * model->comps;
 
     model->vertexes[index]     = vertex.x;

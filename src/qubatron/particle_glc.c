@@ -102,7 +102,6 @@ particle_glc_t particle_glc_init(char* base_path)
 
 void particle_glc_update(particle_glc_t* cc, int model_count, int maxlevel, float basesize)
 {
-    mt_log_debug("UPDATE %i", model_count);
     // switch off fragment stage
 
     glEnable(GL_RASTERIZER_DISCARD);

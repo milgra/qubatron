@@ -319,12 +319,12 @@ bool main_loop(double time, void* userdata)
 		quba.octrsize,
 		quba.frames);
 
-	    for (int index = 0; index < quba.partmod.point_count; index++)
+	    for (int index = 0; index < quba.partmod.point_count * 3; index++)
 	    {
 		octree_insert_point(
 		    &quba.dynaoctr,
 		    0,
-		    quba.dynamod.point_count + index,
+		    quba.dynamod.point_count + index / 3,
 		    (v3_t){
 			quba.partmod.vertexes[index + 0],
 			quba.partmod.vertexes[index + 1],
