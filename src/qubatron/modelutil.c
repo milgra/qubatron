@@ -369,74 +369,107 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
     v3_t nrm = (v3_t){statmod->normals[index * 3], statmod->normals[index * 3 + 1], statmod->normals[index * 3 + 2]};
     v3_t col = (v3_t){statmod->colors[index * 3], statmod->colors[index * 3 + 1], statmod->colors[index * 3 + 2]};
 
-    int mini = 0;
-    int maxi = 0;
+    mt_log_debug("pnt %f %f %f", pnt.x, pnt.y, pnt.z);
 
-    int minind = 0;
-    int maxind = 0;
-    int orind  = 0;
-    int octind = 0;
+    // iterate through a subcube in the voxel grid to create the hole
+
+    int minmodi  = 0;
+    int maxmodi  = 0;
+    int minoctiu = 0; // min octet index for update
+    int maxoctiu = 0;
+    int minoctia = 0; // min octet index for append
+    int maxoctia = 0;
+
+    int octind = -1; // fucked up, modify!
     int modind = -1; // fucked up, modify!
 
     float dist = 10.0 + (float) (rand() % 50) / 5.0;
 
-    for (int i = 0; i < statmod->point_count * 3; i += 3)
+    int division = 2;
+    for (int i = 0; i < statoctr->levels - 1; i++) division *= 2;
+    float step = statoctr->basecube.w / (float) division;
+
+    for (float cx = pnt.x - dist / 2.0; cx < pnt.x + dist / 2.0; cx += step)
     {
-	float x = statmod->vertexes[i];
-	float y = statmod->vertexes[i + 1];
-	float z = statmod->vertexes[i + 2];
-
-	float dx = x - pnt.x;
-	float dy = y - pnt.y;
-	float dz = z - pnt.z;
-
-	if (dx * dx + dy * dy + dz * dz < dist)
+	for (float cy = pnt.y - dist / 2.0; cy < pnt.y + dist / 2.0; cy += step)
 	{
-	    if (mini == 0) mini = i / 3;
-	    if (maxi == 0) maxi = i / 3;
+	    for (float cz = pnt.z - dist / 2.0; cz < pnt.z + dist / 2.0; cz += step)
+	    {
+		float dx = pnt.x - cx;
+		float dy = pnt.y - cy;
+		float dz = pnt.z - cz;
 
-	    if (i < mini) mini = i / 3;
-	    if (i > maxi) maxi = i / 3;
+		if (dx * dx + dy * dy + dz * dz < (dist / 2.0) * (dist / 2.0))
+		{
+		    octind = -1;
+		    modind = -1;
+		    octind = -1;
 
-	    /* v3_t npnt = (v3_t){pnt.x + dx, pnt.y + dy, pnt.z + dz}; */
-	    v3_t nnrm = (v3_t){statmod->normals[i], statmod->normals[i + 1], statmod->normals[i + 2]};
-	    v3_t ncol = (v3_t){statmod->colors[i], statmod->colors[i + 1], statmod->colors[i + 2]};
+		    octree_remove_point(statoctr, (v3_t){pnt.x + dx, pnt.y + dy, pnt.z + dz}, &modind, &octind);
 
-	    float rat = -(dist - (dx * dx + dy * dy + dz * dz)) / 2.0;
+		    if (octind >= 0)
+		    {
+			// store min and max model and octet index for partial upload to gpu
 
-	    octree_remove_point(statoctr, (v3_t){x, y, z}, &orind, &octind);
+			if (minmodi == 0) minmodi = modind;
+			if (maxmodi == 0) maxmodi = modind;
 
-	    if (minind == 0) minind = octind;
-	    if (maxind == 0) maxind = octind;
+			if (modind < minmodi) minmodi = modind;
+			if (modind > maxmodi) maxmodi = modind;
 
-	    if (octind < minind) minind = octind;
-	    if (octind > maxind) maxind = octind;
+			if (minoctiu == 0) minoctiu = octind;
+			if (maxoctiu == 0) maxoctiu = octind;
 
-	    x += nnrm.x * rat;
-	    y += nnrm.y * rat;
-	    z += nnrm.z * rat;
+			if (octind < minoctiu) minoctiu = octind;
+			if (octind > maxoctiu) maxoctiu = octind;
 
-	    octree_insert_point(statoctr, 0, i / 3, (v3_t){x, y, z}, &modind);
+			v3_t npnt = (v3_t){pnt.x + dx, pnt.y + dy, pnt.z + dz};
+			v3_t nnrm = (v3_t){statmod->normals[modind * 3], statmod->normals[modind * 3 + 1], statmod->normals[modind * 3 + 2]};
+			v3_t ncol = (v3_t){statmod->colors[modind * 3], statmod->colors[modind * 3 + 1], statmod->colors[modind * 3 + 2]};
 
-	    if (maxind == 0) maxind = modind;
-	    if (modind > maxind) maxind = modind; // not working!!!
+			// move original points into the wall/body
 
-	    // rotate normal based on distance
+			float rat = -((dist / 2.0) * (dist / 2.0) - (dx * dx + dy * dy + dz * dz)) / (dist / 2.0);
 
-	    statmod->colors[i] += 0.1;
-	    statmod->colors[i + 1] += 0.1;
-	    statmod->colors[i + 2] += 0.1;
+			float x = pnt.x + dx + nnrm.x * rat;
+			float y = pnt.y + dy + nnrm.y * rat;
+			float z = pnt.z + dz + nnrm.z * rat;
 
-	    // add particle to particle model
+			octind = -1;
+			octree_insert_point(statoctr, 0, modind, (v3_t){x, y, z}, &octind);
 
-	    v3_t speed = (v3_t){
-		nnrm.x + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
-		nnrm.y + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
-		nnrm.z + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
-	    };
-	    speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+			if (octind > 0)
+			{
+			    // store min and max octet index again for appending
 
-	    model_add_point(partmod, (v3_t){x, y, z}, speed, ncol);
+			    if (minoctia == 0) minoctia = octind;
+			    if (maxoctia == 0) maxoctia = octind;
+
+			    if (octind < minoctia) minoctia = octind;
+			    if (octind > maxoctia) maxoctia = octind;
+			}
+
+			// add particles
+
+			// rotate normal based on distance
+
+			statmod->colors[modind * 3] += 0.1; // fuck these multipliers, use a setter inside model !!!
+			statmod->colors[modind * 3 + 1] += 0.1;
+			statmod->colors[modind * 3 + 2] += 0.1;
+
+			// add particle to particle model
+
+			v3_t speed = (v3_t){
+			    nnrm.x + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+			    nnrm.y + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+			    nnrm.z + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+			};
+			speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+
+			model_add_point(partmod, (v3_t){x, y, z}, speed, ncol);
+		    }
+		}
+	    }
 	}
     }
 
@@ -446,9 +479,11 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	GL_FLOAT,                                   // data type
 	statmod->point_count * sizeof(GLfloat) * 3, // size
 	sizeof(GLfloat) * 3,                        // itemsize
-	mini * sizeof(GLfloat) * 3,                 // start offset
-	maxi * sizeof(GLfloat) * 3,                 // end offset
+	minmodi * sizeof(GLfloat) * 3,              // start offset
+	maxmodi * sizeof(GLfloat) * 3,              // end offset
 	OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
+
+    // update updated octets
 
     octree_glc_upload_texbuffer_data(
 	glc,
@@ -456,9 +491,25 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	GL_INT,                             // data type
 	statoctr->len * sizeof(GLint) * 12, // size
 	sizeof(GLint) * 4,                  // itemsize
-	minind * sizeof(GLint) * 12,        // start offset
-	maxind * sizeof(GLint) * 12,        // end offset
+	minoctiu * sizeof(GLint) * 12,      // start offset
+	maxoctiu * sizeof(GLint) * 12,      // end offset
 	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
+
+    mt_log_debug("updates %i %i", minoctiu, maxoctiu);
+
+    // update appended octets
+
+    octree_glc_upload_texbuffer_data(
+	glc,
+	statoctr->octs,                     // buffer
+	GL_INT,                             // data type
+	statoctr->len * sizeof(GLint) * 12, // size
+	sizeof(GLint) * 4,                  // itemsize
+	minoctia * sizeof(GLint) * 12,      // start offset
+	maxoctia * sizeof(GLint) * 12,      // end offset
+	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
+
+    mt_log_debug("appends %i %i", minoctia, maxoctia);
 
     // setup particle output buffer
 

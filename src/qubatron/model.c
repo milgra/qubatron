@@ -19,6 +19,7 @@ typedef struct model_t
     int*     ranges;
 
     int  comps;
+    long range_count;
     long point_count;
     long buffer_count;
 } model_t;
@@ -92,6 +93,8 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
     long range_size = ftell(rngfile);
     fseek(rngfile, 0, SEEK_SET);
 
+    model->range_count = range_size / sizeof(int);
+
     model->ranges = mt_memory_alloc(range_size, NULL, NULL);
     fread(model->ranges, sizeof(int), range_size / sizeof(int), rngfile);
 
@@ -99,6 +102,9 @@ void model_load_flat(model_t* model, char* pntpath, char* colpath, char* nrmpath
 
     mt_log_debug("loading flat model data\n%s\n%s\n%s", pntpath, colpath, nrmpath);
     mt_log_debug("point count %lu", model->point_count);
+
+    /* for (int i = 0; i < 300; i += 3) */
+    /* 	mt_log_debug("index %i x %i y %i\n", model->ranges[i], model->ranges[i + 1], model->ranges[i + 2]); */
 
     /* for (int i = 0; i < 300; i += 3) */
     /* 	mt_log_debug("pt %f %f %f", model->vertexes[i], model->vertexes[i + 1], model->vertexes[i + 2]); */

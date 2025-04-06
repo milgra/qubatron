@@ -89,7 +89,8 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- speedup static hole with ranges
+- blood spill
+- dust cloud ( zero out nearby voxels in dust shader )
 - animated standup
 - combined model
 - bigger building
