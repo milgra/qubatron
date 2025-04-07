@@ -33,7 +33,8 @@ void modelutil_punch_hole(
     model_t*        statmod,
     model_t*        dynamod,
     v3_t            position,
-    v3_t            direction);
+    v3_t            direction,
+    long            dynacount);
 
 void modelutil_punch_hole_dyna(
     octree_glc_t*   octrglc,
@@ -43,11 +44,13 @@ void modelutil_punch_hole_dyna(
     int index, model_t* model,
     v3_t position,
     v3_t direction,
-    v4_t tlf);
+    v4_t tlf,
+    long dynacount);
 
 void modelutil_update_particle(
     particle_glc_t* partglc,
     model_t*        partmod,
+    model_t*        dynamod,
     int             levels,
     float           basesize,
     uint32_t        frames);
@@ -307,56 +310,7 @@ void modelutil_load_flat(
     skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12, dynamod->point_count * 3 * sizeof(GLfloat));
 }
 
-typedef struct _tempcubes_t
-{
-    char arr[30][30][30];
-} tempcubes_t;
-
-int modelutil_zeroes(tempcubes_t* cubes, int x, int y, int z, int size)
-{
-    int result = 0;
-    for (int cx = x - 1; cx < x + 2; cx++)
-    {
-	for (int cy = y - 1; cy < y + 2; cy++)
-	{
-	    for (int cz = z - 1; cz < z + 2; cz++)
-	    {
-		if (cx > 0 && cx < size && cy > 0 && cy < size && cz > 0 && cz < size)
-		{
-		    if (cubes->arr[cx][cy][cz] == 0)
-		    {
-			result++;
-		    }
-		}
-	    }
-	}
-    }
-    return result;
-}
-
-int grid_fill_half(tempcubes_t* cubes, int x, int y, int z, int size)
-{
-    int result = 0;
-    for (int cx = x - 1; cx < x + 2; cx++)
-    {
-	for (int cy = y - 1; cy < y + 2; cy++)
-	{
-	    for (int cz = z - 1; cz < z + 2; cz++)
-	    {
-		if (cx > 0 && cx < size && cy > 0 && cy < size && cz > 0 && cz < size)
-		{
-		    if (cubes->arr[cx][cy][cz] == 0)
-		    {
-			result++;
-		    }
-		}
-	    }
-	}
-    }
-    return result;
-}
-
-void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* partmod, octree_t* statoctr, model_t* statmod, model_t* dynamod, v3_t position, v3_t direction)
+void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* partmod, octree_t* statoctr, model_t* statmod, model_t* dynamod, v3_t position, v3_t direction, long dynacount)
 {
     // check collosion between direction vector and static and dynamic voxels
 
@@ -495,9 +449,28 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     // add particle vertexes, normals and colors to combined model
 
-    /* memcpy(dynamod->vertexes + dynamod->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat)); */
-    /* memcpy(dynamod->normals + dynamod->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat)); */
-    /* memcpy(dynamod->colors + dynamod->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat)); */
+    dynamod->point_count = dynacount; // dirty hack, created a combined model!!!
+    model_append(dynamod, partmod);
+
+    octree_glc_upload_texbuffer_data(
+	glc,
+	dynamod->colors,                            // buffer
+	GL_FLOAT,                                   // data type
+	dynamod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);           // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	glc,
+	dynamod->normals,                           // buffer
+	GL_FLOAT,                                   // data type
+	dynamod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	0,                                          // start offset
+	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);          // buffer type
 }
 
 void modelutil_punch_hole_dyna(
@@ -509,7 +482,8 @@ void modelutil_punch_hole_dyna(
     model_t*        model,
     v3_t            position,
     v3_t            direction,
-    v4_t            tlf)
+    v4_t            tlf,
+    long            dynacount)
 {
     float ox = model->vertexes[index * 3];
     float oy = model->vertexes[index * 3 + 1];
@@ -561,7 +535,8 @@ void modelutil_punch_hole_dyna(
 		nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 		nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 	    };
-	    speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+	    speed  = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+	    ncol.x = 1.0;
 
 	    model_add_point(partmod, npnt, speed, ncol);
 	}
@@ -569,25 +544,15 @@ void modelutil_punch_hole_dyna(
 
     skeleton_glc_alloc_in(skelglc, model->vertexes, model->normals, model->point_count * 3 * sizeof(GLfloat));
 
-    octree_glc_upload_texbuffer_data(
-	octrglc,
-	model->colors,                            // buffer
-	GL_FLOAT,                                 // data type
-	model->point_count * sizeof(GLfloat) * 3, // size
-	sizeof(GLfloat) * 3,                      // itemsize
-	minind * sizeof(GLfloat),                 // start offset
-	maxind * sizeof(GLfloat),                 // end offset
-	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);         // buffer type
-
     /* octree_glc_upload_texbuffer_data( */
     /* 	octrglc, */
-    /* 	model->normals,                           // buffer */
+    /* 	model->colors,                            // buffer */
     /* 	GL_FLOAT,                                 // data type */
     /* 	model->point_count * sizeof(GLfloat) * 3, // size */
     /* 	sizeof(GLfloat) * 3,                      // itemsize */
-    /* 	minind * sizeof(GLfloat) * 3,             // start offset */
-    /* 	maxind * sizeof(GLfloat) * 3,             // end offset */
-    /* OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);        // buffer type */
+    /* 	minind * sizeof(GLfloat),                 // start offset */
+    /* 	maxind * sizeof(GLfloat),                 // end offset */
+    /* 	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);         // buffer type */
 
     // setup particle output buffer
 
@@ -595,12 +560,31 @@ void modelutil_punch_hole_dyna(
 
     // add particle vertexes, normals and colors to combined model
 
-    /* memcpy(model->vertexes + model->point_count * 3, partmod->vertexes, partmod->point_count * 3 * sizeof(GLfloat)); */
-    /* memcpy(model->normals + model->point_count * 3, partmod->normals, partmod->point_count * 3 * sizeof(GLfloat)); */
-    /* memcpy(model->colors + model->point_count * 3, partmod->colors, partmod->point_count * 3 * sizeof(GLfloat)); */
+    model->point_count = dynacount; // dirty hack, created a combined model!!!
+    model_append(model, partmod);
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	model->colors,                            // buffer
+	GL_FLOAT,                                 // data type
+	model->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                      // itemsize
+	0,                                        // start offset
+	model->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);         // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	octrglc,
+	model->normals,                           // buffer
+	GL_FLOAT,                                 // data type
+	model->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                      // itemsize
+	0,                                        // start offset
+	model->point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);        // buffer type
 }
 
-void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int levels, float basesize, uint32_t frames)
+void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, model_t* dynamod, int levels, float basesize, uint32_t frames)
 {
     // upload latest position and speed data
 
@@ -633,7 +617,8 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, int le
 
 	if (fincount == partmod->point_count)
 	{
-	    /* dynamod->point_count -= partmod->point_count; */
+	    dynamod->point_count -= partmod->point_count;
+	    mt_log_debug("dynamod point count %i", dynamod->point_count);
 	    partmod->point_count = 0;
 	}
     }

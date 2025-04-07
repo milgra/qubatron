@@ -70,6 +70,8 @@ struct qubatron_t
     uint32_t frametamp;
 
     float lightangle;
+
+    long dynacount;
 } quba = {0};
 
 void GLAPIENTRY
@@ -144,6 +146,8 @@ void main_init()
 	&quba.dynamod);
 #endif
 
+    quba.dynacount = quba.dynamod.point_count;
+
     mt_log_debug("main init");
 }
 
@@ -181,9 +185,9 @@ bool main_loop(double time, void* userdata)
 		int  dynaindex = octree_trace_line(&quba.dynaoctr, move.lookpos, move.direction, &tlf);
 
 		if (dynaindex > 0)
-		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf);
+		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.dynacount);
 		else if (statindex > 0)
-		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction);
+		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.dynacount);
 	    }
 	}
 	else if (event.type == SDL_QUIT)
@@ -291,7 +295,7 @@ bool main_loop(double time, void* userdata)
 	    &quba.statoctr,
 	    &quba.statmod,
 	    quba.lightangle,
-	    quba.dynamod.point_count,
+	    quba.dynacount,
 	    quba.dynaoctr.levels,
 	    quba.dynaoctr.basecube.w);
 
@@ -301,7 +305,7 @@ bool main_loop(double time, void* userdata)
 	    &quba.dynaoctr,
 	    quba.dynaoctr.basecube);
 
-	for (int index = 0; index < quba.dynamod.point_count; index++)
+	for (int index = 0; index < quba.dynacount; index++)
 	{
 	    octree_insert_path(
 		&quba.dynaoctr,
@@ -315,20 +319,21 @@ bool main_loop(double time, void* userdata)
 	    modelutil_update_particle(
 		&quba.partglc,
 		&quba.partmod,
+		&quba.dynamod,
 		quba.octrdpth,
 		quba.octrsize,
 		quba.frames);
 
-	    for (int index = 0; index < quba.partmod.point_count * 3; index++)
+	    for (int index = 0; index < quba.partmod.point_count; index++)
 	    {
 		octree_insert_point(
 		    &quba.dynaoctr,
 		    0,
-		    quba.dynamod.point_count + index / 3,
+		    quba.dynacount + index,
 		    (v3_t){
-			quba.partmod.vertexes[index + 0],
-			quba.partmod.vertexes[index + 1],
-			quba.partmod.vertexes[index + 2]},
+			quba.partmod.vertexes[index * 3 + 0],
+			quba.partmod.vertexes[index * 3 + 1],
+			quba.partmod.vertexes[index * 3 + 2]},
 		    NULL);
 	    }
 	}
