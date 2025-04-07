@@ -26,7 +26,7 @@ octree_t    octree_create(v4_t base, int maxlevel);
 octree_t    octree_clone(octree_t* tree);
 void        octree_delete(octree_t* tree);
 void        octree_reset(octree_t* tree, v4_t base);
-octets_t    octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t pnt, int* octind);
+octets_t    octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t pnt, int* octindarr);
 void        octree_insert_path(octree_t* tree, size_t arrind, size_t modind, int* octs);
 void        octree_remove_point(octree_t* tree, v3_t pnt, int* modind, int* octind);
 void        octree_log_path(octets_t o, size_t index);
@@ -91,7 +91,7 @@ void octree_reset(octree_t* tree, v4_t base)
     tree->octs[0] = (octets_t){{0, 0, 0, 0, 0, 0, 0, 0, 0}};
 }
 
-octets_t octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t pnt, int* octind)
+octets_t octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t pnt, int* octindarr)
 {
     float    size   = tree->basecube.w;
     octets_t result = {0};
@@ -111,7 +111,11 @@ octets_t octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t p
 	{
 	    // store first modified octree index
 
-	    if (octind && *octind == -1) *octind = index;
+	    if (octindarr != NULL)
+	    {
+		octindarr[level]     = index;
+		octindarr[level + 1] = tree->len;
+	    }
 
 	    // store subnode in array
 
@@ -194,7 +198,7 @@ void octree_remove_point(octree_t* tree, v3_t pnt, int* modind, int* octind)
 	    // return original index and octet index
 
 	    *modind = tree->octs[index].oct[8];
-	    *octind = index;
+	    *octind = lindex;
 
 	    // zero out branch
 

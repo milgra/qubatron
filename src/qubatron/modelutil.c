@@ -373,12 +373,8 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     // iterate through a subcube in the voxel grid to create the hole
 
-    int minmodi  = 0;
-    int maxmodi  = 0;
-    int minoctiu = 0; // min octet index for update
-    int maxoctiu = 0;
-    int minoctia = 0; // min octet index for append
-    int maxoctia = 0;
+    int minmodi = 0;
+    int maxmodi = 0;
 
     int octind = -1; // fucked up, modify!
     int modind = -1; // fucked up, modify!
@@ -409,6 +405,16 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 		    if (octind >= 0)
 		    {
+			octree_glc_upload_texbuffer_data(
+			    glc,
+			    statoctr->octs,                     // buffer
+			    GL_INT,                             // data type
+			    statoctr->len * sizeof(GLint) * 12, // size
+			    sizeof(GLint) * 4,                  // itemsize
+			    octind * sizeof(GLint) * 12,        // start offset
+			    (octind + 1) * sizeof(GLint) * 12,  // end offset
+			    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
+
 			// store min and max model and octet index for partial upload to gpu
 
 			if (minmodi == 0) minmodi = modind;
@@ -416,12 +422,6 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 			if (modind < minmodi) minmodi = modind;
 			if (modind > maxmodi) maxmodi = modind;
-
-			if (minoctiu == 0) minoctiu = octind;
-			if (maxoctiu == 0) maxoctiu = octind;
-
-			if (octind < minoctiu) minoctiu = octind;
-			if (octind > maxoctiu) maxoctiu = octind;
 
 			v3_t npnt = (v3_t){pnt.x + dx, pnt.y + dy, pnt.z + dz};
 			v3_t nnrm = (v3_t){statmod->normals[modind * 3], statmod->normals[modind * 3 + 1], statmod->normals[modind * 3 + 2]};
@@ -435,18 +435,24 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 			float y = pnt.y + dy + nnrm.y * rat;
 			float z = pnt.z + dz + nnrm.z * rat;
 
-			octind = -1;
-			octree_insert_point(statoctr, 0, modind, (v3_t){x, y, z}, &octind);
+			int octindarr[13] = {0};
+			octree_insert_point(statoctr, 0, modind, (v3_t){x, y, z}, octindarr);
 
-			if (octind > 0)
+			for (int j = 0; j < 13; j++)
 			{
-			    // store min and max octet index again for appending
-
-			    if (minoctia == 0) minoctia = octind;
-			    if (maxoctia == 0) maxoctia = octind;
-
-			    if (octind < minoctia) minoctia = octind;
-			    if (octind > maxoctia) maxoctia = octind;
+			    if (octindarr[j] > 0)
+			    {
+				int octind = octindarr[j];
+				octree_glc_upload_texbuffer_data(
+				    glc,
+				    statoctr->octs,                     // buffer
+				    GL_INT,                             // data type
+				    statoctr->len * sizeof(GLint) * 12, // size
+				    sizeof(GLint) * 4,                  // itemsize
+				    octind * sizeof(GLint) * 12,        // start offset
+				    (octind + 1) * sizeof(GLint) * 12,  // end offset
+				    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
+			    }
 			}
 
 			// add particles
@@ -482,34 +488,6 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	minmodi * sizeof(GLfloat) * 3,              // start offset
 	maxmodi * sizeof(GLfloat) * 3,              // end offset
 	OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
-
-    // update updated octets
-
-    octree_glc_upload_texbuffer_data(
-	glc,
-	statoctr->octs,                     // buffer
-	GL_INT,                             // data type
-	statoctr->len * sizeof(GLint) * 12, // size
-	sizeof(GLint) * 4,                  // itemsize
-	minoctiu * sizeof(GLint) * 12,      // start offset
-	maxoctiu * sizeof(GLint) * 12,      // end offset
-	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
-
-    mt_log_debug("updates %i %i", minoctiu, maxoctiu);
-
-    // update appended octets
-
-    octree_glc_upload_texbuffer_data(
-	glc,
-	statoctr->octs,                     // buffer
-	GL_INT,                             // data type
-	statoctr->len * sizeof(GLint) * 12, // size
-	sizeof(GLint) * 4,                  // itemsize
-	minoctia * sizeof(GLint) * 12,      // start offset
-	maxoctia * sizeof(GLint) * 12,      // end offset
-	OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
-
-    mt_log_debug("appends %i %i", minoctia, maxoctia);
 
     // setup particle output buffer
 
