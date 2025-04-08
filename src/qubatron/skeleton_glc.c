@@ -68,10 +68,10 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 {
     skeleton_glc_t cc = {0};
 
-    cc.zombie = zombie_init();
-
     cc.dir = (v4_t){0.0, 0.0, 1.0, 0.0};
-    cc.pos = (v4_t){250.0, 0.0, 600.0, 0.0};
+    cc.pos = (v4_t){350.0, 0.0, 600.0, 0.0};
+
+    cc.zombie = zombie_init(cc.pos, cc.dir);
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];

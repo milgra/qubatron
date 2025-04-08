@@ -49,7 +49,7 @@ typedef struct _zombie_t
     dres_t** dreses;
 } zombie_t;
 
-zombie_t       zombie_init();
+zombie_t       zombie_init(v4_t pos, v4_t dir);
 void           zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float dir, v4_t pos);
 void           zombie_init_ragdoll(zombie_t* zombie);
 void           zombie_init_walk(zombie_t* zombie);
@@ -85,7 +85,7 @@ zombie_parts_t zombie_parts = {
 
 };
 
-zombie_t zombie_init()
+zombie_t zombie_init(v4_t pos, v4_t dir)
 {
     zombie_t res = {0};
 
@@ -114,6 +114,10 @@ zombie_t zombie_init()
 
     res.newbones = res.oribones;
     res.newparts = zombie_parts;
+
+    // detect leg position
+
+    // move point to starting position
 
     return res;
 }

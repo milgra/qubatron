@@ -89,10 +89,11 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
+- walking fix
+- legzeses fel-le mozgas kameranak
 - blood spill
 - dust cloud ( zero out nearby voxels in dust shader )
 - animated standup
-- combined model
 - bigger building
 - separate orind array for octree
 - webgl fencing

@@ -333,23 +333,30 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
     int octind = -1; // fucked up, modify!
     int modind = -1; // fucked up, modify!
 
-    float dist = 10.0 + (float) (rand() % 50) / 5.0;
+    float dist = 10.0 + (float) (rand() % 50) / 10.0;
+    float half = dist / 2.0;
 
     int division = 2;
     for (int i = 0; i < statoctr->levels - 1; i++) division *= 2;
-    float step = statoctr->basecube.w / (float) division;
+    float step   = statoctr->basecube.w / (float) division;
+    int   pntlen = (int) (dist / step);
+    v3_t  pntarr[pntlen * pntlen * pntlen];
+    int   modarr[pntlen * pntlen * pntlen];
+    int   pntind = 0;
 
-    for (float cx = pnt.x - dist / 2.0; cx < pnt.x + dist / 2.0; cx += step)
+    // remove points first
+
+    for (float cx = pnt.x - half; cx < pnt.x + half; cx += step)
     {
-	for (float cy = pnt.y - dist / 2.0; cy < pnt.y + dist / 2.0; cy += step)
+	for (float cy = pnt.y - half; cy < pnt.y + half; cy += step)
 	{
-	    for (float cz = pnt.z - dist / 2.0; cz < pnt.z + dist / 2.0; cz += step)
+	    for (float cz = pnt.z - half; cz < pnt.z + half; cz += step)
 	    {
 		float dx = pnt.x - cx;
 		float dy = pnt.y - cy;
 		float dz = pnt.z - cz;
 
-		if (dx * dx + dy * dy + dz * dz < (dist / 2.0) * (dist / 2.0))
+		if (dx * dx + dy * dy + dz * dz < half * half)
 		{
 		    octind = -1;
 		    modind = -1;
@@ -383,54 +390,70 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 			// move original points into the wall/body
 
-			float rat = -((dist / 2.0) * (dist / 2.0) - (dx * dx + dy * dy + dz * dz)) / (dist / 2.0);
+			float rat = (half - sqrtf(dx * dx + dy * dy + dz * dz)) / half;
+			rat *= -10.0;
 
 			float x = pnt.x + dx + nnrm.x * rat;
 			float y = pnt.y + dy + nnrm.y * rat;
 			float z = pnt.z + dz + nnrm.z * rat;
 
-			int octindarr[13] = {0};
-			octree_insert_point(statoctr, 0, modind, (v3_t){x, y, z}, octindarr);
-
-			for (int j = 0; j < 13; j++)
-			{
-			    if (octindarr[j] > 0)
-			    {
-				int octind = octindarr[j];
-				octree_glc_upload_texbuffer_data(
-				    glc,
-				    statoctr->octs,                     // buffer
-				    GL_INT,                             // data type
-				    statoctr->len * sizeof(GLint) * 12, // size
-				    sizeof(GLint) * 4,                  // itemsize
-				    octind * sizeof(GLint) * 12,        // start offset
-				    (octind + 1) * sizeof(GLint) * 12,  // end offset
-				    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
-			    }
-			}
-
-			// add particles
-
-			// rotate normal based on distance
-
-			statmod->colors[modind * 3] += 0.1; // fuck these multipliers, use a setter inside model !!!
-			statmod->colors[modind * 3 + 1] += 0.1;
-			statmod->colors[modind * 3 + 2] += 0.1;
-
-			// add particle to particle model
-
-			v3_t speed = (v3_t){
-			    nnrm.x + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
-			    nnrm.y + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
-			    nnrm.z + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
-			};
-			speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
-
-			model_add_point(partmod, (v3_t){x, y, z}, speed, ncol);
+			modarr[pntind]   = modind;
+			pntarr[pntind++] = (v3_t){x, y, z};
 		    }
 		}
 	    }
 	}
+    }
+
+    // add points
+
+    for (int i = 0; i < pntind; i++)
+    {
+	v3_t curr          = pntarr[i];
+	int  modind        = modarr[i];
+	int  octindarr[13] = {0};
+	octree_insert_point(statoctr, 0, modind, curr, octindarr);
+
+	v3_t nnrm = (v3_t){statmod->normals[modind * 3], statmod->normals[modind * 3 + 1], statmod->normals[modind * 3 + 2]};
+	v3_t ncol = (v3_t){statmod->colors[modind * 3], statmod->colors[modind * 3 + 1], statmod->colors[modind * 3 + 2]};
+
+	for (int j = 0; j < 13; j++)
+	{
+	    if (octindarr[j] > 0)
+	    {
+		int octind = octindarr[j];
+		octree_glc_upload_texbuffer_data(
+		    glc,
+		    statoctr->octs,                     // buffer
+		    GL_INT,                             // data type
+		    statoctr->len * sizeof(GLint) * 12, // size
+		    sizeof(GLint) * 4,                  // itemsize
+		    octind * sizeof(GLint) * 12,        // start offset
+		    (octind + 1) * sizeof(GLint) * 12,  // end offset
+		    OCTREE_GLC_BUFFER_STATIC_OCTREE);   // buffer type
+	    }
+	}
+
+	// rotate normal based on distance
+
+	statmod->colors[modind * 3] += 0.3; // fuck these multipliers, use a setter inside model !!!
+	statmod->colors[modind * 3 + 1] += 0.1;
+	statmod->colors[modind * 3 + 2] += 0.1;
+
+	statmod->normals[modind * 3]     = pnt.x - curr.x; // fuck these multipliers, use a setter inside model !!!
+	statmod->normals[modind * 3 + 1] = pnt.y - curr.y;
+	statmod->normals[modind * 3 + 2] = pnt.z - curr.z;
+
+	// add particle to particle model
+
+	v3_t speed = (v3_t){
+	    nnrm.x + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+	    nnrm.y + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+	    nnrm.z + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
+	};
+	speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+
+	model_add_point(partmod, curr, speed, ncol);
     }
 
     octree_glc_upload_texbuffer_data(
@@ -442,6 +465,16 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	minmodi * sizeof(GLfloat) * 3,              // start offset
 	maxmodi * sizeof(GLfloat) * 3,              // end offset
 	OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	glc,
+	statmod->normals,                           // buffer
+	GL_FLOAT,                                   // data type
+	statmod->point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                        // itemsize
+	minmodi * sizeof(GLfloat) * 3,              // start offset
+	maxmodi * sizeof(GLfloat) * 3,              // end offset
+	OCTREE_GLC_BUFFER_STATIC_NORMAL);           // buffer type
 
     // setup particle output buffer
 
@@ -521,6 +554,10 @@ void modelutil_punch_hole_dyna(
 	    model->vertexes[i] += nnrm.x * rat;
 	    model->vertexes[i + 1] += nnrm.y * rat;
 	    model->vertexes[i + 2] += nnrm.z * rat;
+
+	    model->normals[i]     = ox - model->vertexes[i];
+	    model->normals[i + 1] = oy - model->vertexes[i + 1];
+	    model->normals[i + 2] = oz - model->vertexes[i + 2];
 
 	    // rotate normal based on distance
 
