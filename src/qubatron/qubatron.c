@@ -148,6 +148,8 @@ void main_init()
 
     quba.dynacount = quba.dynamod.point_count;
 
+    skeleton_glc_init_zombie(&quba.skelglc, &quba.statoctr);
+
     mt_log_debug("main init");
 }
 

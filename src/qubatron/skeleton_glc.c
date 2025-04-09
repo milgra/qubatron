@@ -53,6 +53,7 @@ typedef struct skeleton_glc_t
 } skeleton_glc_t;
 
 skeleton_glc_t skeleton_glc_init(char* path);
+void           skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr);
 void           skeleton_glc_init_ragdoll(skeleton_glc_t* cc);
 void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, size_t size);
@@ -67,11 +68,6 @@ void skeleton_glc_move(skeleton_glc_t* cc, int dir);
 skeleton_glc_t skeleton_glc_init(char* base_path)
 {
     skeleton_glc_t cc = {0};
-
-    cc.dir = (v4_t){0.0, 0.0, 1.0, 0.0};
-    cc.pos = (v4_t){350.0, 0.0, 600.0, 0.0};
-
-    cc.zombie = zombie_init(cc.pos, cc.dir);
 
     char cshpath[PATH_MAX];
     char dshpath[PATH_MAX];
@@ -132,6 +128,14 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     return cc;
 }
 
+void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
+{
+    cc->dir = (v4_t){0.0, 0.0, 1.0, 0.0};
+    cc->pos = (v4_t){350.0, 0.0, 600.0, 0.0};
+
+    cc->zombie = zombie_init(cc->pos, cc->dir, statoctr);
+}
+
 void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize)
 {
     // update body parts
@@ -145,59 +149,63 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
     else if (cc->right)
 	cc->angle += 0.05;
 
+    v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), cc->angle);
+    v3_t cdir = quat_rotate(rotq, v4_xyz(cc->dir));
+
     cc->speed *= 0.8;
+    cc->pos = v4_add(cc->pos, v4_scale(v4_xyzw(cdir), cc->speed));
 
-    v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), cc->angle);
-    v3_t curr_dir = quat_rotate(back_rot, (v3_t){cc->dir.x, cc->dir.y, cc->dir.z});
+    /* v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), cc->angle); */
+    /* v3_t curr_dir = quat_rotate(back_rot, (v3_t){cc->dir.x, cc->dir.y, cc->dir.z}); */
 
-    cc->pos        = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed));
-    v4_t front_piv = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed * 10.0));
+    /* cc->pos        = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed)); */
+    /* v4_t front_piv = v4_add(cc->pos, v4_scale((v4_t){curr_dir.x, curr_dir.y, curr_dir.z, 0.0}, cc->speed * 10.0)); */
 
-    // project left foot and right foot onto direction vector, if dir vector surpasses the active foot, step
+    /* // project left foot and right foot onto direction vector, if dir vector surpasses the active foot, step */
 
-    v3_t lfoot_prjp = l3_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.lfp));
-    v3_t rfoot_prjp = l3_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.rfp));
+    /* v3_t lfoot_prjp = l3_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.lfp)); */
+    /* v3_t rfoot_prjp = l3_project_point(v4_xyz(cc->pos), v3_add(v4_xyz(cc->pos), curr_dir), v4_xyz(cc->zombie.rfp)); */
 
-    v3_t lfd = v3_sub(lfoot_prjp, v4_xyz(front_piv)); // left foot distance
-    v3_t rfd = v3_sub(rfoot_prjp, v4_xyz(front_piv)); // right foot distance
+    /* v3_t lfd = v3_sub(lfoot_prjp, v4_xyz(front_piv)); // left foot distance */
+    /* v3_t rfd = v3_sub(rfoot_prjp, v4_xyz(front_piv)); // right foot distance */
 
-    int ldirsame = ((lfd.x < 0) == (curr_dir.x < 0)) && ((lfd.y < 0) == (curr_dir.y < 0)) && ((lfd.z < 0) == (curr_dir.z < 0));
-    int rdirsame = ((rfd.x < 0) == (curr_dir.x < 0)) && ((rfd.y < 0) == (curr_dir.y < 0)) && ((rfd.z < 0) == (curr_dir.z < 0));
+    /* int ldirsame = ((lfd.x < 0) == (curr_dir.x < 0)) && ((lfd.y < 0) == (curr_dir.y < 0)) && ((lfd.z < 0) == (curr_dir.z < 0)); */
+    /* int rdirsame = ((rfd.x < 0) == (curr_dir.x < 0)) && ((rfd.y < 0) == (curr_dir.y < 0)) && ((rfd.z < 0) == (curr_dir.z < 0)); */
 
-    /* mt_log_debug("llen %f rlen %f ldirsame %i rdirsame %i", llen, rlen, ldirsame, rdirsame); */
+    /* /\* mt_log_debug("llen %f rlen %f ldirsame %i rdirsame %i", llen, rlen, ldirsame, rdirsame); *\/ */
 
-    if (cc->frontleg == 1) // right
-    {
-	if (rdirsame == 0)
-	{
-	    v4_t left_pnt = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0)));
-	    v4_t left_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), M_PI / 2.0);
-	    v3_t left_dir = quat_rotate(left_rot, curr_dir);
+    /* if (cc->frontleg == 1) // right */
+    /* { */
+    /* 	if (rdirsame == 0) */
+    /* 	{ */
+    /* 	    v4_t left_pnt = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0))); */
+    /* 	    v4_t left_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), M_PI / 2.0); */
+    /* 	    v3_t left_dir = quat_rotate(left_rot, curr_dir); */
 
-	    left_pnt   = v4_add(left_pnt, v4_xyzw(v3_resize(left_dir, 30.0)));
-	    left_pnt.y = 10.0;
+    /* 	    left_pnt   = v4_add(left_pnt, v4_xyzw(v3_resize(left_dir, 30.0))); */
+    /* 	    left_pnt.y = 10.0; */
 
-	    cc->frontleg   = 0;
-	    cc->zombie.lfp = left_pnt;
-	}
-    }
-    else
-    {
-	if (ldirsame == 0)
-	{
-	    v4_t right_pnt = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0)));
-	    v4_t right_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), -M_PI / 2.0);
-	    v3_t right_dir = quat_rotate(right_rot, curr_dir);
+    /* 	    cc->frontleg   = 0; */
+    /* 	    cc->zombie.lfp = left_pnt; */
+    /* 	} */
+    /* } */
+    /* else */
+    /* { */
+    /* 	if (ldirsame == 0) */
+    /* 	{ */
+    /* 	    v4_t right_pnt = v4_add(cc->pos, v4_xyzw(v3_resize(curr_dir, 50.0))); */
+    /* 	    v4_t right_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), -M_PI / 2.0); */
+    /* 	    v3_t right_dir = quat_rotate(right_rot, curr_dir); */
 
-	    right_pnt   = v4_add(right_pnt, v4_xyzw(v3_resize(right_dir, 30.0)));
-	    right_pnt.y = 10.0;
+    /* 	    right_pnt   = v4_add(right_pnt, v4_xyzw(v3_resize(right_dir, 30.0))); */
+    /* 	    right_pnt.y = 10.0; */
 
-	    cc->frontleg   = 1;
-	    cc->zombie.rfp = right_pnt;
-	}
-    }
+    /* 	    cc->frontleg   = 1; */
+    /* 	    cc->zombie.rfp = right_pnt; */
+    /* 	} */
+    /* } */
 
-    zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos);
+    zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos, cc->dir);
 
     // switch off fragment stage
 
