@@ -41,6 +41,8 @@ typedef struct _zombie_t
     zombie_bones_t newbones;
     zombie_parts_t newparts;
 
+    int actleg;
+
     v4_t lfp; // left foot pivot
     v4_t rfp; // right foot pivot
 
@@ -53,7 +55,7 @@ typedef struct _zombie_t
 } zombie_t;
 
 zombie_t       zombie_init(v4_t pos, v4_t dir, octree_t* statoctr);
-void           zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float angle, v4_t pos, v4_t dir);
+void           zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float angle, v4_t pos, v4_t dir, float speed);
 void           zombie_init_ragdoll(zombie_t* zombie);
 void           zombie_init_walk(zombie_t* zombie);
 
@@ -195,7 +197,7 @@ zombie_t zombie_init(v4_t pos, v4_t dir, octree_t* statoctr)
     return zombie;
 }
 
-void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float angle, v4_t pos, v4_t dir)
+void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float angle, v4_t pos, v4_t dir, float speed)
 {
     zombie->pos = pos;
     zombie->dir = dir;
@@ -208,14 +210,63 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
     v3_t llegp = l3_project_point(v4_xyz(pos), v4_xyz(leftdirp), v4_xyz(zombie->lfp));
     v3_t rlegp = l3_project_point(v4_xyz(pos), v4_xyz(leftdirp), v4_xyz(zombie->rfp));
 
-    float lleglen = v3_length(v3_sub(llegp, v4_xyz(zombie->lfp)));
-    float rleglen = v3_length(v3_sub(rlegp, v4_xyz(zombie->rfp)));
+    v3_t llegv = v3_sub(llegp, v4_xyz(zombie->lfp));
+    v3_t rlegv = v3_sub(rlegp, v4_xyz(zombie->rfp));
 
-    mt_log_debug("left %f right %f", lleglen, rleglen);
+    float llegd = v3_dot(llegv, v4_xyz(dir));
+    float rlegd = v3_dot(rlegv, v4_xyz(dir));
 
-    v4_t hipv = (v4_t){0.0, 120.0, 0.0, 0.0};
+    float lleglen = v3_length(llegv);
+    float rleglen = v3_length(rlegv);
 
-    zombie->newparts.hip = v4_add(pos, hipv);
+    if (speed > 0.0)
+    {
+	if (zombie->actleg == 0 && lleglen > 10.0)
+	{
+	    // step forward with left leg
+	    zombie->rfp    = v4_add(v4_xyzw(rlegp), v4_xyzw(v3_resize(rlegv, 10.0)));
+	    zombie->actleg = 1;
+	}
+	else if (zombie->actleg == 1 && rleglen > 10.0)
+	{
+	    // step forward with left leg
+	    zombie->lfp    = v4_add(v4_xyzw(llegp), v4_xyzw(v3_resize(llegv, 10.0)));
+	    zombie->actleg = 0;
+	}
+    }
+    else if (speed < 0.0)
+    {
+	if (zombie->actleg == 0 && lleglen > 10.0)
+	{
+	    // step backward with left leg
+	    zombie->rfp    = v4_add(v4_xyzw(rlegp), v4_xyzw(v3_resize(rlegv, 10.0)));
+	    zombie->actleg = 1;
+	}
+	else if (zombie->actleg == 1 && rleglen > 10.0)
+	{
+	    // step forward with left leg
+	    zombie->lfp    = v4_add(v4_xyzw(llegp), v4_xyzw(v3_resize(llegv, 10.0)));
+	    zombie->actleg = 0;
+	}
+    }
+
+    zombie->newparts.lfoot = v4_add(zombie->newparts.lfoot, v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.5));
+    zombie->newparts.rfoot = v4_add(zombie->newparts.rfoot, v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.5));
+
+    v4_t hipv   = (v4_t){0.0, 120.0, 0.0, 0.0};
+    v3_t rlegpv = v4_xyz(v4_sub(zombie_parts.rleg, zombie_parts.hip));
+    v3_t rkneev = v4_xyz(v4_sub(zombie_parts.rknee, zombie_parts.hip));
+    v3_t llegpv = v4_xyz(v4_sub(zombie_parts.lleg, zombie_parts.hip));
+    v3_t lkneev = v4_xyz(v4_sub(zombie_parts.lknee, zombie_parts.hip));
+
+    zombie->newparts.hip  = v4_add(pos, hipv);
+    zombie->newparts.rleg = v4_add(zombie->newparts.hip, v4_xyzw(rlegpv));
+    zombie->newparts.lleg = v4_add(zombie->newparts.hip, v4_xyzw(llegpv));
+
+    // knee is between leg and foot perpendicular to half
+
+    zombie->newparts.rknee = v4_add(zombie->newparts.hip, v4_xyzw(rkneev));
+    zombie->newparts.lknee = v4_add(zombie->newparts.hip, v4_xyzw(lkneev));
 
     zombie->newbones = (zombie_bones_t){
 	.arr = {
