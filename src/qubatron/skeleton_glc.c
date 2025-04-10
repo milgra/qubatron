@@ -150,11 +150,10 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	cc->angle += 0.05;
 
     v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), cc->angle);
-    v3_t cdir = quat_rotate(rotq, v4_xyz(cc->dir));
+    v4_t cdir = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
 
     cc->speed *= 0.8;
-    cc->pos = v4_add(cc->pos, v4_scale(v4_xyzw(cdir), cc->speed));
-    cc->dir = v4_xyzw(cdir);
+    cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed));
 
     /* v4_t back_rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(cc->zombie.newparts.hip), v4_xyz(cc->zombie.newparts.neck))), cc->angle); */
     /* v3_t curr_dir = quat_rotate(back_rot, (v3_t){cc->dir.x, cc->dir.y, cc->dir.z}); */
@@ -206,7 +205,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
     /* 	} */
     /* } */
 
-    zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos, cc->dir, cc->speed);
+    zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos, cdir, cc->speed);
 
     // switch off fragment stage
 

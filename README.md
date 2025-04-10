@@ -91,6 +91,7 @@ Todo :
 
 - walking fix
 - legzeses fel-le mozgas kameranak
+- gun light sphere
 - blood spill
 - dust cloud ( zero out nearby voxels in dust shader )
 - animated standup
