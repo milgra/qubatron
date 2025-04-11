@@ -199,194 +199,135 @@ zombie_t zombie_init(v4_t pos, v4_t dir, octree_t* statoctr)
 
 void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float angle, v4_t pos, v4_t dir, float speed)
 {
-    mt_log_debug("angle %f pos dir", angle);
-    v3_log(v4_xyz(pos));
-    v3_log(v4_xyz(dir));
-
     zombie->pos = pos;
     zombie->dir = dir;
 
-    // check how far position is from leg positions
-
-    v4_t leftrotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -M_PI / 2.0);
-    v4_t leftdirp = v4_add(pos, v4_xyzw(quat_rotate(leftrotq, v3_resize(v4_xyz(dir), 35.0))));
-
-    v3_t llegp = l3_project_point(v4_xyz(pos), v4_xyz(leftdirp), v4_xyz(zombie->lfp));
-    v3_t rlegp = l3_project_point(v4_xyz(pos), v4_xyz(leftdirp), v4_xyz(zombie->rfp));
-
-    v3_t llegv = v3_sub(llegp, v4_xyz(zombie->lfp));
-    v3_t rlegv = v3_sub(rlegp, v4_xyz(zombie->rfp));
-
-    float lleglen = v3_length(llegv);
-    float rleglen = v3_length(rlegv);
-
-    if (speed > 0.0)
-    {
-	if (zombie->actleg == 0 && lleglen > 10.0)
-	{
-	    // step forward with left leg
-	    zombie->rfp    = v4_add(v4_xyzw(rlegp), v4_xyzw(v3_resize(rlegv, 10.0)));
-	    zombie->actleg = 1;
-	}
-	else if (zombie->actleg == 1 && rleglen > 10.0)
-	{
-	    // step forward with left leg
-	    zombie->lfp    = v4_add(v4_xyzw(llegp), v4_xyzw(v3_resize(llegv, 10.0)));
-	    zombie->actleg = 0;
-	}
-    }
-    else if (speed < 0.0)
-    {
-	if (zombie->actleg == 0 && lleglen > 10.0)
-	{
-	    // step backward with left leg
-	    zombie->rfp    = v4_add(v4_xyzw(rlegp), v4_xyzw(v3_resize(rlegv, 10.0)));
-	    zombie->actleg = 1;
-	}
-	else if (zombie->actleg == 1 && rleglen > 10.0)
-	{
-	    // step forward with left leg
-	    zombie->lfp    = v4_add(v4_xyzw(llegp), v4_xyzw(v3_resize(llegv, 10.0)));
-	    zombie->actleg = 0;
-	}
-    }
-
-    // move toward lft with half stepping
-
-    zombie->newparts.lfoot = v4_add(zombie->newparts.lfoot, v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.4));
-    zombie->newparts.rfoot = v4_add(zombie->newparts.rfoot, v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.4));
-
-    v4_t hipv   = (v4_t){0.0, 120.0 + sinf(lighta) * 10.0, 0.0, angle};
-    v3_t rlegpv = v4_xyz(v4_sub(zombie_parts.rleg, zombie_parts.hip));
-    v3_t llegpv = v4_xyz(v4_sub(zombie_parts.lleg, zombie_parts.hip));
-
-    zombie->newparts.hip  = v4_add(pos, hipv);
-    zombie->newparts.rleg = v4_add(zombie->newparts.hip, v4_xyzw(rlegpv));
-    zombie->newparts.lleg = v4_add(zombie->newparts.hip, v4_xyzw(llegpv));
-
-    // calculate knee positions
-
-    v4_t rlegconn  = v4_sub(zombie->newparts.rleg, zombie->newparts.rfoot);
-    v4_t rleghalf  = v4_add(zombie->newparts.rfoot, v4_scale(rlegconn, 0.5));
-    v3_t rkneeaxis = v3_cross(v4_xyz(rlegconn), v4_xyz(dir));
-    v4_t rkneerot  = quat_from_axis_angle(v3_normalize(rkneeaxis), M_PI / 2.0);
-    v3_t rkneedist = v3_resize(v4_xyz(rlegconn), 130.0 - v3_length(v4_xyz(rlegconn)));
-    v4_t rknee     = v4_add(rleghalf, v4_xyzw(quat_rotate(rkneerot, rkneedist)));
-
-    v4_t llegconn  = v4_sub(zombie->newparts.lleg, zombie->newparts.lfoot);
-    v4_t lleghalf  = v4_add(zombie->newparts.lfoot, v4_scale(llegconn, 0.5));
-    v3_t lkneeaxis = v3_cross(v4_xyz(llegconn), v4_xyz(dir));
-    v4_t lkneerot  = quat_from_axis_angle(v3_normalize(lkneeaxis), M_PI / 2.0);
-    v3_t lkneedist = v3_resize(v4_xyz(llegconn), 130.0 - v3_length(v4_xyz(llegconn)));
-    v4_t lknee     = v4_add(lleghalf, v4_xyzw(quat_rotate(lkneerot, lkneedist)));
-
-    // knee is between leg and foot perpendicular to half
-
-    zombie->newparts.rknee = rknee;
-    zombie->newparts.lknee = lknee;
-
-    zombie->newparts.hip.w   = angle;
-    zombie->newparts.rleg.w  = angle;
-    zombie->newparts.lleg.w  = angle;
-    zombie->newparts.rknee.w = angle;
-    zombie->newparts.lknee.w = angle;
-
-    // final skeleton
-
-    zombie->newbones = (zombie_bones_t){
-	.arr = {
-	    zombie->newparts.head,
-	    zombie->newparts.neck,
-	    zombie->newparts.neck,
-	    zombie->newparts.hip,
-	    zombie->newparts.rshol,
-	    zombie->newparts.relbo,
-	    zombie->newparts.relbo,
-	    zombie->newparts.rhand,
-	    zombie->newparts.lshol,
-	    zombie->newparts.lelbo,
-	    zombie->newparts.lelbo,
-	    zombie->newparts.lhand,
-	    zombie->newparts.rleg,
-	    zombie->newparts.rknee,
-	    zombie->newparts.rknee,
-	    zombie->newparts.rfoot,
-	    zombie->newparts.lleg,
-	    zombie->newparts.lknee,
-	    zombie->newparts.lknee,
-	    zombie->newparts.lfoot}};
-
-    return;
-
     if (zombie->mode == 0) // walk
     {
-	v4_t rot = quat_from_axis_angle(v3_normalize(v3_sub(v4_xyz(zombie->newparts.hip), v4_xyz(zombie->newparts.neck))), angle);
+	// check how far are foot positions from actual position
+	// project foot position onto line perpendicular to actual position
 
-	v4_t ldir = v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.2);
-	v4_t rdir = v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.2);
+	v4_t l90rot_q = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -M_PI / 2.0);
+	v4_t r90rot_q = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), M_PI / 2.0);
 
-	ldir.y += 2.0;
-	rdir.y += 2.0;
+	v4_t l90dir_to_pos = v4_add(pos, v4_xyzw(quat_rotate(l90rot_q, v3_resize(v4_xyz(dir), 35.0))));
+	v4_t r90dir_to_pos = v4_add(pos, v4_xyzw(quat_rotate(r90rot_q, v3_resize(v4_xyz(dir), 35.0))));
 
-	v4_t hipv  = (v4_t){0.0, 120.0, 0.0, angle};
-	v3_t headv = v4_xyz(v4_sub(zombie_parts.head, zombie_parts.hip));
-	v3_t neckv = v4_xyz(v4_sub(zombie_parts.neck, zombie_parts.hip));
+	v3_t lfp_proj = l3_project_point(v4_xyz(pos), v4_xyz(l90dir_to_pos), v4_xyz(zombie->lfp));
+	v3_t rfp_proj = l3_project_point(v4_xyz(pos), v4_xyz(r90dir_to_pos), v4_xyz(zombie->rfp));
 
-	v3_t rsholv = v4_xyz(v4_sub(zombie_parts.rshol, zombie_parts.hip));
-	v3_t relbov = v4_xyz(v4_sub(zombie_parts.relbo, zombie_parts.hip));
-	v3_t rhndv  = v4_xyz(v4_sub(zombie_parts.rhand, zombie_parts.hip));
+	float lfpdist = v3_length(v3_sub(lfp_proj, v4_xyz(zombie->lfp)));
+	float rfpdist = v3_length(v3_sub(rfp_proj, v4_xyz(zombie->rfp)));
 
-	v3_t lhndv  = v4_xyz(v4_sub(zombie_parts.lhand, zombie_parts.hip));
-	v3_t lsholv = v4_xyz(v4_sub(zombie_parts.lshol, zombie_parts.hip));
-	v3_t lelbov = v4_xyz(v4_sub(zombie_parts.lelbo, zombie_parts.hip));
+	// step forward or backward if needed to new position from actual position
 
-	v3_t rlegv  = v4_xyz(v4_sub(zombie_parts.rleg, zombie_parts.hip));
-	v3_t rkneev = v4_xyz(v4_sub(zombie_parts.rknee, zombie_parts.hip));
+	if (speed > 0.0)
+	{
+	    v3_t stepv = v3_resize(v4_xyz(dir), 10.0);
+	    if (zombie->actleg == 0 && lfpdist > 10.0)
+	    {
+		// step forward with left leg
+		zombie->rfp    = v4_add(r90dir_to_pos, v4_xyzw(stepv));
+		zombie->actleg = 1;
+	    }
+	    else if (zombie->actleg == 1 && rfpdist > 10.0)
+	    {
+		// step forward with left leg
+		zombie->lfp    = v4_add(l90dir_to_pos, v4_xyzw(stepv));
+		zombie->actleg = 0;
+	    }
+	}
+	else if (speed < 0.0)
+	{
+	    v3_t stepv = v3_resize(v4_xyz(dir), -10.0);
+	    if (zombie->actleg == 0 && lfpdist > 10.0)
+	    {
+		// step backward with left leg
+		zombie->rfp    = v4_add(r90dir_to_pos, v4_xyzw(stepv));
+		zombie->actleg = 1;
+	    }
+	    else if (zombie->actleg == 1 && rfpdist > 10.0)
+	    {
+		// step forward with left leg
+		zombie->lfp    = v4_add(l90dir_to_pos, v4_xyzw(stepv));
+		zombie->actleg = 0;
+	    }
+	}
 
-	v3_t llegv  = v4_xyz(v4_sub(zombie_parts.lleg, zombie_parts.hip));
-	v3_t lkneev = v4_xyz(v4_sub(zombie_parts.lknee, zombie_parts.hip));
+	// animate foot stepping
 
-	headv.z += sinf(lighta) * 5.0;
-	neckv.z += cosf(lighta) * 5.0;
+	zombie->newparts.lfoot = v4_add(zombie->newparts.lfoot, v4_scale(v4_sub(zombie->lfp, zombie->newparts.lfoot), 0.4));
+	zombie->newparts.rfoot = v4_add(zombie->newparts.rfoot, v4_scale(v4_sub(zombie->rfp, zombie->newparts.rfoot), 0.4));
 
-	rsholv = quat_rotate(rot, rsholv);
-	rsholv.z += cosf(lighta) * 5.0;
-	relbov = quat_rotate(rot, relbov);
-	rhndv.z += sinf(lighta) * 20.0;
-	rhndv.y += sinf(lighta) * 20.0;
+	// set hip position over actual position
 
-	lsholv = quat_rotate(rot, lsholv);
-	lsholv.z += cosf(lighta) * 5.0;
-	lelbov = quat_rotate(rot, lelbov);
-	lelbov.z += cosf(lighta) * 5.0;
-	lhndv.z += sinf(lighta) * 20.0;
-	lhndv.y += sinf(lighta) * 20.0;
+	v4_t hipdirv = (v4_t){0.0, 110.0 + sinf(lighta) * 5.0, 0.0, angle};
 
-	rlegv  = quat_rotate(rot, rlegv);
-	rkneev = quat_rotate(rot, rkneev);
+	zombie->newparts.hip = v4_add(pos, hipdirv);
 
-	llegv  = quat_rotate(rot, llegv);
-	lkneev = quat_rotate(rot, lkneev);
+	// set leg top points, rotate original dir vector with angle
 
-	zombie->newparts.hip  = v4_add(pos, hipv);
-	zombie->newparts.head = v4_add(zombie->newparts.hip, v4_xyzw(headv));
-	zombie->newparts.neck = v4_add(zombie->newparts.hip, v4_xyzw(neckv));
+	v4_t anglerot_q = quat_from_axis_angle((v3_t){0.0, 1.0, 0.0}, -angle);
 
-	zombie->newparts.rshol = v4_add(zombie->newparts.hip, v4_xyzw(rsholv));
-	zombie->newparts.relbo = v4_add(zombie->newparts.hip, v4_xyzw(relbov));
-	zombie->newparts.rhand = v4_add(zombie->newparts.hip, v4_xyzw(rhndv));
+	v3_t rlegdirv = v4_xyz(v4_sub(zombie_parts.rleg, zombie_parts.hip));
+	v3_t llegdirv = v4_xyz(v4_sub(zombie_parts.lleg, zombie_parts.hip));
 
-	zombie->newparts.lshol = v4_add(zombie->newparts.hip, v4_xyzw(lsholv));
-	zombie->newparts.lelbo = v4_add(zombie->newparts.hip, v4_xyzw(lelbov));
-	zombie->newparts.lhand = v4_add(zombie->newparts.hip, v4_xyzw(lhndv));
+	zombie->newparts.rleg = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, rlegdirv)));
+	zombie->newparts.lleg = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, llegdirv)));
 
-	zombie->newparts.rleg  = v4_add(zombie->newparts.hip, v4_xyzw(rlegv));
-	zombie->newparts.rknee = v4_add(zombie->newparts.hip, v4_xyzw(rkneev));
-	zombie->newparts.rfoot = v4_add(zombie->newparts.rfoot, rdir);
+	// calculate knee positions
+	// knee is between leg and foot perpendicular to half
 
-	zombie->newparts.lleg  = v4_add(zombie->newparts.hip, v4_xyzw(llegv));
-	zombie->newparts.lknee = v4_add(zombie->newparts.hip, v4_xyzw(lkneev));
-	zombie->newparts.lfoot = v4_add(zombie->newparts.lfoot, ldir);
+	v4_t rfootdirv = v4_sub(zombie->newparts.rleg, zombie->newparts.rfoot);
+	v4_t rleghalf  = v4_add(zombie->newparts.rfoot, v4_scale(rfootdirv, 0.5));
+	v3_t rkneeaxis = v3_cross(v4_xyz(rfootdirv), v4_xyz(dir));
+	v4_t rkneerot  = quat_from_axis_angle(v3_normalize(rkneeaxis), M_PI / 2.0);
+	v3_t rkneedist = v3_resize(v4_xyz(rfootdirv), 130.0 - v3_length(v4_xyz(rfootdirv)));
+	v4_t rknee     = v4_add(rleghalf, v4_xyzw(quat_rotate(rkneerot, rkneedist)));
+
+	v4_t lfootdirv = v4_sub(zombie->newparts.lleg, zombie->newparts.lfoot);
+	v4_t lleghalf  = v4_add(zombie->newparts.lfoot, v4_scale(lfootdirv, 0.5));
+	v3_t lkneeaxis = v3_cross(v4_xyz(lfootdirv), v4_xyz(dir));
+	v4_t lkneerot  = quat_from_axis_angle(v3_normalize(lkneeaxis), M_PI / 2.0);
+	v3_t lkneedist = v3_resize(v4_xyz(lfootdirv), 130.0 - v3_length(v4_xyz(lfootdirv)));
+	v4_t lknee     = v4_add(lleghalf, v4_xyzw(quat_rotate(lkneerot, lkneedist)));
+
+	zombie->newparts.rknee = rknee;
+	zombie->newparts.lknee = lknee;
+
+	// calculate neck, head and shoulder positions
+
+	v3_t headdirv = v4_xyz(v4_sub(zombie_parts.head, zombie_parts.hip));
+	v3_t neckdirv = v4_xyz(v4_sub(zombie_parts.neck, zombie_parts.hip));
+
+	zombie->newparts.head = v4_add(zombie->newparts.hip, v4_xyzw(headdirv));
+	zombie->newparts.neck = v4_add(zombie->newparts.hip, v4_xyzw(neckdirv));
+
+	v3_t rsholdirv = v4_xyz(v4_sub(zombie_parts.rshol, zombie_parts.hip));
+	v3_t lsholdirv = v4_xyz(v4_sub(zombie_parts.lshol, zombie_parts.hip));
+
+	zombie->newparts.rshol = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, rsholdirv)));
+	zombie->newparts.lshol = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, lsholdirv)));
+
+	v3_t relbodirv = v4_xyz(v4_sub(zombie_parts.relbo, zombie_parts.hip));
+	v3_t lelbodirv = v4_xyz(v4_sub(zombie_parts.lelbo, zombie_parts.hip));
+
+	zombie->newparts.relbo = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, relbodirv)));
+	zombie->newparts.lelbo = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, lelbodirv)));
+
+	v3_t rhnddirv = v4_xyz(v4_sub(zombie_parts.rhand, zombie_parts.hip));
+	v3_t lhnddirv = v4_xyz(v4_sub(zombie_parts.lhand, zombie_parts.hip));
+
+	zombie->newparts.rhand = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, rhnddirv)));
+	zombie->newparts.lhand = v4_add(zombie->newparts.hip, v4_xyzw(quat_rotate(anglerot_q, lhnddirv)));
+
+	// reset rotation angles
+
+	zombie->newparts.hip.w   = angle;
+	zombie->newparts.rleg.w  = angle;
+	zombie->newparts.lleg.w  = angle;
+	zombie->newparts.rknee.w = angle;
+	zombie->newparts.lknee.w = angle;
     }
     else // ragdoll
     {
