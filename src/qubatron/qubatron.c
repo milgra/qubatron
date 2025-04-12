@@ -157,12 +157,12 @@ void main_init()
 
     // init dust
 
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < 5000; i++)
     {
 	v3_t pnt = (v3_t){
-	    1200.0 * (float) (rand() % 100) / 100.0,
+	    400.0 + 400.0 * (float) (rand() % 100) / 100.0,
 	    300.0 * (float) (rand() % 100) / 100.0,
-	    1200.0 * (float) (rand() % 100) / 100.0,
+	    400.0 * (float) (rand() % 100) / 100.0,
 	};
 
 	v3_t spd = (v3_t){
@@ -171,7 +171,7 @@ void main_init()
 	    -0.4 + 0.8 * ((float) (rand() % 100) / 100.0),
 	};
 
-	v3_t col = (v3_t){2.0, 2.0, 2.0};
+	v3_t col = (v3_t){1.2, 1.2, 1.2};
 
 	model_add_point(&quba.dustmod, pnt, spd, col);
     }
