@@ -89,8 +89,11 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- walking fix
-- legzeses fel-le mozgas kameranak
+- detect lfp and lfp collosion
+- dust cloud
+- particle endpoint
+- close wall, panzerfaust background music, monster shadow -> demo
+- fix camera to player, wall coll detection, up-down breathing
 - gun light sphere
 - blood spill
 - dust cloud ( zero out nearby voxels in dust shader )

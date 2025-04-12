@@ -37,6 +37,12 @@ typedef struct skeleton_glc_t
 
     v4_t dir;
     v4_t pos;
+    v4_t pdir;
+
+    v4_t path[4];
+    int  path_ind;
+
+    int zombie_control;
 
     int left;
     int right;
@@ -130,8 +136,14 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
 void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
 {
-    cc->dir = (v4_t){0.0, 0.0, 1.0, 0.0};
-    cc->pos = (v4_t){350.0, 0.0, 600.0, 0.0};
+    cc->dir  = (v4_t){0.0, 0.0, 1.0, 0.0};
+    cc->pos  = (v4_t){350.0, 0.0, 600.0, 0.0};
+    cc->pdir = (v4_t){0.0, 0.0, 1.0, 0.0};
+
+    cc->path[0] = (v4_t){350.0, 0.0, 900.0, 0.0};
+    cc->path[1] = (v4_t){650.0, 0.0, 900.0, 0.0};
+    cc->path[2] = (v4_t){650.0, 0.0, 600.0, 0.0};
+    cc->path[3] = (v4_t){350.0, 0.0, 600.0, 0.0};
 
     cc->zombie = zombie_init(cc->pos, cc->dir, statoctr);
 }
@@ -140,20 +152,47 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 {
     // update body parts
 
-    if (cc->forw)
-	cc->speed += 0.4;
-    else if (cc->back)
-	cc->speed -= 0.4;
-    else if (cc->left)
-	cc->angle -= 0.05;
-    else if (cc->right)
-	cc->angle += 0.05;
+    v4_t cdir;
 
-    v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -cc->angle);
-    v4_t cdir = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
+    if (cc->zombie_control == 1)
+    {
+	if (cc->forw)
+	    cc->speed += 0.4;
+	else if (cc->back)
+	    cc->speed -= 0.4;
+	else if (cc->left)
+	    cc->angle -= 0.05;
+	else if (cc->right)
+	    cc->angle += 0.05;
 
-    cc->speed *= 0.8;
-    cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed * 2.0));
+	v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -cc->angle);
+	cdir      = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
+
+	cc->speed *= 0.8;
+	cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed * 2.0));
+    }
+    else
+    {
+	cdir      = v4_sub(cc->path[cc->path_ind], cc->pos);
+	v4_t ndir = v4_xyzw(v3_resize(v4_xyz(cdir), 1.0));
+	cc->pdir  = v4_add(cc->pdir, v4_xyzw(v3_scale(v4_xyz(v4_sub(ndir, cc->pdir)), 0.2)));
+
+	if (v3_length(v4_xyz(cdir)) < 20.0)
+	{
+	    cc->path_ind += 1;
+	    if (cc->path_ind == 4) cc->path_ind = 0;
+	}
+	else
+	{
+	    cc->angle = -atan2(cc->pdir.x, cc->pdir.z);
+
+	    cc->speed = 1.0;
+	    cc->pos   = v4_add(cc->pos, v4_scale(cc->pdir, cc->speed * 2.0));
+	}
+	v3_log(v4_xyz(cdir));
+	mt_log_debug("angle %f", cc->angle);
+	/* v3_log(v4_xyz(cc->pos)); */
+    }
 
     zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos, cdir, cc->speed);
 
