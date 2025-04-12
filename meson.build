@@ -41,6 +41,7 @@ qubatron_sources = [
 	       'src/qubatron/model.c',
 	       'src/qubatron/modelutil.c',
 	       'src/qubatron/octree.c',
+	       'src/qubatron/dust_glc.c',
 	       'src/qubatron/octree_glc.c',
 	       'src/qubatron/skeleton_glc.c',
 	       'src/qubatron/particle_glc.c',
@@ -62,6 +63,8 @@ qubatron_sources = [
 
 fs = import('fs')
 
+fs.copyfile('src/qubatron/shaders/dust_vsh.c', 'dust_vsh.c')
+fs.copyfile('src/qubatron/shaders/dust_fsh.c', 'dust_fsh.c')
 fs.copyfile('src/qubatron/shaders/octree_vsh.c', 'octree_vsh.c')
 fs.copyfile('src/qubatron/shaders/octree_fsh.c', 'octree_fsh.c')
 fs.copyfile('src/qubatron/shaders/skeleton_vsh.c', 'skeleton_vsh.c')

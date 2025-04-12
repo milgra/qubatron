@@ -7,6 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "dust_glc.c"
 #include "model.c"
 #include "modelutil.c"
 #include "mt_log.c"
@@ -54,6 +55,7 @@ struct qubatron_t
     model_t statmod;
     model_t dynamod;
     model_t partmod;
+    model_t dustmod;
 
     octree_t statoctr;
     octree_t dynaoctr;
@@ -61,6 +63,7 @@ struct qubatron_t
     skeleton_glc_t skelglc;
     particle_glc_t partglc;
     octree_glc_t   octrglc;
+    dust_glc_t     dustglc;
 
     uint8_t rndscale;
     int     octrdpth;
@@ -110,10 +113,12 @@ void main_init()
     quba.octrglc = octree_glc_init(path);
     quba.skelglc = skeleton_glc_init(path);
     quba.partglc = particle_glc_init(path);
+    quba.dustglc = dust_glc_init(path);
 
     quba.statmod = model_init();
     quba.dynamod = model_init();
     quba.partmod = model_init();
+    quba.dustmod = model_init();
 
     quba.statoctr = octree_create(
 	(v4_t){0.0, quba.octrsize, quba.octrsize, quba.octrsize},
@@ -149,6 +154,51 @@ void main_init()
     quba.dynacount = quba.dynamod.point_count;
 
     skeleton_glc_init_zombie(&quba.skelglc, &quba.statoctr);
+
+    // init dust
+
+    for (int i = 0; i < 10000; i++)
+    {
+	v3_t pnt = (v3_t){
+	    1200.0 * (float) (rand() % 100) / 100.0,
+	    300.0 * (float) (rand() % 100) / 100.0,
+	    1200.0 * (float) (rand() % 100) / 100.0,
+	};
+
+	v3_t spd = (v3_t){
+	    -0.4 + 0.8 * ((float) (rand() % 100) / 100.0),
+	    -0.4 + 0.8 * ((float) (rand() % 100) / 100.0),
+	    -0.4 + 0.8 * ((float) (rand() % 100) / 100.0),
+	};
+
+	v3_t col = (v3_t){2.0, 2.0, 2.0};
+
+	model_add_point(&quba.dustmod, pnt, spd, col);
+    }
+
+    dust_glc_alloc_out(&quba.dustglc, NULL, quba.dustmod.point_count * 3 * sizeof(GLfloat));
+
+    model_append(&quba.dynamod, &quba.dustmod);
+
+    octree_glc_upload_texbuffer_data(
+	&quba.octrglc,
+	quba.dynamod.colors,                            // buffer
+	GL_FLOAT,                                       // data type
+	quba.dynamod.point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                            // itemsize
+	0,                                              // start offset
+	quba.dynamod.point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_COLOR);               // buffer type
+
+    octree_glc_upload_texbuffer_data(
+	&quba.octrglc,
+	quba.dynamod.normals,                           // buffer
+	GL_FLOAT,                                       // data type
+	quba.dynamod.point_count * sizeof(GLfloat) * 3, // size
+	sizeof(GLfloat) * 3,                            // itemsize
+	0,                                              // start offset
+	quba.dynamod.point_count * sizeof(GLfloat) * 3, // end offset
+	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);              // buffer type
 
     mt_log_debug("main init");
 }
@@ -316,29 +366,54 @@ bool main_loop(double time, void* userdata)
 		&quba.skelglc.oct_out[index * 12]); // 48 bytes stride 12 int
 	}
 
-	if (quba.partmod.point_count > 0)
+	if (quba.dustmod.point_count > 0)
 	{
-	    modelutil_update_particle(
-		&quba.partglc,
-		&quba.partmod,
+	    modelutil_update_dust(
+		&quba.dustglc,
+		&quba.dustmod,
 		&quba.dynamod,
 		quba.octrdpth,
 		quba.octrsize,
-		quba.frames);
+		quba.frames,
+		move.lookpos);
 
-	    for (int index = 0; index < quba.partmod.point_count; index++)
+	    for (int index = 0; index < quba.dustmod.point_count; index++)
 	    {
 		octree_insert_point(
 		    &quba.dynaoctr,
 		    0,
 		    quba.dynacount + index,
 		    (v3_t){
-			quba.partmod.vertexes[index * 3 + 0],
-			quba.partmod.vertexes[index * 3 + 1],
-			quba.partmod.vertexes[index * 3 + 2]},
+			quba.dustmod.vertexes[index * 3 + 0],
+			quba.dustmod.vertexes[index * 3 + 1],
+			quba.dustmod.vertexes[index * 3 + 2]},
 		    NULL);
 	    }
 	}
+
+	/* if (quba.partmod.point_count > 0) */
+	/* { */
+	/*     modelutil_update_particle( */
+	/* 	&quba.partglc, */
+	/* 	&quba.partmod, */
+	/* 	&quba.dynamod, */
+	/* 	quba.octrdpth, */
+	/* 	quba.octrsize, */
+	/* 	quba.frames); */
+
+	/*     for (int index = 0; index < quba.partmod.point_count; index++) */
+	/*     { */
+	/* 	octree_insert_point( */
+	/* 	    &quba.dynaoctr, */
+	/* 	    0, */
+	/* 	    quba.dynacount + index, */
+	/* 	    (v3_t){ */
+	/* 		quba.partmod.vertexes[index * 3 + 0], */
+	/* 		quba.partmod.vertexes[index * 3 + 1], */
+	/* 		quba.partmod.vertexes[index * 3 + 2]}, */
+	/* 	    NULL); */
+	/*     } */
+	/* } */
 
 	// update dynamic octree
 

@@ -1,6 +1,7 @@
 #ifndef modelutil_h
 #define modelutil_h
 
+#include "dust_glc.c"
 #include "model.c"
 #include "octree.c"
 #include "octree_glc.c"
@@ -54,6 +55,15 @@ void modelutil_update_particle(
     int             levels,
     float           basesize,
     uint32_t        frames);
+
+void modelutil_update_dust(
+    dust_glc_t* partglc,
+    model_t*    dustmod,
+    model_t*    dynamod,
+    int         levels,
+    float       basesize,
+    uint32_t    frames,
+    v3_t        campos);
 
 #endif
 
@@ -482,7 +492,7 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     // add particle vertexes, normals and colors to combined model
 
-    dynamod->point_count = dynacount; // dirty hack, created a combined model!!!
+    dynamod->point_count = dynacount; // dirty hack, create a combined model!!!
     model_append(dynamod, partmod);
 
     octree_glc_upload_texbuffer_data(
@@ -659,6 +669,26 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, model_
 	    partmod->point_count = 0;
 	}
     }
+}
+
+void modelutil_update_dust(dust_glc_t* dustglc, model_t* dustmod, model_t* dynamod, int levels, float basesize, uint32_t frames, v3_t campos)
+{
+    // upload latest position and speed data
+
+    dust_glc_alloc_in(dustglc, dustmod->vertexes, dustmod->normals, dustmod->point_count * 3 * sizeof(GLfloat));
+
+    // update simulation
+
+    dust_glc_update(dustglc, dustmod->point_count, levels, basesize, campos);
+
+    // store new position and speed data
+
+    memcpy(dustmod->vertexes, dustglc->pos_out, dustmod->point_count * 3 * sizeof(GLfloat));
+    memcpy(dustmod->normals, dustglc->spd_out, dustmod->point_count * 3 * sizeof(GLfloat));
+
+    /* mt_log_debug("dusticle step"); */
+    /* mt_log_debug("%f %f %f", dustglc->pos_out[0], dustglc->pos_out[1], dustglc->pos_out[2]); */
+    /* mt_log_debug("%f %f %f", dustglc->spd_out[0], dustglc->spd_out[1], dustglc->spd_out[2]); */
 }
 
 #endif

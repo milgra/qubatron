@@ -223,18 +223,29 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 
 	if (speed > 0.0)
 	{
+	    v4_t tlf   = {0.0};
 	    v3_t stepv = v3_resize(v4_xyz(dir), 10.0);
 	    if (zombie->actleg == 0 && lfpdist > 10.0)
 	    {
 		// step forward with left leg
 		zombie->rfp    = v4_add(r90dir_to_pos, v4_xyzw(stepv));
 		zombie->actleg = 1;
+
+		/* zombie->rfp.y = 100.0; */
+		/* octree_trace_line(statoctr, v4_xyz(zombie->rfp), (v3_t){0.0, -100.0, 0.0}, &tlf); */
+		/* zombie->rfp = tlf; */
+		/* zombie->rfp.y += 25.0; */
 	    }
 	    else if (zombie->actleg == 1 && rfpdist > 10.0)
 	    {
 		// step forward with left leg
 		zombie->lfp    = v4_add(l90dir_to_pos, v4_xyzw(stepv));
 		zombie->actleg = 0;
+
+		/* zombie->lfp.y = 100.0; */
+		/* octree_trace_line(statoctr, v4_xyz(zombie->lfp), (v3_t){0.0, -100.0, 0.0}, &tlf); */
+		/* zombie->lfp = tlf; */
+		/* zombie->lfp.y += 25.0; */
 	    }
 	}
 	else if (speed < 0.0)

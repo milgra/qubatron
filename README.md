@@ -90,13 +90,12 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 Todo :
 
 - detect lfp and lfp collosion
-- dust cloud
+- thicker hole in wall, more squared
 - particle endpoint
 - close wall, panzerfaust background music, monster shadow -> demo
 - fix camera to player, wall coll detection, up-down breathing
 - gun light sphere
 - blood spill
-- dust cloud ( zero out nearby voxels in dust shader )
 - animated standup
 - bigger building
 - separate orind array for octree

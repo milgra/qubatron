@@ -140,10 +140,10 @@ void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
     cc->pos  = (v4_t){350.0, 0.0, 600.0, 0.0};
     cc->pdir = (v4_t){0.0, 0.0, 1.0, 0.0};
 
-    cc->path[0] = (v4_t){350.0, 0.0, 900.0, 0.0};
-    cc->path[1] = (v4_t){650.0, 0.0, 900.0, 0.0};
-    cc->path[2] = (v4_t){650.0, 0.0, 600.0, 0.0};
-    cc->path[3] = (v4_t){350.0, 0.0, 600.0, 0.0};
+    cc->path[0] = (v4_t){250.0, 0.0, 900.0, 0.0};
+    cc->path[1] = (v4_t){450.0, 0.0, 900.0, 0.0};
+    cc->path[2] = (v4_t){450.0, 0.0, 600.0, 0.0};
+    cc->path[3] = (v4_t){250.0, 0.0, 600.0, 0.0};
 
     cc->zombie = zombie_init(cc->pos, cc->dir, statoctr);
 }
@@ -189,9 +189,6 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	    cc->speed = 1.0;
 	    cc->pos   = v4_add(cc->pos, v4_scale(cc->pdir, cc->speed * 2.0));
 	}
-	v3_log(v4_xyz(cdir));
-	mt_log_debug("angle %f", cc->angle);
-	/* v3_log(v4_xyz(cc->pos)); */
     }
 
     zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos, cdir, cc->speed);
