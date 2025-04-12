@@ -416,9 +416,28 @@ void main()
     vec4   col = res.col;
 
 #ifndef OCTTEST
-    col.xyz *= 0.8;
-    col.z *= 0.7;
-}
+    if (res.isp.w > 0.0)
+    {
+	/* show normals for debug SWITCHABLE */
+	/* col = vec4(abs(res.nrm.x), abs(res.nrm.y), abs(res.nrm.z), 1.0); */
+
+	/* shadows, test against light SWITCHABLE */
+
+	vec3   lghtv = res.isp.xyz - light;
+	ctlres lcres = cube_trace_line(light, lghtv);
+	vec3   ispv  = lcres.isp.xyz - res.isp.xyz;
+	float  sqr   = ispv.x * ispv.x + ispv.y * ispv.y + ispv.z * ispv.z;
+	float  angle = max(dot(normalize(-lghtv), normalize(res.nrm.xyz)), 0.0) * step(sqr, 15.0);
+
+	// if isp distance is over 25.0, cube is shadow colored
+	// otherwise it is based on the light angle
+
+	col = vec4(col.xyz * (0.3 + angle * 0.7), col.w);
+
+	/* yellowish color, SWITCHABLE */
+	col.xyz *= 0.8;
+	col.z *= 0.7;
+    }
 
     if (camangle < 0.02)
     {
