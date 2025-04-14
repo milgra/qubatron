@@ -74,7 +74,7 @@ struct qubatron_t
 
     float lightangle;
 
-    long dynacount;
+    long zombiecount;
 } quba = {0};
 
 void GLAPIENTRY
@@ -151,7 +151,7 @@ void main_init()
 	&quba.dynamod);
 #endif
 
-    quba.dynacount = quba.dynamod.point_count;
+    quba.zombiecount = quba.dynamod.point_count;
 
     skeleton_glc_init_zombie(&quba.skelglc, &quba.statoctr);
 
@@ -237,9 +237,9 @@ bool main_loop(double time, void* userdata)
 		int  dynaindex = octree_trace_line(&quba.dynaoctr, move.lookpos, move.direction, &tlf);
 
 		if (dynaindex > 0)
-		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.dynacount);
+		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.zombiecount + quba.dustmod.point_count);
 		else if (statindex > 0)
-		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.dynacount);
+		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.zombiecount + quba.dustmod.point_count);
 	    }
 	}
 	else if (event.type == SDL_QUIT)
@@ -347,7 +347,7 @@ bool main_loop(double time, void* userdata)
 	    &quba.statoctr,
 	    &quba.statmod,
 	    quba.lightangle,
-	    quba.dynacount,
+	    quba.zombiecount,
 	    quba.dynaoctr.levels,
 	    quba.dynaoctr.basecube.w);
 
@@ -357,7 +357,7 @@ bool main_loop(double time, void* userdata)
 	    &quba.dynaoctr,
 	    quba.dynaoctr.basecube);
 
-	for (int index = 0; index < quba.dynacount; index++)
+	for (int index = 0; index < quba.zombiecount; index++)
 	{
 	    octree_insert_path(
 		&quba.dynaoctr,
@@ -382,7 +382,7 @@ bool main_loop(double time, void* userdata)
 		octree_insert_point(
 		    &quba.dynaoctr,
 		    0,
-		    quba.dynacount + index,
+		    quba.zombiecount + index,
 		    (v3_t){
 			quba.dustmod.vertexes[index * 3 + 0],
 			quba.dustmod.vertexes[index * 3 + 1],
@@ -391,29 +391,29 @@ bool main_loop(double time, void* userdata)
 	    }
 	}
 
-	/* if (quba.partmod.point_count > 0) */
-	/* { */
-	/*     modelutil_update_particle( */
-	/* 	&quba.partglc, */
-	/* 	&quba.partmod, */
-	/* 	&quba.dynamod, */
-	/* 	quba.octrdpth, */
-	/* 	quba.octrsize, */
-	/* 	quba.frames); */
+	if (quba.partmod.point_count > 0)
+	{
+	    modelutil_update_particle(
+		&quba.partglc,
+		&quba.partmod,
+		&quba.dynamod,
+		quba.octrdpth,
+		quba.octrsize,
+		quba.frames);
 
-	/*     for (int index = 0; index < quba.partmod.point_count; index++) */
-	/*     { */
-	/* 	octree_insert_point( */
-	/* 	    &quba.dynaoctr, */
-	/* 	    0, */
-	/* 	    quba.dynacount + index, */
-	/* 	    (v3_t){ */
-	/* 		quba.partmod.vertexes[index * 3 + 0], */
-	/* 		quba.partmod.vertexes[index * 3 + 1], */
-	/* 		quba.partmod.vertexes[index * 3 + 2]}, */
-	/* 	    NULL); */
-	/*     } */
-	/* } */
+	    for (int index = 0; index < quba.partmod.point_count; index++)
+	    {
+		octree_insert_point(
+		    &quba.dynaoctr,
+		    0,
+		    quba.zombiecount + quba.dustmod.point_count + index,
+		    (v3_t){
+			quba.partmod.vertexes[index * 3 + 0],
+			quba.partmod.vertexes[index * 3 + 1],
+			quba.partmod.vertexes[index * 3 + 2]},
+		    NULL);
+	    }
+	}
 
 	// update dynamic octree
 
