@@ -134,7 +134,6 @@ cube_trace_line(vec3 pos, vec3 dir)
     stck_t stck[18];
     stck[0].cube  = basecube;
     stck[0].socti = 0;
-    stck[0].docti = 0;
     stck[0].ispsi = 0;
 
     vec4 act;
@@ -204,7 +203,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    res.tlf = tlf;
 
 	    int socti = oct_from_octets_for_index(8, stck[level].socti, octtexbuf_s, level);
-	    int docti = oct_from_octets_for_index(8, stck[level].docti, octtexbuf_d, level);
 
 	    int   cy  = socti / 8192;
 	    int   cx  = socti - cy * 8192;
@@ -212,16 +210,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 
 	    res.col = texelFetch(coltexbuf_s, crd, 0);
 	    res.nrm = texelFetch(nrmtexbuf_s, crd, 0);
-
-	    if (docti > 0)
-	    {
-		cy  = docti / 8192;
-		cx  = docti - cy * 8192;
-		crd = ivec2(cx, cy);
-
-		res.col = texelFetch(coltexbuf_d, crd, 0);
-		res.nrm = texelFetch(nrmtexbuf_d, crd, 0);
-	    }
 
 	    return res;
 	}
@@ -290,10 +278,9 @@ cube_trace_line(vec3 pos, vec3 dir)
 		pre = oct;
 
 		int socti = oct_from_octets_for_index(oct, stck[level].socti, octtexbuf_s, level);
-		int docti = oct_from_octets_for_index(oct, stck[level].docti, octtexbuf_d, level);
 
 		// add to isps if there are subnodes in current cube
-		if (socti > 0 || docti > 0)
+		if (socti > 0)
 		{
 #ifdef OCTTEST
 		    res.col.a += 0.2;
@@ -332,7 +319,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[level].ispsi = 128 | (nxt_ind << 4) | cur_len;
 
 	    int socti = oct_from_octets_for_index(nxt_oct, stck[level].socti, octtexbuf_s, level);
-	    int docti = oct_from_octets_for_index(nxt_oct, stck[level].docti, octtexbuf_d, level);
 
 	    // increase stack level
 	    level += 1;
@@ -341,7 +327,6 @@ cube_trace_line(vec3 pos, vec3 dir)
 	    stck[level].cube    = tlf;
 	    stck[level].ispsi   = 0;
 	    stck[level].socti   = socti;
-	    stck[level].docti   = docti;
 	    stck[level].isps[0] = nxt_isp;
 	}
 	else
@@ -361,8 +346,8 @@ void main()
 {
     // set default return values
 
-    pos_out = vec3(0.0, -1.0, 0.0);
-    spd_out = vec3(0.0, 0.0, 0.0);
+    pos_out = pos;
+    spd_out = spd;
 
     // add gravity to speed, slow down to simulate friction
 
@@ -372,29 +357,25 @@ void main()
 
     vspd += vec3(0.0, -0.4, 0.0);
 
-    // check collosion with actual step
-
     pos_out = pos + vspd;
     spd_out = vspd;
 
-    if (pos_out.y < 0.0) spd_out = vec3(0.0, 0.0, 0.0);
+    if (pos.y < -10.0)
+    {
+	pos_out.y = -10.0;
+	spd_out   = vec3(0.0, 0.0, 0.0);
+    }
 
-    /* ctlres res = cube_trace_line(pos, vspd); */
+    ctlres res = cube_trace_line(pos, vspd);
 
-    /* if (res.isp.w == 0.0) return; */
+    if (res.isp.w > 0.0)
+    {
+	vec3 dirv = res.tlf.xyz - pos;
 
-    /* // if speed is big and particle is solid, bounce using normal of surface */
-
-    /* vec3 projp = project_point(res.isp.xyz, res.isp.xyz + res.nrm.xyz, res.isp.xyz - vspd); */
-    /* vec3 mirrp = projp + projp - (res.isp.xyz - vspd); */
-    /* vspd       = mirrp - res.isp.xyz; */
-
-    /* pos_out = projp; */
-    /* spd_out = vspd; */
-
-    /* return; */
-
-    // if speed is slow or not solid particle, stall, particle will be added to static model
-
-    // this shader should calculate the octree path for speedup like in skeleton_vsh
+	if (length(dirv) < 10.0)
+	{
+	    pos_out = res.tlf.xyz - normalize(dirv) * 2.0;
+	    spd_out = vec3(0.0, 0.0, 0.0);
+	}
+    }
 }

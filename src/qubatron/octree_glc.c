@@ -57,7 +57,17 @@ typedef struct octree_glc_t
 } octree_glc_t;
 
 octree_glc_t octree_glc_init(char* path);
-void         octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize);
+void         octree_glc_update(
+	    octree_glc_t* rc,
+	    float         width,
+	    float         height,
+	    v3_t          position,
+	    v3_t          angle,
+	    float         lighta,
+	    uint8_t       quality,
+	    int           maxlevel,
+	    float         basesize,
+	    int           shoot);
 void         octree_glc_upload_texbuffer_data(
 	    octree_glc_t*       rc,
 	    void*               data,
@@ -111,9 +121,10 @@ octree_glc_t octree_glc_init(char* base_path)
 	"nrmtexbuf_d",
 	"octtexbuf_s",
 	"octtexbuf_d",
-	"maxlevel"};
+	"maxlevel",
+	"shoot"};
 
-    for (int index = 0; index < 13; index++)
+    for (int index = 0; index < 14; index++)
 	rc.octr_unilocs[index] = glGetUniformLocation(rc.octr_sha, uniforms[index]);
 
     snprintf(vshpath, PATH_MAX, "%stexquad_vsh.c", base_path);
@@ -229,7 +240,7 @@ octree_glc_t octree_glc_init(char* base_path)
     return rc;
 }
 
-void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize)
+void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t position, v3_t angle, float lighta, uint8_t quality, int maxlevel, float basesize, int shoot)
 {
     glEnable(GL_BLEND);
 
@@ -264,6 +275,7 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
     glUniform4fv(rc->octr_unilocs[4], 1, basecubearr);
     glUniform2fv(rc->octr_unilocs[5], 1, dimensions);
     glUniform1i(rc->octr_unilocs[12], maxlevel);
+    glUniform1i(rc->octr_unilocs[13], shoot);
 
     // set viewport and color
 

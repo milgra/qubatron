@@ -75,6 +75,7 @@ struct qubatron_t
     float lightangle;
 
     long zombiecount;
+    int  shoot;
 } quba = {0};
 
 void GLAPIENTRY
@@ -157,7 +158,7 @@ void main_init()
 
     // init dust
 
-    for (int i = 0; i < 5000; i++)
+    for (int i = 0; i < 1000; i++)
     {
 	v3_t pnt = (v3_t){
 	    400.0 + 400.0 * (float) (rand() % 100) / 100.0,
@@ -236,10 +237,16 @@ bool main_loop(double time, void* userdata)
 		int  statindex = octree_trace_line(&quba.statoctr, move.lookpos, move.direction, &tlf);
 		int  dynaindex = octree_trace_line(&quba.dynaoctr, move.lookpos, move.direction, &tlf);
 
+		quba.shoot = 1;
+
 		if (dynaindex > 0)
 		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.zombiecount + quba.dustmod.point_count);
 		else if (statindex > 0)
 		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.zombiecount + quba.dustmod.point_count);
+	    }
+
+	    if (event.type == SDL_MOUSEBUTTONUP)
+	    {
 	    }
 	}
 	else if (event.type == SDL_QUIT)
@@ -453,7 +460,10 @@ bool main_loop(double time, void* userdata)
 	    quba.lightangle,
 	    quba.rndscale,
 	    quba.octrdpth,
-	    quba.octrsize);
+	    quba.octrsize,
+	    quba.shoot);
+
+	quba.shoot = 0;
 
 	SDL_GL_SwapWindow(quba.window);
 

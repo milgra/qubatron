@@ -12,6 +12,7 @@ uniform vec3 light;
 uniform vec4 basecube;
 uniform vec2 dimensions;
 uniform int  maxlevel;
+uniform int  shoot;
 
 /* highp vec3 light = vec3(0.0, 2000.0, -500.0); // dynamic light */
 
@@ -437,6 +438,11 @@ void main()
 	/* yellowish color, SWITCHABLE */
 	col.xyz *= 0.8;
 	col.z *= 0.7;
+
+	// gunshot light
+	/* vec3  camv = res.isp.xyz - camfp; */
+	/* float ang  = max(dot(normalize(-camv), normalize(res.nrm.xyz)), 0.0); */
+	/* col.xyz += float(shoot) * ang * 0.1; */
     }
 
     if (camangle < 0.02)

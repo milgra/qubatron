@@ -446,9 +446,9 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
 	// rotate normal based on distance
 
-	statmod->colors[modind * 3] += 0.3; // fuck these multipliers, use a setter inside model !!!
-	statmod->colors[modind * 3 + 1] += 0.1;
-	statmod->colors[modind * 3 + 2] += 0.1;
+	statmod->colors[modind * 3] += 0.2; // fuck these multipliers, use a setter inside model !!!
+	statmod->colors[modind * 3 + 1] += 0.2;
+	statmod->colors[modind * 3 + 2] += 0.2;
 
 	statmod->normals[modind * 3]     = pnt.x - curr.x; // fuck these multipliers, use a setter inside model !!!
 	statmod->normals[modind * 3 + 1] = pnt.y - curr.y;

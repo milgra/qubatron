@@ -72,9 +72,14 @@ particle_glc_t particle_glc_init(char* base_path)
 
     // get uniforms
 
-    char* part_uniforms[] = {"basecube", "maxlevel"};
+    char* part_uniforms[] = {
+	"basecube",
+	"maxlevel",
+	"octtexbuf_s",
+	"octtexbuf_d",
+    };
 
-    for (int index = 0; index < 2; index++)
+    for (int index = 0; index < 4; index++)
 	cc.part_unilocs[index] = glGetUniformLocation(cc.part_sha, part_uniforms[index]);
 
     glGenBuffers(1, &cc.part_vbo_pos_in);
@@ -96,6 +101,16 @@ particle_glc_t particle_glc_init(char* base_path)
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
     glBindVertexArray(0);
+
+    // use texture units from octree_glc
+
+    glUseProgram(cc.part_sha);
+
+    // static octree
+    glUniform1i(cc.part_unilocs[2], 10 + 1);
+
+    // dynamic octree
+    glUniform1i(cc.part_unilocs[3], 11 + 1);
 
     return cc;
 }
