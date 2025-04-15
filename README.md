@@ -89,11 +89,11 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- close wall, panzerfaust background music, monster shadow -> demo
-- detect lfp and lfp collosion
-- thicker hole in wall, more squared
-- fix camera to player, wall coll detection, up-down breathing
-- animated standup
+- zombie animation, death
 - bigger building
+- close wall, panzerfaust background music, monster shadow -> demo
+
+Later :
+
 - separate orind array for octree
 - webgl fencing

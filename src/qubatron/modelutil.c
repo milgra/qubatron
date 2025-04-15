@@ -422,6 +422,12 @@ void modelutil_punch_hole(
 
 			modarr[pntind]   = modind;
 			pntarr[pntind++] = (v3_t){x, y, z};
+
+			// add points for density, avoid holes
+			// !!! possible buffer overrun
+
+			modarr[pntind]   = modind;
+			pntarr[pntind++] = (v3_t){x + step, y + step, z + step};
 		    }
 		}
 	    }

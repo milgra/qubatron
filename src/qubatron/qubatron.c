@@ -40,6 +40,7 @@ struct movement_t
     float strafespeed;
 
     uint32_t prevticks;
+    int      freemove;
 } move = {0};
 
 struct qubatron_t
@@ -208,6 +209,34 @@ void main_free()
 {
 }
 
+int main_canmove(v3_t pos)
+{
+    v4_t  x1tl, x2tl, y1tl, y2tl, z1tl, z2tl;
+    float x1len = 100.0, x2len = 100.0, y1len = 100.0, y2len = 100.0, z1len = 100.0, z2len = 100.0;
+
+    int x1ind = octree_trace_line(&quba.statoctr, pos, (v3_t){10.0, 0.0, 0.0}, &x1tl); // horizotnal dirs
+    int x2ind = octree_trace_line(&quba.statoctr, pos, (v3_t){-10.0, 0.0, 0.0}, &x2tl);
+
+    int y1ind = octree_trace_line(&quba.statoctr, pos, (v3_t){0.0, 10.0, 0.0}, &y1tl); // vertical dirs
+    int y2ind = octree_trace_line(&quba.statoctr, pos, (v3_t){0.0, -10.0, 0.0}, &y2tl);
+
+    int z1ind = octree_trace_line(&quba.statoctr, pos, (v3_t){0.0, 0.0, 10.0}, &z1tl); // depth dirs
+    int z2ind = octree_trace_line(&quba.statoctr, pos, (v3_t){0.0, 0.0, -10.0}, &z2tl);
+
+    if (x1ind > 0) x1len = v3_length(v3_sub(v4_xyz(x1tl), pos));
+    if (x2ind > 0) x2len = v3_length(v3_sub(v4_xyz(x2tl), pos));
+    if (y1ind > 0) y1len = v3_length(v3_sub(v4_xyz(y1tl), pos));
+    if (y2ind > 0) y2len = v3_length(v3_sub(v4_xyz(y2tl), pos));
+    if (z1ind > 0) z1len = v3_length(v3_sub(v4_xyz(z1tl), pos));
+    if (z2ind > 0)
+	z2len = v3_length(v3_sub(v4_xyz(z2tl), pos));
+
+    if (x1len < 10.0 || x2len < 10.0 || y1len < 10.0 || y2len < 10.0 || z1len < 10.0 || z2len < 10.0)
+	return 0;
+    else
+	return 1;
+}
+
 bool main_loop(double time, void* userdata)
 {
     SDL_Event event;
@@ -335,13 +364,53 @@ bool main_loop(double time, void* userdata)
 	if (move.strafespeed > 0.0001 || move.strafespeed < -0.0001)
 	{
 	    v3_t curr_speed = v3_scale(move.directionX, -move.strafespeed);
-	    move.lookpos    = v3_add(move.lookpos, curr_speed);
+	    v3_t newpos     = v3_add(move.lookpos, curr_speed);
+
+	    if (move.freemove == 0)
+	    {
+		if (main_canmove(newpos) == 0)
+		{
+		    newpos = move.lookpos;
+		}
+
+		// detect floor
+
+		v4_t x1tl;
+		int  x1ind = octree_trace_line(&quba.statoctr, newpos, (v3_t){0.0, -1.0, 0.0}, &x1tl); // horizotnal dirs
+
+		if (x1ind > 0)
+		{
+		    newpos.y = x1tl.y + 120.0;
+		}
+	    }
+
+	    move.lookpos = newpos;
 	}
 
 	if (move.walkspeed > 0.0001 || move.walkspeed < -0.0001)
 	{
 	    v3_t curr_speed = v3_scale(move.direction, move.walkspeed);
-	    move.lookpos    = v3_add(move.lookpos, curr_speed);
+	    v3_t newpos     = v3_add(move.lookpos, curr_speed);
+
+	    if (move.freemove == 0)
+	    {
+		if (main_canmove(newpos) == 0)
+		{
+		    newpos = move.lookpos;
+		}
+
+		// detect floow
+
+		v4_t x1tl;
+		int  x1ind = octree_trace_line(&quba.statoctr, newpos, (v3_t){0.0, -1.0, 0.0}, &x1tl); // horizotnal dirs
+
+		if (x1ind > 0)
+		{
+		    newpos.y = x1tl.y + 120.0;
+		}
+	    }
+
+	    move.lookpos = newpos;
 	}
 
 	quba.lightangle += curr_step / 10.0;
@@ -454,11 +523,14 @@ bool main_loop(double time, void* userdata)
 
 	// render scene
 
+	v3_t lookpos = move.lookpos;
+	if (move.freemove == 0) lookpos.y += sinf(quba.lightangle) * 5.0;
+
 	octree_glc_update(
 	    &quba.octrglc,
 	    quba.winwth,
 	    quba.winhth,
-	    move.lookpos,
+	    lookpos,
 	    move.lookangle,
 	    quba.lightangle,
 	    quba.rndscale,
@@ -486,7 +558,7 @@ int main(int argc, char* argv[])
     quba.winhth   = 800;
     quba.octrsize = 1800.0; // default base octree edge size
 
-    move.lookpos    = (v3_t){440.0, 200.0, 700.0};
+    move.lookpos    = (v3_t){400.0, 150.0, 700.0};
     move.direction  = (v3_t){0.0, 0.0, -1.0};
     move.directionX = (v3_t){-1.0, 0.0, 0.0};
 
