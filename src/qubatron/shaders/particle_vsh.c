@@ -374,7 +374,7 @@ void main()
 
 	if (length(dirv) < 10.0)
 	{
-	    pos_out = res.tlf.xyz - normalize(dirv) * 2.0;
+	    pos_out = res.tlf.xyz;
 	    spd_out = vec3(0.0, 0.0, 0.0);
 	}
     }

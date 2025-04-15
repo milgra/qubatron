@@ -42,11 +42,12 @@ void modelutil_punch_hole_dyna(
     skeleton_glc_t* skelglc,
     particle_glc_t* partglc,
     model_t*        partmod,
-    int index, model_t* model,
-    v3_t position,
-    v3_t direction,
-    v4_t tlf,
-    long dynacount);
+    int             index,
+    model_t*        model,
+    v3_t            position,
+    v3_t            direction,
+    v4_t            tlf,
+    long            dynacount);
 
 void modelutil_update_particle(
     particle_glc_t* partglc,
@@ -54,7 +55,10 @@ void modelutil_update_particle(
     model_t*        dynamod,
     int             levels,
     float           basesize,
-    uint32_t        frames);
+    uint32_t        frames,
+    octree_t*       statoctr,
+    model_t*        statmod,
+    octree_glc_t*   octrglc);
 
 void modelutil_update_dust(
     dust_glc_t* partglc,
@@ -320,7 +324,16 @@ void modelutil_load_flat(
     skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12, dynamod->point_count * 3 * sizeof(GLfloat));
 }
 
-void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* partmod, octree_t* statoctr, model_t* statmod, model_t* dynamod, v3_t position, v3_t direction, long dynacount)
+void modelutil_punch_hole(
+    octree_glc_t*   glc,
+    particle_glc_t* partglc,
+    model_t*        partmod,
+    octree_t*       statoctr,
+    model_t*        statmod,
+    model_t*        dynamod,
+    v3_t            position,
+    v3_t            direction,
+    long            dynacount)
 {
     // check collosion between direction vector and static and dynamic voxels
 
@@ -492,6 +505,8 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 
     // add particle vertexes, normals and colors to combined model
 
+    long point_count = dynamod->point_count;
+    // append particle model after zombie and dust
     dynamod->point_count = dynacount; // dirty hack, create a combined model!!!
     model_append(dynamod, partmod);
 
@@ -514,6 +529,8 @@ void modelutil_punch_hole(octree_glc_t* glc, particle_glc_t* partglc, model_t* p
 	0,                                          // start offset
 	dynamod->point_count * sizeof(GLfloat) * 3, // end offset
 	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);          // buffer type
+
+    dynamod->point_count = point_count; // restore zombie point count
 }
 
 void modelutil_punch_hole_dyna(
@@ -607,7 +624,9 @@ void modelutil_punch_hole_dyna(
 
     // add particle vertexes, normals and colors to combined model
 
-    model->point_count = dynacount; // dirty hack, created a combined model!!!
+    long point_count = model->point_count;
+    // append particle model after zombie and dust
+    model->point_count = dynacount; // dirty hack, create a combined model!!!
     model_append(model, partmod);
 
     octree_glc_upload_texbuffer_data(
@@ -629,9 +648,20 @@ void modelutil_punch_hole_dyna(
 	0,                                        // start offset
 	model->point_count * sizeof(GLfloat) * 3, // end offset
 	OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);        // buffer type
+
+    model->point_count = point_count; // restore zombie point count
 }
 
-void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, model_t* dynamod, int levels, float basesize, uint32_t frames)
+void modelutil_update_particle(
+    particle_glc_t* partglc,
+    model_t*        partmod,
+    model_t*        dynamod,
+    int             levels,
+    float           basesize,
+    uint32_t        frames,
+    octree_t*       statoctr,
+    model_t*        statmod,
+    octree_glc_t*   octrglc)
 {
     // upload latest position and speed data
 
@@ -664,7 +694,35 @@ void modelutil_update_particle(particle_glc_t* partglc, model_t* partmod, model_
 
 	if (fincount == partmod->point_count)
 	{
-	    dynamod->point_count -= partmod->point_count;
+	    // find matching octets in static model, set color
+	    for (int i = 0; i < partmod->point_count * 3; i += 3)
+	    {
+		v3_t pnt = (v3_t){partmod->vertexes[i], partmod->vertexes[i + 1], partmod->vertexes[i + 2]};
+		v3_t col = (v3_t){partmod->colors[i], partmod->colors[i + 1], partmod->colors[i + 2]};
+
+		int modind = 0;
+		int octind = 0;
+
+		octree_model_index(statoctr, pnt, &modind, &octind);
+
+		// set color in static
+
+		statmod->colors[modind * 3]     = col.x;
+		statmod->colors[modind * 3 + 1] = col.y;
+		statmod->colors[modind * 3 + 2] = col.z;
+
+		octree_glc_upload_texbuffer_data(
+		    octrglc,
+		    statmod->colors,                            // buffer
+		    GL_FLOAT,                                   // data type
+		    statmod->point_count * sizeof(GLfloat) * 3, // size
+		    sizeof(GLfloat) * 3,                        // itemsize
+		    modind * sizeof(GLfloat) * 3,               // start offset
+		    (modind + 1) * sizeof(GLfloat) * 3,         // end offset
+		    OCTREE_GLC_BUFFER_STATIC_COLOR);            // buffer type
+	    }
+
+	    /* dynamod->point_count -= partmod->point_count; */
 	    mt_log_debug("dynamod point count %i", dynamod->point_count);
 	    partmod->point_count = 0;
 	}

@@ -32,6 +32,7 @@ void        octree_remove_point(octree_t* tree, v3_t pnt, int* modind, int* octi
 void        octree_log_path(octets_t o, size_t index);
 void        octree_comp(octree_t* treea, octree_t* treeb);
 int         octree_trace_line(octree_t* tree, v3_t pos, v3_t dir, v4_t* tlf);
+void        octree_model_index(octree_t* tree, v3_t pnt, int* modind, int* octind);
 
 #endif
 
@@ -203,6 +204,40 @@ void octree_remove_point(octree_t* tree, v3_t pnt, int* modind, int* octind)
 	    // zero out branch
 
 	    tree->octs[lindex].oct[loctet] = 0;
+	}
+
+	lindex = index;
+	loctet = octet;
+	index  = tree->octs[index].oct[octet];
+
+	if (index == 0) return;
+    }
+}
+
+void octree_model_index(octree_t* tree, v3_t pnt, int* modind, int* octind)
+{
+    float size   = tree->basecube.w;
+    int   index  = 0;
+    int   lindex = 0;
+    int   loctet = 0;
+
+    for (int level = 0; level < tree->levels + 1; level++)
+    {
+	size /= 2.0;
+
+	int octet = (int) (pnt.x / size) % 2;
+	int yi    = (int) (pnt.y / size) % 2;
+	int zi    = (int) (pnt.z / size) % 2;
+
+	if (yi == 0) octet += 2;
+	if (zi == 0) octet += 4;
+
+	if (level == tree->levels)
+	{
+	    // return original index and octet index
+
+	    *modind = tree->octs[index].oct[8];
+	    *octind = lindex;
 	}
 
 	lindex = index;

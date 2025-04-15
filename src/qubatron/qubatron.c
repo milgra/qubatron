@@ -406,7 +406,10 @@ bool main_loop(double time, void* userdata)
 		&quba.dynamod,
 		quba.octrdpth,
 		quba.octrsize,
-		quba.frames);
+		quba.frames,
+		&quba.statoctr,
+		&quba.statmod,
+		&quba.octrglc);
 
 	    for (int index = 0; index < quba.partmod.point_count; index++)
 	    {
