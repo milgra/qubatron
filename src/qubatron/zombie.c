@@ -58,6 +58,7 @@ zombie_t       zombie_init(v4_t pos, v4_t dir, octree_t* statoctr);
 void           zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float lighta, float angle, v4_t pos, v4_t dir, float speed);
 void           zombie_init_ragdoll(zombie_t* zombie);
 void           zombie_init_walk(zombie_t* zombie);
+void           zombie_shoot(zombie_t* cc, v3_t pos, v3_t dir, v3_t hit);
 
 #endif
 
@@ -349,7 +350,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 	// add gravity to basis
 
 	for (int i = 0; i < point_count; i++)
-	    zombie->masses[i]->basis = v3_add(zombie->masses[i]->basis, (v3_t){0.0, -1.0, 0.0});
+	    zombie->masses[i]->basis = v3_add(zombie->masses[i]->basis, (v3_t){0.0, -0.2, 0.0});
 
 	// update distance resolvers
 
@@ -540,6 +541,21 @@ void zombie_init_ragdoll(zombie_t* zombie)
 void zombie_init_walk(zombie_t* zombie)
 {
     zombie->mode = 0;
+}
+
+void zombie_shoot(zombie_t* zombie, v3_t pos, v3_t dir, v3_t hit)
+{
+    // move closest masspoints
+
+    int point_count = sizeof(zombie_parts) / sizeof(v4_t);
+
+    for (int i = 0; i < point_count; i++)
+    {
+	v3_t dirv = v3_sub(hit, zombie->masses[i]->trans);
+
+	if (v3_length(dirv) < 40.0)
+	    zombie->masses[i]->basis = v3_resize(dir, 10.0);
+    }
 }
 
 #endif

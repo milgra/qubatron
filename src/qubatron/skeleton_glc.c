@@ -64,6 +64,7 @@ void           skeleton_glc_init_ragdoll(skeleton_glc_t* cc);
 void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, size_t size);
 void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t octsize, size_t nrmsize);
+void           skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t direction, v3_t hitpos);
 
 void skeleton_glc_move(skeleton_glc_t* cc, int dir);
 
@@ -152,6 +153,14 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 {
     // update body parts
 
+    if (cc->ragdoll > 0)
+    {
+	cc->ragdoll -= 1;
+	if (cc->ragdoll == 0)
+	    zombie_init_walk(&cc->zombie);
+	mt_log_debug("RAGDOLL %i", cc->ragdoll);
+    }
+
     v4_t cdir;
 
     if (cc->zombie_control == 1)
@@ -171,7 +180,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	cc->speed *= 0.8;
 	cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed * 2.0));
     }
-    else
+    else if (cc->ragdoll == 0)
     {
 	cdir      = v4_sub(cc->path[cc->path_ind], cc->pos);
 	v4_t ndir = v4_xyzw(v3_resize(v4_xyz(cdir), 1.0));
@@ -297,9 +306,15 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
     else
     {
 	zombie_init_walk(&cc->zombie);
+	cc->ragdoll = 100;
     }
+}
 
-    cc->ragdoll = 1 - cc->ragdoll;
+void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit)
+{
+    zombie_init_ragdoll(&cc->zombie);
+    cc->ragdoll += 10;
+    zombie_shoot(&cc->zombie, pos, dir, hit);
 }
 
 #endif

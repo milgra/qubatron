@@ -269,7 +269,11 @@ bool main_loop(double time, void* userdata)
 		quba.shoot = 1;
 
 		if (dynaindex > 0)
+		{
 		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.zombiecount + quba.dustmod.point_count);
+
+		    skeleton_glc_shoot(&quba.skelglc, move.lookpos, move.direction, v4_xyz(tlf));
+		}
 		else if (statindex > 0)
 		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.zombiecount + quba.dustmod.point_count);
 	    }
