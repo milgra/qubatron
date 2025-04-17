@@ -324,6 +324,22 @@ void modelutil_load_flat(
     skeleton_glc_alloc_out(skelglc, NULL, dynamod->point_count * sizeof(GLint) * 12, dynamod->point_count * 3 * sizeof(GLfloat));
 }
 
+int SameSide(v3_t v1, v3_t v2, v3_t v3, v3_t v4, v3_t p)
+{
+    v3_t  normal = v3_cross(v3_sub(v2, v1), v3_sub(v3, v1));
+    float dotV4  = v3_dot(normal, v3_sub(v4, v1));
+    float dotP   = v3_dot(normal, v3_sub(p, v1));
+    return ((dotV4 > 0.0 && dotP > 0.0) || (dotV4 <= 0.0 && dotP <= 0.0));
+}
+
+int PointInTetrahedron(v3_t v1, v3_t v2, v3_t v3, v3_t v4, v3_t p)
+{
+    return SameSide(v1, v2, v3, v4, p) &&
+	   SameSide(v2, v3, v4, v1, p) &&
+	   SameSide(v3, v4, v1, v2, p) &&
+	   SameSide(v4, v1, v2, v3, p);
+}
+
 void modelutil_punch_hole(
     octree_glc_t*   glc,
     particle_glc_t* partglc,

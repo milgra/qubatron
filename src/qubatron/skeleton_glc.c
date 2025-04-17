@@ -313,7 +313,7 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
 void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit)
 {
     zombie_init_ragdoll(&cc->zombie);
-    cc->ragdoll += 10;
+    cc->ragdoll += 5;
     zombie_shoot(&cc->zombie, pos, dir, hit);
 }
 
