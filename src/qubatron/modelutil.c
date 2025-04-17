@@ -383,6 +383,25 @@ void modelutil_punch_hole(
     int   modarr[pntlen * pntlen * pntlen];
     int   pntind = 0;
 
+    float r1 = 0.5 + 0.5 * ((float) (rand() % 100) / 100.0);
+    float r2 = 0.5 + 0.5 * ((float) (rand() % 100) / 100.0);
+    float r3 = 0.5 + 0.5 * ((float) (rand() % 100) / 100.0);
+    float r4 = 0.5 + 0.5 * ((float) (rand() % 100) / 100.0);
+
+    v3_t p1 = pnt;
+    p1      = v3_sub(p1, (v3_t){r1 * half, r1 * half, r1 * half});
+    v3_t p2 = pnt;
+    p2      = v3_sub(p2, (v3_t){r2 * half, r2 * half, r2 * half});
+    v3_t p3 = pnt;
+    p3      = v3_add(p3, (v3_t){r3 * half, r3 * half, r3 * half});
+    v3_t p4 = pnt;
+    p4      = v3_add(p3, (v3_t){r4 * half, r4 * half, r4 * half});
+
+    v3_log(p1);
+    v3_log(p2);
+    v3_log(p3);
+    v3_log(p4);
+
     // remove points first
 
     for (float cx = pnt.x - half; cx < pnt.x + half; cx += step)
@@ -396,6 +415,7 @@ void modelutil_punch_hole(
 		float dz = pnt.z - cz;
 
 		if (dx * dx + dy * dy + dz * dz < half * half)
+		/* if (PointInTetrahedron(p1, p2, p3, p4, (v3_t){cx, cy, cz}) == 1) */
 		{
 		    octind = -1;
 		    modind = -1;
@@ -712,7 +732,6 @@ void modelutil_update_particle(
 	    if (partmod->normals[i] == 0.0 && partmod->normals[i + 1] == 0.0 && partmod->normals[i + 2] == 0.0)
 		++fincount;
 	}
-	mt_log_debug("fincount %i points %i", fincount, partmod->point_count);
 
 	if (fincount == partmod->point_count)
 	{

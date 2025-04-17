@@ -268,7 +268,7 @@ void octree_glc_update(octree_glc_t* rc, float width, float height, v3_t positio
     matrix4array_t projection = {0};
     projection.matrix         = pers;
 
-    glUniformMatrix4fv(rc->octr_unilocs[0], 1, 0, projection.array);
+    glUniformMatrix4fv(rc->octr_unilocs[0], 1, 0, projection.array); // goes to vertex shader
     glUniform3fv(rc->octr_unilocs[1], 1, posarr);
     glUniform3fv(rc->octr_unilocs[2], 1, anglearr);
     glUniform3fv(rc->octr_unilocs[3], 1, lightarr);

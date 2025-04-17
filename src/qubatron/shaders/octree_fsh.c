@@ -394,10 +394,14 @@ vec3 quat_rotate(vec4 q, vec3 v)
     return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 }
 
+const float PI = 3.1415926535897932384626433832795;
+
 void main()
 {
-    vec3 ctp = vec3(coord.xy, 500.0 - dimensions.y / 2.0);                // camera target point
-    vec3 csv = ctp - vec3(dimensions.x / 2.0, dimensions.y / 2.0, 700.0); // current screen vector
+    // tan(60) = (dim.x / 2.0) / zdist -> zdist = (dim.x / 2.0) / tan(60)
+    vec3 ctp = vec3(coord.xy, 0);                                                                  // camera target point
+    vec3 cfp = vec3(dimensions.x / 2.0, dimensions.y / 2.0, (dimensions.x / 2.0) / tan(PI / 4.0)); // camera focus point
+    vec3 csv = ctp - cfp;                                                                          // current screen vector
 
     vec4 qz = quat_from_axis_angle(vec3(0.0, 1.0, 0.0), -angle_in.x); // rotation quaternion
     vec3 vx = quat_rotate(qz, vec3(-1.0, 0.0, 0.0));
