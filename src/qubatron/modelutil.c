@@ -35,7 +35,8 @@ void modelutil_punch_hole(
     model_t*        dynamod,
     v3_t            position,
     v3_t            direction,
-    long            dynacount);
+    long            dynacount,
+    int             guntype);
 
 void modelutil_punch_hole_dyna(
     octree_glc_t*   octrglc,
@@ -47,7 +48,8 @@ void modelutil_punch_hole_dyna(
     v3_t            position,
     v3_t            direction,
     v4_t            tlf,
-    long            dynacount);
+    long            dynacount,
+    int             guntype);
 
 void modelutil_update_particle(
     particle_glc_t* partglc,
@@ -349,7 +351,8 @@ void modelutil_punch_hole(
     model_t*        dynamod,
     v3_t            position,
     v3_t            direction,
-    long            dynacount)
+    long            dynacount,
+    int             guntype)
 {
     // check collosion between direction vector and static and dynamic voxels
 
@@ -372,7 +375,7 @@ void modelutil_punch_hole(
     int octind = -1; // fucked up, modify!
     int modind = -1; // fucked up, modify!
 
-    float dist = 10.0 + (float) (rand() % 50) / 10.0;
+    float dist = guntype * 5.0 + guntype * 5.0 * ((float) (rand() % 100) / 100.0);
     float half = dist / 2.0;
 
     int division = 2;
@@ -396,11 +399,6 @@ void modelutil_punch_hole(
     p3      = v3_add(p3, (v3_t){r3 * half, r3 * half, r3 * half});
     v3_t p4 = pnt;
     p4      = v3_add(p3, (v3_t){r4 * half, r4 * half, r4 * half});
-
-    v3_log(p1);
-    v3_log(p2);
-    v3_log(p3);
-    v3_log(p4);
 
     // remove points first
 
@@ -516,7 +514,7 @@ void modelutil_punch_hole(
 	    nnrm.y + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
 	    nnrm.z + -0.6 + 1.2 * (float) (rand() % 100) / 100.0,
 	};
-	speed = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+	speed = v3_scale(speed, 10.0);
 
 	model_add_point(partmod, curr, speed, ncol);
     }
@@ -585,13 +583,14 @@ void modelutil_punch_hole_dyna(
     v3_t            position,
     v3_t            direction,
     v4_t            tlf,
-    long            dynacount)
+    long            dynacount,
+    int             guntype)
 {
     float ox = model->vertexes[index * 3];
     float oy = model->vertexes[index * 3 + 1];
     float oz = model->vertexes[index * 3 + 2];
 
-    float dist = 10.0 + (float) (rand() % 50) / 5.0;
+    float dist = guntype * 5.0 + guntype * 5.0 * ((float) (rand() % 100) / 100.0);
 
     int minind = 0;
     int maxind = 0;
@@ -641,7 +640,7 @@ void modelutil_punch_hole_dyna(
 		nnrm.y + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 		nnrm.z + -0.3 + 0.6 * (float) (rand() % 100) / 100.0,
 	    };
-	    speed  = v3_scale(speed, (float) (rand() % 1000) / 20.0);
+	    speed  = v3_scale(speed, (float) (rand() % 1000) / 100.0);
 	    ncol.x = 1.0;
 
 	    model_add_point(partmod, npnt, speed, ncol);
@@ -724,14 +723,20 @@ void modelutil_update_particle(
 
     // check simulation end every second
 
-    if (frames % 20 == 0)
+    if (frames % 60 == 0)
     {
 	int fincount = 0;
 	for (int i = 0; i < partmod->point_count * 3; i += 3)
 	{
-	    if (partmod->normals[i] == 0.0 && partmod->normals[i + 1] == 0.0 && partmod->normals[i + 2] == 0.0)
+	    if (partmod->normals[i] < -900.0)
 		++fincount;
+	    else
+	    {
+		mt_log_debug("SPD %f %f %f POS %f %f %f", partmod->normals[i], partmod->normals[i + 1], partmod->normals[i + 2], partmod->vertexes[i], partmod->vertexes[i + 1], partmod->vertexes[i + 2]);
+	    }
 	}
+
+	mt_log_debug("rem %i", partmod->point_count - fincount);
 
 	if (fincount == partmod->point_count)
 	{

@@ -89,8 +89,9 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
+- speed pushback on shoot
+- sinus edge for punch hole
 - zombie animation, death
-- gun, shotgun, elephant gun -> big circle shallow hole
 - close wall, panzerfaust background music, monster shadow -> demo
 
 Later :

@@ -158,7 +158,6 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	cc->ragdoll -= 1;
 	if (cc->ragdoll == 0)
 	    zombie_init_walk(&cc->zombie);
-	mt_log_debug("RAGDOLL %i", cc->ragdoll);
     }
 
     v4_t cdir;
@@ -195,8 +194,9 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	{
 	    cc->angle = -atan2(cc->pdir.x, cc->pdir.z);
 
-	    cc->speed = 1.0;
-	    cc->pos   = v4_add(cc->pos, v4_scale(cc->pdir, cc->speed * 2.0));
+	    cc->speed += 0.2;
+	    cc->speed *= 0.8;
+	    cc->pos = v4_add(cc->pos, v4_scale(cc->pdir, cc->speed));
 	}
     }
 
@@ -314,6 +314,7 @@ void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit)
 {
     zombie_init_ragdoll(&cc->zombie);
     cc->ragdoll += 5;
+    cc->speed -= 2.0;
     zombie_shoot(&cc->zombie, pos, dir, hit);
 }
 

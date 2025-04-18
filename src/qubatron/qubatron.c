@@ -77,6 +77,7 @@ struct qubatron_t
 
     long zombiecount;
     int  shoot;
+    int  guntype;
 } quba = {0};
 
 void GLAPIENTRY
@@ -154,6 +155,7 @@ void main_init()
 #endif
 
     quba.zombiecount = quba.dynamod.point_count;
+    quba.guntype     = 1;
 
     skeleton_glc_init_zombie(&quba.skelglc, &quba.statoctr);
 
@@ -270,12 +272,12 @@ bool main_loop(double time, void* userdata)
 
 		if (dynaindex > 0)
 		{
-		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.zombiecount + quba.dustmod.point_count);
+		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.zombiecount + quba.dustmod.point_count, quba.guntype);
 
 		    skeleton_glc_shoot(&quba.skelglc, move.lookpos, move.direction, v4_xyz(tlf));
 		}
 		else if (statindex > 0)
-		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.zombiecount + quba.dustmod.point_count);
+		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.zombiecount + quba.dustmod.point_count, quba.guntype);
 	    }
 
 	    if (event.type == SDL_MOUSEBUTTONUP)
@@ -306,9 +308,9 @@ bool main_loop(double time, void* userdata)
 	    if (event.key.keysym.sym == SDLK_y) skeleton_glc_move(&quba.skelglc, 0);
 	    if (event.key.keysym.sym == SDLK_h) skeleton_glc_move(&quba.skelglc, 0);
 	    if (event.key.keysym.sym == SDLK_r) skeleton_glc_init_ragdoll(&quba.skelglc);
-	    if (event.key.keysym.sym == SDLK_1) quba.rndscale = 1;
-	    if (event.key.keysym.sym == SDLK_2) quba.rndscale = 2;
-	    if (event.key.keysym.sym == SDLK_3) quba.rndscale = 3;
+	    if (event.key.keysym.sym == SDLK_1) quba.guntype = 1;
+	    if (event.key.keysym.sym == SDLK_2) quba.guntype = 2;
+	    if (event.key.keysym.sym == SDLK_3) quba.guntype = 3;
 	    if (event.key.keysym.sym == SDLK_4) quba.rndscale = 4;
 	    if (event.key.keysym.sym == SDLK_5) quba.rndscale = 5;
 	    if (event.key.keysym.sym == SDLK_6) quba.rndscale = 6;
@@ -420,7 +422,7 @@ bool main_loop(double time, void* userdata)
 	quba.lightangle += curr_step / 10.0;
 	if (quba.lightangle > 6.28) quba.lightangle = 0.0;
 
-#ifndef OCTTEST
+	/* #ifndef OCTTEST */
 
 	skeleton_glc_update(
 	    &quba.skelglc,
@@ -520,10 +522,10 @@ bool main_loop(double time, void* userdata)
 	    quba.dynamod.point_count * sizeof(GLfloat) * 3, // size
 	    sizeof(GLfloat) * 3,                            // itemsize
 	    0,                                              // start offset
-	    quba.dynamod.point_count * sizeof(GLfloat) * 3, // end offset
+	    quba.zombiecount * sizeof(GLfloat) * 3,         // end offset
 	    OCTREE_GLC_BUFFER_DYNAMIC_NORMAL);              // buffer type
 
-#endif
+	/* #endif */
 
 	// render scene
 

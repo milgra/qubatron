@@ -349,33 +349,26 @@ void main()
     pos_out = pos;
     spd_out = spd;
 
-    // add gravity to speed, slow down to simulate friction
-
-    if (spd == vec3(0.0, 0.0, 0.0)) return;
-
-    vec3 vspd = spd;
-
-    vspd += vec3(0.0, -0.4, 0.0);
-
-    pos_out = pos + vspd;
-    spd_out = vspd;
-
-    if (pos.y < -10.0)
+    if (spd_out.x > -90000.0)
     {
-	pos_out.y = -10.0;
-	spd_out   = vec3(0.0, 0.0, 0.0);
-    }
+	spd_out.y -= 0.4;
 
-    ctlres res = cube_trace_line(pos, vspd);
+	ctlres res = cube_trace_line(pos, spd_out);
 
-    if (res.isp.w > 0.0)
-    {
-	vec3 dirv = res.tlf.xyz - pos;
-
-	if (length(dirv) < 10.0)
+	if (res.isp.w > 0.0)
 	{
-	    pos_out = res.tlf.xyz;
-	    spd_out = vec3(0.0, 0.0, 0.0);
+	    vec3 dir = res.tlf.xyz - pos;
+
+	    if (length(dir) < 10.0)
+	    {
+		pos_out   = res.tlf.xyz;
+		spd_out.x = -100000.0;
+		return;
+	    }
 	}
+
+	pos_out = pos + spd_out;
+
+	if (pos_out.y < -10.0) spd_out.x = -100000.0;
     }
 }
