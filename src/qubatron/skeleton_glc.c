@@ -138,15 +138,18 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
 {
     cc->dir  = (v4_t){0.0, 0.0, 1.0, 0.0};
-    cc->pos  = (v4_t){350.0, 0.0, 600.0, 0.0};
+    cc->pos  = (v4_t){250.0, 0.0, 600.0, 0.0};
     cc->pdir = (v4_t){0.0, 0.0, 1.0, 0.0};
 
-    cc->path[0] = (v4_t){250.0, 0.0, 900.0, 0.0};
+    cc->path[0] = (v4_t){290.0, 0.0, 900.0, 0.0};
     cc->path[1] = (v4_t){450.0, 0.0, 900.0, 0.0};
     cc->path[2] = (v4_t){450.0, 0.0, 600.0, 0.0};
-    cc->path[3] = (v4_t){250.0, 0.0, 600.0, 0.0};
+    cc->path[3] = (v4_t){290.0, 0.0, 600.0, 0.0};
 
-    cc->zombie = zombie_init(cc->pos, cc->dir, statoctr);
+    cc->zombie         = zombie_init(cc->pos, cc->dir, statoctr);
+    cc->zombie_control = 0;
+
+    cc->angle = 0.0;
 }
 
 void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize)
@@ -181,23 +184,32 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
     }
     else if (cc->ragdoll == 0)
     {
-	cdir      = v4_sub(cc->path[cc->path_ind], cc->pos);
-	v4_t ndir = v4_xyzw(v3_resize(v4_xyz(cdir), 1.0));
-	cc->pdir  = v4_add(cc->pdir, v4_xyzw(v3_scale(v4_xyz(v4_sub(ndir, cc->pdir)), 0.2)));
+	cdir = v4_sub(cc->path[cc->path_ind], cc->pos);
+
+	/* v4_t ndir = v4_xyzw(v3_resize(v4_xyz(cdir), 1.0)); */
+	/* cc->pdir  = v4_add(cc->pdir, v4_xyzw(v3_scale(v4_xyz(v4_sub(ndir, cc->pdir)), 0.05))); */
 
 	if (v3_length(v4_xyz(cdir)) < 20.0)
 	{
 	    cc->path_ind += 1;
 	    if (cc->path_ind == 4) cc->path_ind = 0;
 	}
-	else
-	{
-	    cc->angle = -atan2(cc->pdir.x, cc->pdir.z);
 
-	    cc->speed += 0.2;
-	    cc->speed *= 0.8;
-	    cc->pos = v4_add(cc->pos, v4_scale(cc->pdir, cc->speed));
-	}
+	float angle = -atan2(cdir.x, cdir.z);
+
+	if (cc->angle - angle > M_PI) cc->angle -= 2.0 * M_PI;
+	if (angle - cc->angle > M_PI) cc->angle += 2.0 * M_PI;
+
+	cc->angle += (angle - cc->angle) / 16.0;
+
+	mt_log_debug("angle %f angle %f", angle * 180 / M_PI, cc->angle * 180 / M_PI);
+
+	v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -cc->angle);
+	cdir      = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
+
+	cc->speed += 0.5;
+	cc->speed *= 0.8;
+	cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed));
     }
 
     zombie_update(&cc->zombie, statoctr, statmod, lighta, cc->angle, cc->pos, cdir, cc->speed);

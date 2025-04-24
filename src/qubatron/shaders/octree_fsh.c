@@ -432,21 +432,21 @@ void main()
 	ctlres lcres = cube_trace_line(light, lghtv);
 	vec3   ispv  = lcres.isp.xyz - res.isp.xyz;
 	float  sqr   = ispv.x * ispv.x + ispv.y * ispv.y + ispv.z * ispv.z;
-	float  angle = max(dot(normalize(-lghtv), normalize(res.nrm.xyz)), 0.0) * step(sqr, 15.0);
 
-	// if isp distance is over 25.0, cube is shadow colored
-	// otherwise it is based on the light angle
+	float lght_nrm_ang = max(dot(normalize(-lghtv), normalize(res.nrm.xyz)), 0.0);
+	float camv_nrm_ang = max(dot(normalize(-csv), normalize(res.nrm.xyz)), 0.0);
 
-	col = vec4(col.xyz * (0.3 + angle * 0.7), col.w);
+	// if isp distance is over 15.0, cube is shadow colored
+
+	col = vec4(col.xyz * (0.1 + 0.2 * camv_nrm_ang + lght_nrm_ang * step(sqr, 15.0) * 0.7), col.w);
 
 	/* yellowish color, SWITCHABLE */
-	col.xyz *= 0.8;
+
 	col.z *= 0.7;
 
 	// gunshot light
-	vec3  camv = res.isp.xyz - camfp;
-	float ang  = max(dot(normalize(-camv), normalize(res.nrm.xyz)), 0.0);
-	col.xyz += float(shoot) * ang * 0.1;
+
+	col.xyz += float(shoot) * camv_nrm_ang * 0.1;
     }
 
     if (camangle < 0.02)
