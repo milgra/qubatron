@@ -348,6 +348,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 
 	neckdirv = v3_add(neckdirv, v3_scale(v4_xyz(l90dir_v), cos(nangle) * -0.6));
 	headdirv = v3_add(headdirv, v3_scale(v4_xyz(l90dir_v), cos(nangle) * -0.9));
+	headdirv = v3_add(headdirv, v3_scale(v4_xyz(dir), sin(nangle) * 15.0));
 
 	newparts.head = v4_add(newparts.hip, v4_xyzw(headdirv));
 	newparts.neck = v4_add(newparts.hip, v4_xyzw(neckdirv));

@@ -564,8 +564,8 @@ int main(int argc, char* argv[])
     quba.winhth   = 800;
     quba.octrsize = 1800.0; // default base octree edge size
 
-    move.lookpos    = (v3_t){400.0, 150.0, 700.0};
-    move.direction  = (v3_t){0.0, 0.0, -1.0};
+    move.lookpos    = (v3_t){700.0, 150.0, 350.0};
+    move.direction  = (v3_t){-0.5, 0.0, -1.0};
     move.directionX = (v3_t){-1.0, 0.0, 0.0};
 
     mt_log_use_colors(isatty(STDERR_FILENO));

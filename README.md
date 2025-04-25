@@ -89,12 +89,14 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
-- speed pushback on shoot
-- sinus edge for punch hole
-- zombie animation, death
-- close wall, panzerfaust background music, monster shadow -> demo
+- kezmozgas
+- kisebb zombi
+- webgl verzio
+- video felvesz fixed steppinggel
+- video befejezese
 
 Later :
 
+- sinus edge for punch hole
 - separate orind array for octree
 - webgl fencing

@@ -37,7 +37,6 @@ typedef struct skeleton_glc_t
 
     v4_t dir;
     v4_t pos;
-    v4_t pdir;
 
     v4_t path[10];
     int  path_ind;
@@ -137,9 +136,8 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
 void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
 {
-    cc->dir  = (v4_t){0.0, 0.0, 1.0, 0.0};
-    cc->pos  = (v4_t){250.0, 0.0, 600.0, 0.0};
-    cc->pdir = (v4_t){0.0, 0.0, 1.0, 0.0};
+    cc->dir = (v4_t){0.0, 0.0, 1.0, 0.0};
+    cc->pos = (v4_t){250.0, 0.0, 600.0, 0.0};
 
     cc->path[0] = (v4_t){300.0, 0.0, 900.0, 0.0};
     cc->path[1] = (v4_t){450.0, 0.0, 900.0, 0.0};
@@ -322,7 +320,7 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
 void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit)
 {
     zombie_init_ragdoll(&cc->zombie);
-    cc->ragdoll += 150;
+    cc->ragdoll += 15;
     cc->speed -= 2.0;
     zombie_shoot(&cc->zombie, pos, dir, hit);
 }
