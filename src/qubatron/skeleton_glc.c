@@ -39,7 +39,7 @@ typedef struct skeleton_glc_t
     v4_t pos;
     v4_t pdir;
 
-    v4_t path[4];
+    v4_t path[10];
     int  path_ind;
 
     int zombie_control;
@@ -141,10 +141,12 @@ void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
     cc->pos  = (v4_t){250.0, 0.0, 600.0, 0.0};
     cc->pdir = (v4_t){0.0, 0.0, 1.0, 0.0};
 
-    cc->path[0] = (v4_t){290.0, 0.0, 900.0, 0.0};
+    cc->path[0] = (v4_t){300.0, 0.0, 900.0, 0.0};
     cc->path[1] = (v4_t){450.0, 0.0, 900.0, 0.0};
-    cc->path[2] = (v4_t){450.0, 0.0, 600.0, 0.0};
-    cc->path[3] = (v4_t){290.0, 0.0, 600.0, 0.0};
+    cc->path[2] = (v4_t){450.0, 0.0, 200.0, 0.0};
+    cc->path[3] = (v4_t){550.0, 0.0, 200.0, 0.0};
+    cc->path[4] = (v4_t){450.0, 0.0, 300.0, 0.0};
+    cc->path[5] = (v4_t){300.0, 0.0, 600.0, 0.0};
 
     cc->zombie         = zombie_init(cc->pos, cc->dir, statoctr);
     cc->zombie_control = 0;
@@ -186,9 +188,6 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
     {
 	cdir = v4_sub(cc->path[cc->path_ind], cc->pos);
 
-	/* v4_t ndir = v4_xyzw(v3_resize(v4_xyz(cdir), 1.0)); */
-	/* cc->pdir  = v4_add(cc->pdir, v4_xyzw(v3_scale(v4_xyz(v4_sub(ndir, cc->pdir)), 0.05))); */
-
 	if (v3_length(v4_xyz(cdir)) < 20.0)
 	{
 	    cc->path_ind += 1;
@@ -201,8 +200,6 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	if (angle - cc->angle > M_PI) cc->angle += 2.0 * M_PI;
 
 	cc->angle += (angle - cc->angle) / 16.0;
-
-	mt_log_debug("angle %f angle %f", angle * 180 / M_PI, cc->angle * 180 / M_PI);
 
 	v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -cc->angle);
 	cdir      = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
@@ -325,7 +322,7 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
 void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit)
 {
     zombie_init_ragdoll(&cc->zombie);
-    cc->ragdoll += 5;
+    cc->ragdoll += 150;
     cc->speed -= 2.0;
     zombie_shoot(&cc->zombie, pos, dir, hit);
 }
