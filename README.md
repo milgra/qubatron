@@ -89,6 +89,8 @@ emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/
 
 Todo :
 
+- limit particles
+- fix floating particles
 - kezmozgas
 - kisebb zombi
 - webgl verzio

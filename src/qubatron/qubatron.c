@@ -274,7 +274,7 @@ bool main_loop(double time, void* userdata)
 		{
 		    modelutil_punch_hole_dyna(&quba.octrglc, &quba.skelglc, &quba.partglc, &quba.partmod, dynaindex, &quba.dynamod, move.lookpos, move.direction, tlf, quba.zombiecount + quba.dustmod.point_count, quba.guntype);
 
-		    skeleton_glc_shoot(&quba.skelglc, move.lookpos, move.direction, v4_xyz(tlf));
+		    skeleton_glc_shoot(&quba.skelglc, move.lookpos, move.direction, v4_xyz(tlf), quba.guntype);
 		}
 		else if (statindex > 0)
 		    modelutil_punch_hole(&quba.octrglc, &quba.partglc, &quba.partmod, &quba.statoctr, &quba.statmod, &quba.dynamod, move.lookpos, move.direction, quba.zombiecount + quba.dustmod.point_count, quba.guntype);
@@ -564,7 +564,8 @@ int main(int argc, char* argv[])
     quba.winhth   = 800;
     quba.octrsize = 1800.0; // default base octree edge size
 
-    move.lookpos    = (v3_t){700.0, 150.0, 350.0};
+    /* move.lookpos    = (v3_t){700.0, 150.0, 350.0}; */
+    move.lookpos    = (v3_t){300.0, 150.0, 650.0};
     move.direction  = (v3_t){-0.5, 0.0, -1.0};
     move.directionX = (v3_t){-1.0, 0.0, 0.0};
 

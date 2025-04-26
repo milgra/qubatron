@@ -105,7 +105,6 @@ void dres_resetdistance(dres_t* dguard)
 
 void dres_update(dres_t* dguard, float ratio)
 {
-
     v3_t massabasis = v3_scale(dguard->mass_a->basis, ratio);
     v3_t massbbasis = v3_scale(dguard->mass_b->basis, ratio);
 

@@ -84,7 +84,7 @@ void main()
 
     // go through skeleton point pairs
 
-    for (int i = 0; i < POINT_COUNT; i += 2)
+    for (int i = 0; i < 20; i += 2)
     {
 	vec3 oldbone               = oldbones[i + 1].xyz - oldbones[i].xyz; // bone vector
 	vec3 oldbone_midp          = oldbones[i].xyz + oldbone / 2.0;

@@ -63,7 +63,7 @@ void           skeleton_glc_init_ragdoll(skeleton_glc_t* cc);
 void           skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmod, float lighta, int model_count, int maxlevel, float basesize);
 void           skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, size_t size);
 void           skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t octsize, size_t nrmsize);
-void           skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t direction, v3_t hitpos);
+void           skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t direction, v3_t hitpos, int guntype);
 
 void skeleton_glc_move(skeleton_glc_t* cc, int dir);
 
@@ -202,7 +202,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -cc->angle);
 	cdir      = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
 
-	cc->speed += 0.5;
+	cc->speed += 0.3;
 	cc->speed *= 0.8;
 	cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed));
     }
@@ -317,10 +317,10 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
     }
 }
 
-void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit)
+void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit, int guntype)
 {
     zombie_init_ragdoll(&cc->zombie);
-    cc->ragdoll += 15;
+    cc->ragdoll += guntype * 15;
     cc->speed -= 2.0;
     zombie_shoot(&cc->zombie, pos, dir, hit);
 }
