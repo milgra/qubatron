@@ -127,7 +127,7 @@ octets_t octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t p
 
 	    if (tree->len == tree->size)
 	    {
-		tree->size += 8192;
+		tree->size += 100000;
 		tree->octs = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
 		if (tree->octs == NULL) mt_log_debug("not enough memory");
 		mt_log_debug("octree array size %lu\033[1A", tree->size * sizeof(octets_t));
@@ -163,7 +163,7 @@ void octree_insert_path(octree_t* tree, size_t index, size_t modind, int* octs)
 
 	    if (tree->len == tree->size)
 	    {
-		tree->size += 8192;
+		tree->size += 100000;
 		tree->octs = mt_memory_realloc(tree->octs, tree->size * sizeof(octets_t));
 		if (tree->octs == NULL)
 		    mt_log_debug("not enough memory");

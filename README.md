@@ -81,11 +81,11 @@ Videos :
 
 WebAssembly :
 
-find src -type f -name "*.c" > files.txt
+find src -type f -name "*.c" -not -path "./src/qubatron/shaders/*" > files.txt
 
 source "/home/milgra/Downloads/emsdk/emsdk_env.sh"
 
-emcc -Isrc/qubatron -Isrc/mt_core -Isrc/mt_math -Isrc/rply-1.1.4 -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -O3 -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4Gb --preload-file src/qubatron --preload-file res -o wasm/qubatron.html
+emcc --emrun -Isrc/qubatron  -Isrc/mt_core -Isrc/mt_math -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -O3 -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4Gb --preload-file src/qubatron --preload-file resasm -o wasm/qubatron.html
 
 Todo :
 
@@ -93,7 +93,6 @@ Todo :
 - fix floating particles
 - kezmozgas
 - kisebb zombi
-- webgl verzio
 - video felvesz fixed steppinggel
 - video befejezese
 

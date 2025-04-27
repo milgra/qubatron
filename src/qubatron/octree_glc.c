@@ -33,6 +33,8 @@ typedef struct octree_glc_t
     GLuint octr_unilocs[20];
     GLuint r2tx_unilocs[10];
 
+    GLuint text_heights[20];
+
     // vbo and vao for octree shader
 
     GLuint octr_vbo;
@@ -169,37 +171,37 @@ octree_glc_t octree_glc_init(char* base_path)
     glBindTexture(GL_TEXTURE_2D, rc.col1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 8192, 0, GL_RGB, GL_FLOAT, NULL);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 8192, 0, GL_RGB, GL_FLOAT, NULL); */
 
     glGenTextures(1, &rc.col2_tex);
     glBindTexture(GL_TEXTURE_2D, rc.col2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 4096, 0, GL_RGB, GL_FLOAT, NULL);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 4096, 0, GL_RGB, GL_FLOAT, NULL); */
 
     glGenTextures(1, &rc.nrm1_tex);
     glBindTexture(GL_TEXTURE_2D, rc.nrm1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 8192, 0, GL_RGB, GL_FLOAT, NULL);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 8192, 0, GL_RGB, GL_FLOAT, NULL); */
 
     glGenTextures(1, &rc.nrm2_tex);
     glBindTexture(GL_TEXTURE_2D, rc.nrm2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 4096, 0, GL_RGB, GL_FLOAT, NULL);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, 4096, 0, GL_RGB, GL_FLOAT, NULL); */
 
     glGenTextures(1, &rc.oct1_tex);
     glBindTexture(GL_TEXTURE_2D, rc.oct1_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, 8192, 0, GL_RGBA_INTEGER, GL_INT, NULL);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, 8192, 0, GL_RGBA_INTEGER, GL_INT, NULL); */
 
     glGenTextures(1, &rc.oct2_tex);
     glBindTexture(GL_TEXTURE_2D, rc.oct2_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, 8192, 0, GL_RGBA_INTEGER, GL_INT, NULL);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, 8192, 0, GL_RGBA_INTEGER, GL_INT, NULL); */
 
     // render to texture renderer
 
@@ -400,6 +402,20 @@ void octree_glc_upload_texbuffer_data(
     glActiveTexture(GL_TEXTURE0 + unif + 1);
     glBindTexture(GL_TEXTURE_2D, text);
     glUniform1i(rc->octr_unilocs[unif], unif + 1);
+
+    /* re-init texture if needed */
+
+    int maxheight = (size / itemsize) / 8192;
+    if (rc->text_heights[unif] < maxheight)
+    {
+	rc->text_heights[unif] = maxheight + 1;
+	if (type == GL_FLOAT)
+	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, maxheight, 0, GL_RGB, GL_FLOAT, NULL);
+	else
+	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, maxheight, 0, GL_RGBA_INTEGER, GL_INT, NULL);
+	start = 0;
+	end   = size;
+    }
 
     /* mt_log_debug("UPLOAD TEXBUFFER size %i itemsize %i type %i start %i end %i tex %i uniform %i", size, itemsize, type, start, end, text, unif); */
 

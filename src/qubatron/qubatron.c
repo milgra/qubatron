@@ -108,7 +108,7 @@ void main_init()
     char  path[PATH_MAX];
 
 #ifdef EMSCRIPTEN
-    snprintf(path, PATH_MAX, "%s/src/qubatron/shaders", base_path);
+    snprintf(path, PATH_MAX, "%s/src/qubatron/shaders/", base_path);
 #else
     snprintf(path, PATH_MAX, "%s", base_path);
 #endif
@@ -563,6 +563,10 @@ int main(int argc, char* argv[])
     quba.winwth   = 1200;
     quba.winhth   = 800;
     quba.octrsize = 1800.0; // default base octree edge size
+
+#ifdef EMSCRIPTEN
+    quba.octrdpth = 11; // octree depth
+#endif
 
     /* move.lookpos    = (v3_t){700.0, 150.0, 350.0}; */
     move.lookpos    = (v3_t){300.0, 150.0, 650.0};

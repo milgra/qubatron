@@ -188,12 +188,12 @@ void modelutil_load_flat(
     snprintf(nrmpath, PATH_MAX, "%s%s.nrm", base_path, scenepath);
     snprintf(colpath, PATH_MAX, "%s%s.col", base_path, scenepath);
     snprintf(rngpath, PATH_MAX, "%s%s.rng", base_path, scenepath);
-#ifdef EMSCRIPTEN
-    snprintf(pntpath, PATH_MAX, "%sres/%s.pnt", base_path, scenepath);
-    snprintf(nrmpath, PATH_MAX, "%sres/%s.nrm", base_path, scenepath);
-    snprintf(colpath, PATH_MAX, "%sres/%s.col", base_path, scenepath);
-    snprintf(rngpath, PATH_MAX, "%sres/%s.rng", base_path, scenepath);
-#endif
+    #ifdef EMSCRIPTEN
+    snprintf(pntpath, PATH_MAX, "%sresasm/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%sresasm/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%sresasm/%s.col", base_path, scenepath);
+    snprintf(rngpath, PATH_MAX, "%sresasm/%s.rng", base_path, scenepath);
+    #endif
 
     model_load_flat(statmod, pntpath, colpath, nrmpath, rngpath);
 
@@ -259,12 +259,12 @@ void modelutil_load_flat(
     snprintf(nrmpath, PATH_MAX, "%s%s.nrm", base_path, scenepath);
     snprintf(colpath, PATH_MAX, "%s%s.col", base_path, scenepath);
     snprintf(rngpath, PATH_MAX, "%s%s.rng", base_path, scenepath);
-#ifdef EMSCRIPTEN
-    snprintf(pntpath, PATH_MAX, "%sres/%s.pnt", base_path, scenepath);
-    snprintf(nrmpath, PATH_MAX, "%sres/%s.nrm", base_path, scenepath);
-    snprintf(colpath, PATH_MAX, "%sres/%s.col", base_path, scenepath);
-    snprintf(rngpath, PATH_MAX, "%sres/%s.rng", base_path, scenepath);
-#endif
+    #ifdef EMSCRIPTEN
+    snprintf(pntpath, PATH_MAX, "%sresasm/%s.pnt", base_path, scenepath);
+    snprintf(nrmpath, PATH_MAX, "%sresasm/%s.nrm", base_path, scenepath);
+    snprintf(colpath, PATH_MAX, "%sresasm/%s.col", base_path, scenepath);
+    snprintf(rngpath, PATH_MAX, "%sresasm/%s.rng", base_path, scenepath);
+    #endif
     model_load_flat(dynamod, pntpath, colpath, nrmpath, rngpath);
 
     for (int index = 0; index < dynamod->point_count * 3; index += 3)
