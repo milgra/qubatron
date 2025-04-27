@@ -551,6 +551,11 @@ bool main_loop(double time, void* userdata)
 	SDL_GL_SwapWindow(quba.window);
 
 	quba.frames++;
+
+	if (quba.frames % 60 == 0)
+	{
+	    mt_log_debug("HEAP %u Mbytes GPU %u Mbytes", mt_memory_used / 1048576, quba.octrglc.memsize / 1048576);
+	}
     }
 
     return 1;

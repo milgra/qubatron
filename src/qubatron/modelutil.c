@@ -732,7 +732,7 @@ void modelutil_update_particle(
 		++fincount;
 	    else
 	    {
-		mt_log_debug("SPD %f %f %f POS %f %f %f", partmod->normals[i], partmod->normals[i + 1], partmod->normals[i + 2], partmod->vertexes[i], partmod->vertexes[i + 1], partmod->vertexes[i + 2]);
+		/* mt_log_debug("SPD %f %f %f POS %f %f %f", partmod->normals[i], partmod->normals[i + 1], partmod->normals[i + 2], partmod->vertexes[i], partmod->vertexes[i + 1], partmod->vertexes[i + 2]); */
 	    }
 	}
 

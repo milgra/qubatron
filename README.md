@@ -89,6 +89,7 @@ emcc --emrun -Isrc/qubatron  -Isrc/mt_core -Isrc/mt_math -I/home/milgra/Download
 
 Todo :
 
+- separate orind array for octree
 - limit particles
 - fix floating particles
 - kezmozgas
@@ -99,5 +100,6 @@ Todo :
 Later :
 
 - sinus edge for punch hole
-- separate orind array for octree
 - webgl fencing
+
+with load-time voxelization asset size can be reduced from 1.4 Gbytes to 75 Mbytes

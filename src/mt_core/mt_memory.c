@@ -2,6 +2,7 @@
 #define mt_memory_h
 
 #include <assert.h>
+#include <malloc.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -12,6 +13,8 @@
 #define RET(X) mt_memory_retain(X)
 #define REL(X) mt_memory_release(X)
 #define HEAP(X) mt_memory_stack_to_heap(sizeof(X), NULL, NULL, (char*) &X)
+
+extern size_t mt_memory_used;
 
 void*  mt_memory_alloc(size_t size, void (*destructor)(void*), void (*descriptor)(void*, int));
 void*  mt_memory_calloc(size_t size, void (*destructor)(void*), void (*descriptor)(void*, int));
@@ -25,6 +28,8 @@ void   mt_memory_describe(void* pointer, int level);
 #endif
 
 #if __INCLUDE_LEVEL__ == 0
+
+size_t mt_memory_used = 0;
 
 struct mt_memory_head
 {
@@ -42,6 +47,8 @@ void* mt_memory_alloc(
     char* bytes = malloc(sizeof(struct mt_memory_head) + size);
     if (bytes != NULL)
     {
+	mt_memory_used += size;
+
 	struct mt_memory_head* head = (struct mt_memory_head*) bytes;
 
 	head->id[0]       = 'm';
@@ -65,6 +72,8 @@ void* mt_memory_calloc(
 
     if (bytes != NULL)
     {
+	mt_memory_used += size;
+
 	struct mt_memory_head* head = (struct mt_memory_head*) bytes;
 
 	head->id[0]       = 'm';
@@ -89,6 +98,8 @@ void* mt_memory_stack_to_heap(
 
     if (bytes != NULL)
     {
+	mt_memory_used += size;
+
 	memcpy(bytes, data, size);
 	return bytes;
     }
@@ -102,6 +113,10 @@ void* mt_memory_realloc(void* pointer, size_t size)
 
     char* bytes = (char*) pointer;
     bytes -= sizeof(struct mt_memory_head);
+
+    mt_memory_used -= malloc_usable_size(bytes);
+    mt_memory_used += size;
+
     bytes = realloc(bytes, sizeof(struct mt_memory_head) + size);
     if (bytes != NULL)
     {
@@ -152,6 +167,8 @@ char mt_memory_release(void* pointer)
 
 	head->id[0] = '\0';
 	head->id[1] = '\0';
+
+	mt_memory_used -= malloc_usable_size(bytes);
 
 	free(bytes);
 
