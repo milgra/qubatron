@@ -27,7 +27,7 @@ octree_t    octree_clone(octree_t* tree);
 void        octree_delete(octree_t* tree);
 void        octree_reset(octree_t* tree, v4_t base);
 octets_t    octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t pnt, int* octindarr);
-void        octree_insert_path(octree_t* tree, size_t arrind, size_t modind, int* octs);
+void        octree_insert_path(octree_t* tree, size_t index, size_t modind, int* octs14, int* octs54, int* octs94);
 void        octree_remove_point(octree_t* tree, v3_t pnt, int* modind, int* octind);
 void        octree_log_path(octets_t o, size_t index);
 void        octree_comp(octree_t* treea, octree_t* treeb);
@@ -146,11 +146,14 @@ octets_t octree_insert_point(octree_t* tree, size_t index, size_t modind, v3_t p
     return result;
 }
 
-void octree_insert_path(octree_t* tree, size_t index, size_t modind, int* octs)
+void octree_insert_path(octree_t* tree, size_t index, size_t modind, int* octs14, int* octs54, int* octs94)
 {
     for (int level = 0; level < tree->levels; level++)
     {
-	int octet = octs[level];
+	// because of webgl transform feedback limitations we have to use 3 separate int buffers
+	int octet = octs14[level];
+	if (level > 3) octet = octs54[level - 4];
+	if (level > 7) octet = octs94[level - 8];
 
 	if (tree->octs[index].oct[octet] == 0)
 	{

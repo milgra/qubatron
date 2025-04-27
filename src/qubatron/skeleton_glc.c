@@ -24,13 +24,17 @@ typedef struct skeleton_glc_t
     GLuint defo_vao;
 
     GLuint defo_pnt_vbo_in;
-    GLuint defo_pnt_vbo_out;
+    GLuint defo_nrm_vbo_in;
 
-    GLuint defo_vbo_oct_out;
+    GLuint defo_vbo_oct14_out;
+    GLuint defo_vbo_oct54_out;
+    GLuint defo_vbo_oct94_out;
     GLuint defo_vbo_nrm_out;
     GLuint defo_unilocs[10];
 
-    GLint*   oct_out;
+    GLint*   oct14_out;
+    GLint*   oct54_out;
+    GLint*   oct94_out;
     size_t   oct_out_size;
     GLfloat* nrm_out;
     size_t   nrm_out_size;
@@ -93,8 +97,8 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
     // set transform feedback varyings before linking
 
-    const GLchar* feedbackVaryings[] = {"octets_out", "normal_out"};
-    glTransformFeedbackVaryings(cc.defo_sha, 2, feedbackVaryings, GL_SEPARATE_ATTRIBS);
+    const GLchar* feedbackVaryings[] = {"oct14", "oct54", "oct94", "normal_out"};
+    glTransformFeedbackVaryings(cc.defo_sha, 4, feedbackVaryings, GL_SEPARATE_ATTRIBS);
 
     shader_link(cc.defo_sha);
 
@@ -111,7 +115,7 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     // create vertex array and vertex buffer
 
     glGenBuffers(1, &cc.defo_pnt_vbo_in);
-    glGenBuffers(1, &cc.defo_pnt_vbo_out);
+    glGenBuffers(1, &cc.defo_nrm_vbo_in);
 
     glGenVertexArrays(1, &cc.defo_vao);
     glBindVertexArray(cc.defo_vao);
@@ -120,7 +124,7 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc.defo_pnt_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cc.defo_nrm_vbo_in);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 3, 0);
 
@@ -128,7 +132,9 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 
     // create and bind result buffer object
 
-    glGenBuffers(1, &cc.defo_vbo_oct_out);
+    glGenBuffers(1, &cc.defo_vbo_oct14_out);
+    glGenBuffers(1, &cc.defo_vbo_oct54_out);
+    glGenBuffers(1, &cc.defo_vbo_oct94_out);
     glGenBuffers(1, &cc.defo_vbo_nrm_out);
 
     return cc;
@@ -228,9 +234,13 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 
     // get previous state first to avoid feedback buffer stalling
 
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->defo_vbo_oct_out);
-    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->oct_out_size, cc->oct_out);
-    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, cc->defo_vbo_nrm_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->defo_vbo_oct14_out);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->oct_out_size / 3, cc->oct14_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, cc->defo_vbo_oct54_out);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->oct_out_size / 3, cc->oct54_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 2, cc->defo_vbo_oct94_out);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->oct_out_size / 3, cc->oct94_out);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 3, cc->defo_vbo_nrm_out);
     glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, cc->nrm_out_size, cc->nrm_out);
 
     // run compute shader
@@ -253,7 +263,7 @@ void skeleton_glc_alloc_in(skeleton_glc_t* cc, void* pntdata, void* nrmdata, siz
     glBufferData(GL_ARRAY_BUFFER, size, pntdata, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_pnt_vbo_out);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_nrm_vbo_in);
     glBufferData(GL_ARRAY_BUFFER, size, nrmdata, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -262,15 +272,25 @@ void skeleton_glc_alloc_out(skeleton_glc_t* cc, void* data, size_t octsize, size
 {
     // create buffer for modified points coming from the shader
 
-    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_oct_out);
-    glBufferData(GL_ARRAY_BUFFER, octsize, NULL, GL_STREAM_READ);
+    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_oct14_out);
+    glBufferData(GL_ARRAY_BUFFER, octsize / 3, NULL, GL_STREAM_READ);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_oct54_out);
+    glBufferData(GL_ARRAY_BUFFER, octsize / 3, NULL, GL_STREAM_READ);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_oct94_out);
+    glBufferData(GL_ARRAY_BUFFER, octsize / 3, NULL, GL_STREAM_READ);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, cc->defo_vbo_nrm_out);
     glBufferData(GL_ARRAY_BUFFER, nrmsize, NULL, GL_STREAM_READ);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    cc->oct_out      = mt_memory_alloc(octsize, NULL, NULL);
+    cc->oct14_out    = mt_memory_alloc(octsize / 3, NULL, NULL);
+    cc->oct54_out    = mt_memory_alloc(octsize / 3, NULL, NULL);
+    cc->oct94_out    = mt_memory_alloc(octsize / 3, NULL, NULL);
     cc->oct_out_size = octsize;
 
     cc->nrm_out      = mt_memory_alloc(nrmsize, NULL, NULL);

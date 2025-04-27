@@ -445,7 +445,9 @@ bool main_loop(double time, void* userdata)
 		&quba.dynaoctr,
 		0,
 		index,
-		&quba.skelglc.oct_out[index * 12]); // 48 bytes stride 12 int
+		&quba.skelglc.oct14_out[index * 4],
+		&quba.skelglc.oct54_out[index * 4],
+		&quba.skelglc.oct94_out[index * 4]);
 	}
 
 	if (quba.dustmod.point_count > 0)

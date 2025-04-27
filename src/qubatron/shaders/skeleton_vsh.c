@@ -7,8 +7,13 @@ precision highp float;
 in vec3 position;
 in vec3 normal;
 
-flat out int  octets_out[12];
-flat out vec3 normal_out;
+/* webgl doesn't support capture of arrays */
+/* flat out int  octets_out[12]; */
+
+flat out ivec4 oct14;
+flat out ivec4 oct54;
+flat out ivec4 oct94;
+flat out vec3  normal_out;
 
 uniform vec4 oldbones[POINT_COUNT];
 uniform vec4 newbones[POINT_COUNT];
@@ -182,6 +187,7 @@ void main()
 
     //  calculate out octets
 
+    int  octets_out[12];
     vec4 cube = basecube;
 
     for (int level = 0; level < maxlevel; level++)
@@ -205,4 +211,17 @@ void main()
 
 	octets_out[level] = octet;
     }
+
+    oct14.x = octets_out[0];
+    oct14.y = octets_out[1];
+    oct14.z = octets_out[2];
+    oct14.w = octets_out[3];
+    oct54.x = octets_out[4];
+    oct54.y = octets_out[5];
+    oct54.z = octets_out[6];
+    oct54.w = octets_out[7];
+    oct94.x = octets_out[8];
+    oct94.y = octets_out[9];
+    oct94.z = octets_out[10];
+    oct94.w = octets_out[11];
 }
