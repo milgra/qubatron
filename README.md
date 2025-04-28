@@ -6,6 +6,12 @@
 - Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version, 33 million voxels, Intel Arc GPU )
 - Build and run for yourself ( instructions below )
 
+### Support
+
+Would you like to see a game using this engine? Please support development.
+- Via Github Sponsors, use the button on the right panel
+- Via [Paypal](https://paypal.me/milgra)
+
 ### Is ~~2024~~ 2025 the year of voxel based rendering and the end of polygons? Let's find out!
 
 The main idea is :
@@ -22,18 +28,18 @@ The main idea is :
 The method :
 - upload octree structure, colors and normals to gpu
 - in the fragment shader for every screen coordinate
- - create vector from camera focus point to screen coordinate
- - check intersection with octree
- - in case of intersection with leaf get it's color
- - in case of intersection with leaf check if light ray 'sees' the intersection point
- - calculate final color of screen coord using octet color, normal and light direction/visibility
+    - create vector from camera focus point to screen coordinate
+    - check intersection with octree
+    - in case of intersection with leaf get it's color
+    - in case of intersection with leaf check if light ray 'sees' the intersection point
+    - calculate final color of screen coord using octet color, normal and light direction/visibility
 
 Octet intersection check :
 - check line intersection with all sides of base cube using x = x0 + dirX * t -> t = ( x - x0 ) / dirX
 - check coordinate intervals for sides with intersection
 - then go into subnodes
- - check the two bisecting planes and bring side intersections from previous step
- - figure out the touched octets and their order from the intersection points
+    - check the two bisecting planes and bring side intersections from previous step
+    - figure out the touched octets and their order from the intersection points
 
 Static octree modification :  
 - zero out wanted octets in current octree structure
@@ -59,8 +65,8 @@ Then generate flat model files
 - Convert mesh to sample ( 90 million points for abandoned, 10 million for zombie )
 - Save as PLY in binary format
 - Use build/qmc to convert result .ply-s to flat vertex, normal and color files :
- - build/qmc -s 1800 -l 12 -i media/abandoned.ply
- - build/qmc -s 1800 -l 12 -i media/zombie.ply
+    - build/qmc -s 1800 -l 12 -i media/abandoned.ply
+    - build/qmc -s 1800 -l 12 -i media/zombie.ply
 - Copy resulting col, nrm and pnt files under /res
 
 Then start qubatron
@@ -81,12 +87,12 @@ emcc --emrun -Isrc/qubatron  -Isrc/mt_core -Isrc/mt_math -I/home/milgra/Download
 
 - Get a PC with a high-end GPU to squeeze the maximum out from the engine 
 - Load time voxelization instead of pre-generated flat files, because
- - Asset sizes are too big, with load-time voxelization asset sizes can be reduced from 1.4 Gbytes to 75 Mbytes
- - WebGL version can use the same detail level as the desktop version
- - CloudCompare doesn't cover mesh perfectly since it uses random points
- - Use a modified version of [obj2voxel](https`://github.com/Eisenwave/obj2voxel)
-  - it already generates voxels for abandoned house under 1 second
-  - doesn't generates normals, I have to update it with normal generation
+    - Asset sizes are too big, with load-time voxelization asset sizes can be reduced from 1.4 Gbytes to 75 Mbytes
+    - WebGL version can use the same detail level as the desktop version
+    - CloudCompare doesn't cover mesh perfectly since it uses random points
+    - Use a modified version of [obj2voxel](https`://github.com/Eisenwave/obj2voxel)
+        - it already generates voxels for abandoned house under 1 second
+        - doesn't generate normals, add normal generation
 
 ### Notes
 
@@ -99,7 +105,7 @@ For WebGL compatibilty a lot of workarounds had to be applied
 - No layout qualifiers can be used in shaders
 - Arrays cannot be returned in transform feedback buffers, I had to use 4 separate buffers for 12 ints and 4 floats
 
-Todo :
+### Todo
 
 - separate orind array for octree
 - limit particle count
