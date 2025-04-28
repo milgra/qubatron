@@ -90,9 +90,13 @@ emcc --emrun -Isrc/qubatron  -Isrc/mt_core -Isrc/mt_math -I/home/milgra/Download
     - Asset sizes are too big, with load-time voxelization asset sizes can be reduced from 1.4 Gbytes to 75 Mbytes
     - WebGL version can use the same detail level as the desktop version
     - CloudCompare doesn't cover mesh perfectly since it uses random points
-    - Use a modified version of [obj2voxel](https`://github.com/Eisenwave/obj2voxel)
+    - Use a modified version of [obj2voxel](https://github.com/Eisenwave/obj2voxel)
         - it already generates voxels for abandoned house under 1 second
-        - doesn't generate normals, add normal generation
+        - normal generation must be added
+- Extend level size with more basecubes/stream basecube data to GPU
+    - Probably with slicing up levels into multiple basecubes automatically
+- Use alpha channel for voxels ( glass, transparency effects )
+- Add blender bone data import for simpler skeletal animation
 
 ### Notes
 
