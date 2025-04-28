@@ -375,7 +375,7 @@ void modelutil_punch_hole(
     int octind = -1; // fucked up, modify!
     int modind = -1; // fucked up, modify!
 
-    float dist = guntype * 5.0 + guntype * 5.0 * ((float) (rand() % 100) / 100.0);
+    float dist = (guntype + 1) * 5.0 + (guntype + 1) * 5.0 * ((float) (rand() % 100) / 100.0);
     float half = dist / 2.0;
 
     int division = 2;
@@ -590,7 +590,7 @@ void modelutil_punch_hole_dyna(
     float oy = model->vertexes[index * 3 + 1];
     float oz = model->vertexes[index * 3 + 2];
 
-    float dist = guntype * 5.0 + guntype * 5.0 * ((float) (rand() % 100) / 100.0);
+    float dist = (guntype + 1) * 5.0 + (guntype + 1) * 5.0 * ((float) (rand() % 100) / 100.0);
 
     int minind = 0;
     int maxind = 0;

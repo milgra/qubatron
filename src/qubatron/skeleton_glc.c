@@ -146,10 +146,10 @@ void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
     cc->pos = (v4_t){250.0, 0.0, 600.0, 0.0};
 
     cc->path[0] = (v4_t){300.0, 0.0, 900.0, 0.0};
-    cc->path[1] = (v4_t){450.0, 0.0, 900.0, 0.0};
-    cc->path[2] = (v4_t){450.0, 0.0, 200.0, 0.0};
+    cc->path[1] = (v4_t){420.0, 0.0, 900.0, 0.0};
+    cc->path[2] = (v4_t){480.0, 0.0, 200.0, 0.0};
     cc->path[3] = (v4_t){550.0, 0.0, 200.0, 0.0};
-    cc->path[4] = (v4_t){450.0, 0.0, 300.0, 0.0};
+    cc->path[4] = (v4_t){420.0, 0.0, 300.0, 0.0};
     cc->path[5] = (v4_t){300.0, 0.0, 600.0, 0.0};
 
     cc->zombie         = zombie_init(cc->pos, cc->dir, statoctr);
@@ -337,10 +337,12 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
     }
 }
 
+int timeouts[3] = {5, 15, 60};
+
 void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit, int guntype)
 {
     zombie_init_ragdoll(&cc->zombie);
-    cc->ragdoll += guntype * 15;
+    cc->ragdoll += timeouts[guntype];
     cc->speed -= 2.0;
     zombie_shoot(&cc->zombie, pos, dir, hit);
 }

@@ -412,14 +412,17 @@ void octree_glc_upload_texbuffer_data(
     int maxheight = (size / itemsize) / 8192;
     if (rc->text_heights[unif] < maxheight)
     {
-	rc->memsize -= 8192 * rc->text_heights[unif] * 16;
-	rc->memsize += 8192 * (maxheight + 1) * 16;
+	int newheight = maxheight + 100;
+	if (newheight > 8192) newheight = 8192;
 
-	rc->text_heights[unif] = maxheight + 1;
+	rc->memsize -= 8192 * rc->text_heights[unif] * 16;
+	rc->memsize += 8192 * newheight * 16;
+
+	rc->text_heights[unif] = newheight;
 	if (type == GL_FLOAT)
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, maxheight + 1, 0, GL_RGB, GL_FLOAT, NULL);
+	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 8192, newheight, 0, GL_RGB, GL_FLOAT, NULL);
 	else
-	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, maxheight + 1, 0, GL_RGBA_INTEGER, GL_INT, NULL);
+	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32I, 8192, newheight, 0, GL_RGBA_INTEGER, GL_INT, NULL);
 	start = 0;
 	end   = size;
     }

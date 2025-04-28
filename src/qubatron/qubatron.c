@@ -155,7 +155,7 @@ void main_init()
 #endif
 
     quba.zombiecount = quba.dynamod.point_count;
-    quba.guntype     = 1;
+    quba.guntype     = 0;
 
     skeleton_glc_init_zombie(&quba.skelglc, &quba.statoctr);
 
@@ -308,9 +308,9 @@ bool main_loop(double time, void* userdata)
 	    if (event.key.keysym.sym == SDLK_y) skeleton_glc_move(&quba.skelglc, 0);
 	    if (event.key.keysym.sym == SDLK_h) skeleton_glc_move(&quba.skelglc, 0);
 	    if (event.key.keysym.sym == SDLK_r) skeleton_glc_init_ragdoll(&quba.skelglc);
-	    if (event.key.keysym.sym == SDLK_1) quba.guntype = 1;
-	    if (event.key.keysym.sym == SDLK_2) quba.guntype = 2;
-	    if (event.key.keysym.sym == SDLK_3) quba.guntype = 3;
+	    if (event.key.keysym.sym == SDLK_1) quba.guntype = 0;
+	    if (event.key.keysym.sym == SDLK_2) quba.guntype = 1;
+	    if (event.key.keysym.sym == SDLK_3) quba.guntype = 2;
 	    if (event.key.keysym.sym == SDLK_4) quba.rndscale = 4;
 	    if (event.key.keysym.sym == SDLK_5) quba.rndscale = 5;
 	    if (event.key.keysym.sym == SDLK_6) quba.rndscale = 6;

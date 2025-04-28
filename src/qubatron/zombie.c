@@ -295,6 +295,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 	    newlfp.y += 100.0;
 	    octree_trace_line(statoctr, v4_xyz(newlfp), (v3_t){0.0, -100.0, 0.0}, &tlf);
 	    newlfp = tlf;
+	    newlfp.y += 13.0;
 
 	    /* if (v3_length(v4_xyz(v4_sub(pos, zombie->lfp))) > 30.0) */
 	    /* { */
@@ -308,6 +309,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 	    newrfp.y += 100.0;
 	    octree_trace_line(statoctr, v4_xyz(newrfp), (v3_t){0.0, -100.0, 0.0}, &tlf);
 	    newrfp = tlf;
+	    newrfp.y += 13.0;
 
 	    /* if (v3_length(v4_xyz(v4_sub(pos, zombie->rfp))) > 30.0) */
 	    /* { */
