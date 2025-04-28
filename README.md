@@ -1,4 +1,4 @@
-## Qubatron - Photorealistic ray traced micro-voxel fps engine
+## Qubatron - Photorealistic ray-traced micro-voxel fps engine
 
 [![Qubatron](https://img.youtube.com/vi/LqytIbcjX18/0.jpg)](https://www.youtube.com/watch?v=LqytIbcjX18)
 
@@ -16,9 +16,9 @@ Would you like to see a game using this engine? Please support development.
 
 The main idea is :
 - point cloud based levels
-- raytraced sparse octree based visibility calculations
-- raytraced shadows
-- if the gpu still has enough power - raytraced reflections/transparency/refractions
+- ray-traced sparse octree based visibility calculations
+- ray-traced shadows
+- if the gpu still has enough power - ray-traced reflections/transparency/refractions
 - if the gpu still has enough power - path tracing with multiple bounce
 - ~~distance-dependent octree detail level - tried it, doesn't really lower gpu load, maybe in bigger scenes later~~
 - ~~procedural sub-detail voxel generation for close voxels - tried it, doesn't really look good, maybe later~~
