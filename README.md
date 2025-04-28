@@ -1,105 +1,119 @@
-## Qubatron - Photorealistic path-traced micro-voxel fps engine prototype
+## Qubatron - Photorealistic ray-traced micro-voxel fps engine
 
 [![Qubatron](https://img.youtube.com/vi/LqytIbcjX18/0.jpg)](https://www.youtube.com/watch?v=LqytIbcjX18)
 
-- Try it online [here](https://milgra.com/qubatron/)! ( low detail version, 17 million voxels, 300Mbyte download, WASD + mouse + numbers for resolution )  
-- Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version, 33 million voxels, Intel Arc GPU )
+- Try it online [here](https://milgra.com/qubatron/)! ( low detail version )
+- Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version )
 - Build and run for yourself ( instructions below )
 
-### Is 2024 the year of voxel-based rendering and the end of polygons? Let's find out!
+### Support
+
+Would you like to see a game using this engine? Please support development.
+- Via Github Sponsors, use the button on the right panel
+- Via [Paypal](https://paypal.me/milgra)
+
+### Is ~~2024~~ 2025 the year of voxel based rendering and the end of polygons? Let's find out!
 
 The main idea is :
 - point cloud based levels
-- path traced octree-based visibility calculations
-- if path tracing is already there use it for lighting calculations ( voxel level shadow )
-- and later - if the gpu still has enough power - for reflections/transparency/everything
-- ~~distance-dependent octree detail level - tried it, doesn't really lower gpu load~~
-- ~~procedural sub-detail voxel generation for close voxels - tried it, doesn't really look good~~
-- instead of the above use super-detailed voxel clouds in case of nearby octrees
+- ray-traced sparse octree based visibility calculations
+- ray-traced shadows
+- if the gpu still has enough power - ray-traced reflections/transparency/refractions
+- if the gpu still has enough power - path tracing with multiple bounce
+- ~~distance-dependent octree detail level - tried it, doesn't really lower gpu load, maybe in bigger scenes later~~
+- ~~procedural sub-detail voxel generation for close voxels - tried it, doesn't really look good, maybe later~~
+- higher detail point clouds for nearby objects - for weapons
 - voxel level physics for particles and skeletal animations
 
 The method :
-- upload octree structure to gpu
+- upload octree structure, colors and normals to gpu
 - in the fragment shader for every screen coordinate
- - create vector from camera focus point to screen coordinate
- - check intersection with octree
- - in case of intersection with leaf use it's color
- - in case of intersection with leaf check if light ray 'sees' the intersection point
- - calculate final color for screen point using octet normal
+    - create vector from camera focus point to screen coordinate
+    - check intersection with octree
+    - in case of intersection with leaf get it's color
+    - in case of intersection with leaf check if light ray 'sees' the intersection point
+    - calculate final color of screen coord using octet color, normal and light direction/visibility
 
 Octet intersection check :
 - check line intersection with all sides of base cube using x = x0 + dirX * t -> t = ( x - x0 ) / dirX
 - check coordinate intervals for sides with intersection
 - then go into subnodes
- - first I used brute force and checked all sides of all octets, it was slow
- - now I just check the two bisecting planes and bring side intersections from previous step
- - figure out the touched octets and their order from the intersection points
+    - check the two bisecting planes and bring side intersections from previous step
+    - figure out the touched octets and their order from the intersection points
 
 Static octree modification :  
 - zero out wanted octets in current octree structure
 - octets will be added to the end of the octree array
 - update zeroed out and added ranges on the gpu
 
-Dynamic octree modifictaion :
-- modify all points in a compute shader based on bones
-- recreate octree structure
-- upload as dynamic octree
+Dynamic octree modifictaion / Point cloud animation :
+- update all points and their normals in a compute shader
+- calculate new octree paths in the compute shader
+- rebuild dynamic octree array from octree paths on the CPU
+- upload dynamic octree to GPU
 
-Things learned :
-- if statements, loops, arrays and variables kill shader performance badly
+### How to build & run
 
-Performance :
-Measured on my ASUS Zenbook UX3405 14 OLED / Intel(R) Core(TM) Ultra 5 125H / Intel Arc Graphics / 1200x800 points resolution
-- 3318142 voxels / no lights : 50 fps
-- 3318142 voxels / 1 light : 16 fps
-- 16969878 voxels / 1 light : 10 fps 
-
-How to build :
 ```
 meson setup build
 ninja -C build
+```
+
+Then generate flat model files
+
+- Use CloudCompare, open media/abandoned_cc.bin then media/zombie_cc.bin
+- Convert mesh to sample ( 90 million points for abandoned, 10 million for zombie )
+- Save as PLY in binary format
+- Use build/qmc to convert result .ply-s to flat vertex, normal and color files :
+    - build/qmc -s 1800 -l 12 -i media/abandoned.ply
+    - build/qmc -s 1800 -l 12 -i media/zombie.ply
+- Copy resulting col, nrm and pnt files under /res
+
+Then start qubatron
+
+```
 build/qubatron -v
 ```
 
-How to create model files
+webasm build
 
-- Use CloudCompare, open abandoned_cc.bin then zombie_cc.bin
-- Convert mesh to sample ( 90 million points for abandoned, 10 million for zombie )
-- Export as ply with color and normal data
-- Use build/qmc to convert result .ply-s to flat vertex, normal and color files :
- - build/qmc -s 1800 -l 12 -i media/abandoned.ply
- - build/qmc -s 1800 -l 12 -i media/zombie.ply
-- Problem : CloudCompare doesn't cover mesh perfectly since it uses random points
-- Alternative solution : Convert [obj2voxel](https`://github.com/Eisenwave/obj2voxel) to export surface normals
-
-Videos :
-
-- zombie added - high detail - 13488259 voxels with 1 light - commit 206478b : [https://youtu.be/u8h5nE1rz5Y]
-- high detail - 16969878 voxels with 1 light - commit eb3f1a4 : [https://youtu.be/OZ8vxzFvEM8]
-- normal detail - 3318142 voxels with no light, sub-detail randomization enabled - commit 7ab1f55 : [https://youtu.be/giQ5RIZmgMQ]
-- normal detail - 3318142 voxels with 1 light - commit 344c25a : [https://www.youtube.com/watch?v=LqytIbcjX18]
-
-WebAssembly :
-
+```
 find src -type f -name "*.c" -not -path "./src/qubatron/shaders/*" > files.txt
-
 source "/home/milgra/Downloads/emsdk/emsdk_env.sh"
-
 emcc --emrun -Isrc/qubatron  -Isrc/mt_core -Isrc/mt_math -I/home/milgra/Downloads/emsdk/upstream/emscripten/system/includer/emscripten.h -DPATH_MAX=255 -DPKG_DATADIR=\"/\" -DQUBATRON_VERSION=\"1.0\" -O3 -sUSE_SDL=2 -sMAX_WEBGL_VERSION=2 $(cat files.txt) -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4Gb --preload-file src/qubatron --preload-file resasm -o wasm/qubatron.html
+```
 
-Todo :
+### Roadmap
+
+- Get a PC with a high-end GPU to squeeze the maximum out from the engine 
+- Load time voxelization instead of pre-generated flat files, because
+    - Asset sizes are too big, with load-time voxelization asset sizes can be reduced from 1.4 Gbytes to 75 Mbytes
+    - WebGL version can use the same detail level as the desktop version
+    - CloudCompare doesn't cover mesh perfectly since it uses random points
+    - Use a modified version of [obj2voxel](https://github.com/Eisenwave/obj2voxel)
+        - it already generates voxels for abandoned house under 1 second
+        - normal generation must be added
+- Extend level size with more basecubes/stream basecube data to GPU
+    - Probably with slicing up levels into multiple basecubes automatically
+- Use alpha channel for voxels ( glass, transparency effects )
+- Add blender bone data import for simpler skeletal animation
+
+### Notes
+
+Things learned :
+- if statements, loops, arrays and variables kill shader performance badly
+- it's better to calculate octree path for a new point on the GPU so the CPU only deals with indexes when building up the octree
+
+For WebGL compatibilty a lot of workarounds had to be applied
+- Insted of using shader storage buffer objects or buffer textures regular textures had to be used
+- No layout qualifiers can be used in shaders
+- Arrays cannot be returned in transform feedback buffers, I had to use 4 separate buffers for 12 ints and 4 floats
+
+### Todo
 
 - separate orind array for octree
-- limit particles
+- limit particle count
 - fix floating particles
-- kezmozgas
-- kisebb zombi
-- video felvesz fixed steppinggel
-- video befejezese
-
-Later :
-
-- sinus edge for punch hole
+- sinus/random edge for punch hole
 - webgl fencing
 
-with load-time voxelization asset size can be reduced from 1.4 Gbytes to 75 Mbytes
