@@ -3,7 +3,7 @@
 [![Qubatron](https://img.youtube.com/vi/LqytIbcjX18/0.jpg)](https://www.youtube.com/watch?v=LqytIbcjX18)
 
 - Try it online [here](https://milgra.com/qubatron/)! ( low detail version )
-- Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version, 33 million voxels, Intel Arc GPU )
+- Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version )
 - Build and run for yourself ( instructions below )
 
 ### Support
@@ -47,9 +47,9 @@ Static octree modification :
 - update zeroed out and added ranges on the gpu
 
 Dynamic octree modifictaion / Point cloud animation :
-- update all points and their normals in a compute shader based on bones
+- update all points and their normals in a compute shader
 - calculate new octree paths in the compute shader
-- rebuild dynamic octree array from octree paths 
+- rebuild dynamic octree array from octree paths on the CPU
 - upload dynamic octree to GPU
 
 ### How to build & run
