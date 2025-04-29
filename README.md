@@ -106,7 +106,7 @@ octree.c - builds up and stores octree information for a model. Each element is 
 
 *_glc.c - gl connectors. Shader initialization and buffer handling is their task.
 
-# Shaders
+#### Shaders
 
 octree_fsh.c - the soul of the game, ray-traced octree collosion detection is happening here, shadow, final color calculations.
 
