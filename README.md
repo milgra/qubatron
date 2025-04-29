@@ -98,6 +98,26 @@ emcc --emrun -Isrc/qubatron  -Isrc/mt_core -Isrc/mt_math -I/home/milgra/Download
 - Use alpha channel for voxels ( glass, transparency effects )
 - Add blender bone data import for simpler skeletal animation
 
+### Code Internals
+
+model.c - contains model data, position, normal and color information for every point in a flat vector array. All attributes are three component float vectors for size efficiency. Thinking about adding an alpha channel to the color attribute for transparency.
+
+octree.c - builds up and stores octree information for a model. Each element is a 12 length int array, the first 8 contains indexes for the subnodes in the octree array, the 9th is the index of the vertex in the model object. For space efficiency it will be converted to 8 length int arrays and a separate model index array. Octets can be added by point position or by pre-calculated voxel path. 
+
+*_glc.c - gl connectors. Shader initialization and buffer handling is their task.
+
+#Shaders
+
+octree_fsh.c - the soul of the game, ray-traced octree collosion detection is happening here, shadow, final color calculations.
+
+skeleton_vsh.c - compute shader for skeletal animation. character model point clouds are updated here based on bone positions. octree path calculation also happening here.
+
+particle_vsh.c - blood/debris particle simulation compute shader
+
+dust_vsh.c - dust particle simulation compute shader
+
+texquad_vsh/fsh - render to texture shader to be able to scale output
+
 ### Notes
 
 Things learned :
@@ -108,6 +128,12 @@ For WebGL compatibilty a lot of workarounds had to be applied
 - Insted of using shader storage buffer objects or buffer textures regular textures had to be used
 - No layout qualifiers can be used in shaders
 - Arrays cannot be returned in transform feedback buffers, I had to use 4 separate buffers for 12 ints and 4 floats
+
+Skeletal animation.
+Locking points to more than two bones caused me a few sleepless nights but the result is totally satisfying.
+In addition I was really surprised when I realized that I had to rotate point normals with the points locations also to make lighting work :)
+
+Objects doesn't have volume in Qubatron, just a thin voxel layer around them for memory reasons. Creating bullet holes and especially random bullet holes are tough. Still trying to figure it out.
 
 ### Todo
 
