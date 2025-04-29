@@ -143,14 +143,15 @@ skeleton_glc_t skeleton_glc_init(char* base_path)
 void skeleton_glc_init_zombie(skeleton_glc_t* cc, octree_t* statoctr)
 {
     cc->dir = (v4_t){0.0, 0.0, 1.0, 0.0};
-    cc->pos = (v4_t){250.0, 0.0, 600.0, 0.0};
+    cc->pos = (v4_t){300.0, 0.0, 900.0, 0.0};
 
     cc->path[0] = (v4_t){300.0, 0.0, 900.0, 0.0};
     cc->path[1] = (v4_t){420.0, 0.0, 900.0, 0.0};
     cc->path[2] = (v4_t){480.0, 0.0, 200.0, 0.0};
     cc->path[3] = (v4_t){550.0, 0.0, 200.0, 0.0};
-    cc->path[4] = (v4_t){420.0, 0.0, 300.0, 0.0};
-    cc->path[5] = (v4_t){300.0, 0.0, 600.0, 0.0};
+    cc->path[4] = (v4_t){480.0, 0.0, 300.0, 0.0};
+    cc->path[5] = (v4_t){420.0, 0.0, 600.0, 0.0};
+    cc->path[6] = (v4_t){300.0, 0.0, 600.0, 0.0};
 
     cc->zombie         = zombie_init(cc->pos, cc->dir, statoctr);
     cc->zombie_control = 0;
@@ -195,7 +196,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	if (v3_length(v4_xyz(cdir)) < 20.0)
 	{
 	    cc->path_ind += 1;
-	    if (cc->path_ind == 4) cc->path_ind = 0;
+	    if (cc->path_ind == 6) cc->path_ind = 0;
 	}
 
 	float angle = -atan2(cdir.x, cdir.z);
@@ -208,7 +209,7 @@ void skeleton_glc_update(skeleton_glc_t* cc, octree_t* statoctr, model_t* statmo
 	v4_t rotq = quat_from_axis_angle(v3_normalize((v3_t){0.0, 1.0, 0.0}), -cc->angle);
 	cdir      = v4_xyzw(quat_rotate(rotq, v4_xyz(cc->dir)));
 
-	cc->speed += 0.3;
+	cc->speed += 0.4;
 	cc->speed *= 0.8;
 	cc->pos = v4_add(cc->pos, v4_scale(cdir, cc->speed));
     }

@@ -380,11 +380,14 @@ void modelutil_punch_hole(
 
     int division = 2;
     for (int i = 0; i < statoctr->levels - 1; i++) division *= 2;
-    float step   = statoctr->basecube.w / (float) division;
-    int   pntlen = (int) (dist / step);
-    v3_t  pntarr[pntlen * pntlen * pntlen];
-    int   modarr[pntlen * pntlen * pntlen];
-    int   pntind = 0;
+    float step      = statoctr->basecube.w / (float) division;
+    int   pntlen    = (int) (dist / step);
+    int   pntarrlen = pntlen * pntlen * pntlen;
+
+    v3_t* pntarr = CAL(pntarrlen * sizeof(v3_t), NULL, NULL);
+    int*  modarr = CAL(pntarrlen * sizeof(int), NULL, NULL);
+
+    int pntind = 0;
 
     float r1 = 0.5 + 0.5 * ((float) (rand() % 100) / 100.0);
     float r2 = 0.5 + 0.5 * ((float) (rand() % 100) / 100.0);
@@ -460,8 +463,8 @@ void modelutil_punch_hole(
 			// add points for density, avoid holes
 			// !!! possible buffer overrun
 
-			modarr[pntind]   = modind;
-			pntarr[pntind++] = (v3_t){x + step, y + step, z + step};
+			/* modarr[pntind]   = modind; */
+			/* pntarr[pntind++] = (v3_t){x + step, y + step, z + step}; */
 		    }
 		}
 	    }
@@ -518,6 +521,9 @@ void modelutil_punch_hole(
 
 	model_add_point(partmod, curr, speed, ncol);
     }
+
+    REL(pntarr);
+    REL(modarr);
 
     octree_glc_upload_texbuffer_data(
 	glc,

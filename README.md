@@ -111,9 +111,10 @@ For WebGL compatibilty a lot of workarounds had to be applied
 
 ### Todo
 
+- fix floating particles
+- fix webgl shoot crash
 - separate orind array for octree
 - limit particle count
-- fix floating particles
 - sinus/random edge for punch hole
 - webgl fencing
 

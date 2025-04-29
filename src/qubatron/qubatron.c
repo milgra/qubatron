@@ -337,8 +337,9 @@ bool main_loop(double time, void* userdata)
     uint32_t ticks = SDL_GetTicks();
     uint32_t delta = ticks - move.prevticks;
 
-    if (delta > 16)
+    if (delta > 1000 / 60.0)
     {
+	/* mt_log_debug("FPS %f", 1000.0 / delta); */
 	move.prevticks = ticks;
 
 	if (delta > 1000) delta = 1000;
@@ -575,8 +576,8 @@ int main(int argc, char* argv[])
     quba.octrdpth = 11; // octree depth
 #endif
 
-    /* move.lookpos    = (v3_t){700.0, 150.0, 350.0}; */
-    move.lookpos    = (v3_t){300.0, 150.0, 650.0};
+    move.lookpos = (v3_t){700.0, 150.0, 350.0};
+    /* move.lookpos    = (v3_t){300.0, 150.0, 650.0}; */
     move.direction  = (v3_t){-0.5, 0.0, -1.0};
     move.directionX = (v3_t){-1.0, 0.0, 0.0};
 

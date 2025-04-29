@@ -301,7 +301,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 	    /* { */
 	    /* 	newlfp.y += 15.0; */
 	    /* } */
-	    zombie->lfp = v4_add(zombie->lfp, v4_scale(v4_sub(newlfp, zombie->lfp), 0.1));
+	    zombie->lfp = v4_add(zombie->lfp, v4_scale(v4_sub(newlfp, zombie->lfp), 0.2));
 	}
 	else
 	{
@@ -315,7 +315,7 @@ void zombie_update(zombie_t* zombie, octree_t* statoctr, model_t* statmod, float
 	    /* { */
 	    /* 	newrfp.y += 15.0; */
 	    /* } */
-	    zombie->rfp = v4_add(zombie->rfp, v4_scale(v4_sub(newrfp, zombie->rfp), 0.1));
+	    zombie->rfp = v4_add(zombie->rfp, v4_scale(v4_sub(newrfp, zombie->rfp), 0.2));
 	}
 
 	// if leg distance is too big switch legs
