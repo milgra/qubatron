@@ -1,9 +1,9 @@
 ## Qubatron - Photorealistic ray-traced micro-voxel fps engine
 
-[![Qubatron](https://img.youtube.com/vi/LqytIbcjX18/0.jpg)](https://www.youtube.com/watch?v=LqytIbcjX18)
+[![Qubatron](screenshot.png)](https://www.youtube.com/watch?v=LBzuXj21_bY)
 
 - Try it online [here](https://milgra.com/qubatron/)! ( low detail version )
-- Watch the demo [here](https://youtu.be/kmjUZZyvqhA?si=56xASom5bmYTcNpD) ( high detail version )
+- Watch the demo [here](https://www.youtube.com/watch?v=LBzuXj21_bY) ( high detail version )
 - Build and run for yourself ( instructions below )
 
 ### Support
@@ -112,9 +112,7 @@ For WebGL compatibilty a lot of workarounds had to be applied
 ### Todo
 
 - fix floating particles
-- fix webgl shoot crash
 - separate orind array for octree
-- limit particle count
 - sinus/random edge for punch hole
 - webgl fencing
 

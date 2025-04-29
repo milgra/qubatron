@@ -5,12 +5,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Qubatron</title>
     <style>body {
-  font-family: arial;
-  margin: 0;
-  padding: none;
-  background-color: black;
-  width: 100%;
-  height: 100%;
+    font-family: arial;
+    margin: 0;
+    padding: none;
+    background-color: black;
     font-color: white;
 }
 
@@ -19,18 +17,19 @@
     width: 1200px;
     height: 800px;
     border: 0px none;
+    
     position: absolute;
     left: 50%;
     top: 50%;
     -webkit-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
-
 }
 
 #info {
     width: 800px;
     height: 600px;
     border: 0px none;
+    
     background-color: #222222;
     color: white;
     text-align:center;
@@ -42,47 +41,32 @@
 }
 
 #progress {
-  height: 20px;
-  width: 300px;
-      -webkit-appearance: none;
-      appearance: none;
-color: #ababab;
+    height: 20px;
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    color: blue;
 }
 
-
-#status {
-    height: 40px;
-    display: inline-block;
-    vertical-align: top;
-    margin-top: 30px;
-    margin-left: 20px;
-    font-weight: bold;
-    color: rgb(120, 120, 120);
-}
-
-#controls {
-  display: inline-block;
-  float: right;
-  vertical-align: top;
-  margin-top: 30px;
-  margin-right: 20px;
-}
+progress::-moz-progress-bar { background: blue; }
+progress::-webkit-progress-value { background: blue; }
 
 #output {
-  width: 100%;
-  height: 300px;
-  margin: 0 auto;
-  margin-top: 10px;
-  border-left: 0px;
-  border-right: 0px;
-  padding-left: 0px;
-  padding-right: 0px;
-  display: block;
-  background-color: black;
-  color: white;
-  font-family: 'Lucida Console', Monaco, monospace;
-  outline: none;
+    width: 100%;
+    height: 300px;
+    margin: 0 auto;
+    margin-top: 0px;
+    border-left: 0px;
+    border-right: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    display: block;
+    background-color: black;
+    color: white;
+    font-family: 'Lucida Console', Monaco, monospace;
+    outline: none;
 }
+
 </style>
   </head>
   <body>
@@ -91,7 +75,6 @@ color: #ababab;
     
     <div id="info">
       <progress id="progress" value="50" max="100"></progress>
-      <!-- <div id="status">Downloading...</div> -->
       <textarea id="output" rows="8"></textarea>
       <br>
       Qubatron Photorealistic Ray-traced Micro-Voxel FPS Prototype<br><br>
@@ -107,68 +90,57 @@ color: #ababab;
     <script type='text/javascript'>
       // var statusElement = document.getElementById('status');
       var progressElement = document.getElementById('progress');
-
+      
       var Module = {
-        print: (function() {
-          var element = document.getElementById('output');
-          if (element) element.value = ''; // clear browser cache
-          return (...args) => {
-            var text = args.join(' ');
-            // These replacements are necessary if you render to raw HTML
-            //text = text.replace(/&/g, "&amp;");
-            //text = text.replace(/</g, "&lt;");
-            //text = text.replace(/>/g, "&gt;");
-            //text = text.replace('\n', '<br>', 'g');
-            console.log(text);
-            if (element) {
-              element.value += text + "\n";
-              element.scrollTop = element.scrollHeight; // focus on bottom
-            }
-          };
-        })(),
-        canvas: (() => {
-          var canvas = document.getElementById('canvas');
+          print: (function() {
+              var element = document.getElementById('output');
+              if (element) element.value = ''; // clear browser cache
+              return (...args) => {
+		  var text = args.join(' ');
+		  console.log(text);
+		  if (element) {
+		      element.value += text + "\n";
+		      element.scrollTop = element.scrollHeight; // focus on bottom
+		  }
+              };
+          })(),
+          canvas: (() => {
+              var canvas = document.getElementById('canvas');
 
-          // As a default initial behavior, pop up an alert when webgl context is lost. To make your
-          // application robust, you may want to override this behavior before shipping!
-          // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
-          canvas.addEventListener("webglcontextlost", (e) => { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+              // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+              // application robust, you may want to override this behavior before shipping!
+              // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+              canvas.addEventListener("webglcontextlost", (e) => { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
 
-          return canvas;
-        })(),
-        setStatus: (text) => {
-          Module.setStatus.last ??= { time: Date.now(), text: '' };
-          if (text === Module.setStatus.last.text) return;
-          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-          var now = Date.now();
-          if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
-          Module.setStatus.last.time = now;
-          Module.setStatus.last.text = text;
-          if (m) {
-            text = m[1];
-            progressElement.value = parseInt(m[2])*100;
-            progressElement.max = parseInt(m[4])*100;
-            // progressElement.hidden = false;
-          } else {
-            // progressElement.value = null;
-            // progressElement.max = null;
-            // progressElement.hidden = true;
+              return canvas;
+          })(),
+          setStatus: (text) => {
+              Module.setStatus.last ??= { time: Date.now(), text: '' };
+              if (text === Module.setStatus.last.text) return;
+              var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+              var now = Date.now();
+              if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+              Module.setStatus.last.time = now;
+              Module.setStatus.last.text = text;
+              if (m) {
+		  text = m[1];
+		  progressElement.value = parseInt(m[2])*100;
+		  progressElement.max = parseInt(m[4])*100;
+              }
+          },
+          totalDependencies: 0,
+          monitorRunDependencies: (left) => {
+              this.totalDependencies = Math.max(this.totalDependencies, left);
+              Module.setStatus(left ? 'Preparing...' : 'All downloads complete.');
           }
-          // statusElement.innerHTML = text;
-        },
-        totalDependencies: 0,
-        monitorRunDependencies: (left) => {
-          this.totalDependencies = Math.max(this.totalDependencies, left);
-          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-        }
       };
-      Module.setStatus('Downloading...');
+      Module.print('Downloading...');
       window.onerror = (event) => {
-        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
-        Module.setStatus('Exception thrown, see JavaScript console');
-        Module.setStatus = (text) => {
-          if (text) console.error('[post-exception status] ' + text);
-        };
+          // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
+          Module.setStatus('Exception thrown, see JavaScript console');
+          Module.setStatus = (text) => {
+              if (text) console.error('[post-exception status] ' + text);
+          };
       };
     </script>
     <script async type="text/javascript" src="qubatron.js"></script>
