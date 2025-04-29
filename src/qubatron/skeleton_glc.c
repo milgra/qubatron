@@ -338,7 +338,7 @@ void skeleton_glc_init_ragdoll(skeleton_glc_t* cc)
     }
 }
 
-int timeouts[3] = {5, 15, 60};
+int timeouts[3] = {5, 15, 90};
 
 void skeleton_glc_shoot(skeleton_glc_t* cc, v3_t pos, v3_t dir, v3_t hit, int guntype)
 {
